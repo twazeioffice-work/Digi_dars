@@ -19,17 +19,18 @@ export default function LoginPage() {
       const { access_token, token, role } = response.data;
       const jwtToken = access_token || token;
 
-      // Set cookies (Valid for 7 days)
-      Cookies.set('dars_auth_token', jwtToken, { expires: 7 });
-      Cookies.set('user_role', role, { expires: 7 });
+      // Set cookies (Valid for 7 days across entire domain)
+      Cookies.set('dars_auth_token', jwtToken, { expires: 7, path: '/' });
+      Cookies.set('user_role', role, { expires: 7, path: '/' });
 
       toast.success('Alhamdulillah, Login successful!');
 
       // Route based on role
-      if (role === 'SUPER_ADMIN') router.push('/super-admin');
-      else if (role === 'NAZIM') router.push('/nazim');
-      else if (role === 'USTAD') router.push('/ustad');
-      else router.push('/login');
+      const upperRole = (role || '').toUpperCase();
+      if (upperRole === 'SUPER_ADMIN') router.push('/super-admin');
+      else if (upperRole === 'NAZIM' || upperRole === 'CENTER_ADMIN') router.push('/nazim');
+      else if (upperRole === 'USTAD') router.push('/ustad');
+      else router.push('/nazim');
 
     } catch (error: any) {
       console.error(error);
