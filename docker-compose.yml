@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: digi_dars_web
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_NAME=Digi Dars
+      - SECRET_KEY=digi-dars-production-secret-key-2026
+      - DATABASE_URL=postgresql://digiuser:digipassword@db:5432/digidars_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+  db:
+    image: postgres:16-alpine
+    container_name: digi_dars_db
+    environment:
+      - POSTGRES_USER=digiuser
+      - POSTGRES_PASSWORD=digipassword
+      - POSTGRES_DB=digidars_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: digi_dars_redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+volumes:
+  postgres_data:
