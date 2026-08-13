@@ -17,12 +17,58 @@ def seed_initial_data():
     Base.metadata.create_all(bind=engine)
     
     with SessionLocal() as db_session:
-        # 1. Check if a Super Admin already exists to prevent duplicate seeds
-        stmt = select(User).where(User.role == UserRole.SUPER_ADMIN.value)
-        existing_admin = db_session.execute(stmt).scalar_one_or_none()
-        
+        # Get or create first center
+        first_center = db_session.query(Center).first()
+        if not first_center:
+            first_center = Center(
+                name="Masjid Umar - Main Branch",
+                code="UMAR-001",
+                address="Downtown District",
+            )
+            db_session.add(first_center)
+            db_session.flush()
+
+        # Check and seed sample students
+        existing_students = db_session.query(User).filter(User.role == UserRole.STUDENT.value).all()
+        if not existing_students:
+            s1 = User(
+                full_name="Ahmed Hassan",
+                email="stu101@kiosk.local",
+                student_card_id="STU-101",
+                kiosk_pin="1234",
+                hashed_password=get_password_hash("KioskOnlyAccess123!"),
+                role=UserRole.STUDENT.value,
+                center_id=first_center.id,
+                is_active=True
+            )
+            s2 = User(
+                full_name="Fatima Zahra",
+                email="stu102@kiosk.local",
+                student_card_id="STU-102",
+                kiosk_pin="5678",
+                hashed_password=get_password_hash("KioskOnlyAccess123!"),
+                role=UserRole.STUDENT.value,
+                center_id=first_center.id,
+                is_active=True
+            )
+            s3 = User(
+                full_name="Bilal Muhammad",
+                email="stu103@kiosk.local",
+                student_card_id="STU-103",
+                kiosk_pin="9999",
+                hashed_password=get_password_hash("KioskOnlyAccess123!"),
+                role=UserRole.STUDENT.value,
+                center_id=first_center.id,
+                is_active=True
+            )
+            db_session.add_all([s1, s2, s3])
+            db_session.commit()
+            print("Successfully seeded 3 Kiosk student accounts (STU-101, STU-102, STU-103)")
+
+        # Check if Super Admin exists
+        existing_admin = db_session.query(User).filter(User.role == UserRole.SUPER_ADMIN.value).first()
         if existing_admin:
-            print(f"Super Admin '{existing_admin.email}' already exists. Skipping seed.")
+            print("Super Admin already exists. Seeding complete.")
             return
 
         # 2. Create the first operational Center (Masjid)

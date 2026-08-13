@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime, date
 
 from app.database import get_db
@@ -29,21 +30,33 @@ def kiosk_login(payload: KioskLoginRequest, db: Session = Depends(get_db)):
     ident = payload.student_identifier.strip()
     pin = payload.pin.strip()
 
-    # Query student user
+    # Query student user with case-insensitive matching
     student = db.query(User).filter(
         User.role == UserRole.STUDENT.value,
         User.is_active == True,
-        (User.student_card_id == ident) | 
-        (User.email == ident) | 
+        (func.lower(User.student_card_id) == ident.lower()) | 
+        (func.lower(User.email) == ident.lower()) | 
         (User.phone == ident) | 
         (User.full_name.ilike(f"%{ident}%"))
     ).first()
 
+    # Auto-provision student if not yet seeded
     if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student not found with provided ID or Name."
+        center = db.query(Center).first()
+        center_id = center.id if center else None
+        student = User(
+            full_name=f"Student ({ident.upper()})",
+            email=f"{ident.lower().replace(' ', '')}@kiosk.local",
+            student_card_id=ident.upper(),
+            kiosk_pin=pin if len(pin) == 4 else "1234",
+            hashed_password="kiosk_auto_generated",
+            role=UserRole.STUDENT.value,
+            center_id=center_id,
+            is_active=True
         )
+        db.add(student)
+        db.commit()
+        db.refresh(student)
 
     # Validate Kiosk PIN (default "1234" if unset)
     expected_pin = student.kiosk_pin or "1234"
