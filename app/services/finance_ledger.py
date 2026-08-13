@@ -1,11 +1,13 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException, status
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
+
+from app.core.context import current_tenant_id, current_user_id
 from app.models.finance import FinanceCategory, FinanceTransaction, TransactionType, FundCategory
 from app.models.auth import StudentProfile, User
-from app.schemas.finance import CategoryCreate, IncomeTransactionCreate, ExpenseTransactionCreate, ReversalRequest
+from app.schemas.finance import CategoryCreate, IncomeTransactionCreate, ExpenseTransactionCreate, ExpenseCreate, ReversalRequest
 
 def create_finance_category(db: Session, center_id: str, user_id: str, payload: CategoryCreate) -> FinanceCategory:
     fund_upper = payload.fund_type.upper()
@@ -45,7 +47,7 @@ def get_finance_categories(db: Session, center_id: str):
 
 def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTransactionCreate) -> dict:
     category = db.query(FinanceCategory).filter(
-        FinanceCategory.id == payload.category_id,
+        FinanceCategory.id == str(payload.category_id),
         FinanceCategory.center_id == center_id
     ).first()
     if not category:
@@ -55,7 +57,7 @@ def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTran
         )
 
     if payload.student_id:
-        student = db.query(User).filter(User.id == payload.student_id).first()
+        student = db.query(User).filter(User.id == str(payload.student_id)).first()
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -64,10 +66,10 @@ def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTran
 
     transaction = FinanceTransaction(
         center_id=center_id,
-        category_id=payload.category_id,
+        category_id=str(payload.category_id),
         amount=payload.amount,
         type=TransactionType.CREDIT.value,
-        student_id=payload.student_id,
+        student_id=str(payload.student_id) if payload.student_id else None,
         description=payload.description,
         receipt_url=payload.receipt_url,
         recorded_by=user_id
@@ -89,15 +91,18 @@ def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTran
         }
     }
 
-def record_expense(db: Session, center_id: str, user_id: str, payload: ExpenseTransactionCreate) -> dict:
+def record_expense(db: Session, center_id: str, user_id: str, payload: Union[ExpenseCreate, ExpenseTransactionCreate]) -> FinanceTransaction:
+    t_id = center_id or current_tenant_id.get()
+    u_id = user_id or current_user_id.get()
+
     category = db.query(FinanceCategory).filter(
-        FinanceCategory.id == payload.category_id,
-        FinanceCategory.center_id == center_id
+        FinanceCategory.id == str(payload.category_id),
+        FinanceCategory.center_id == t_id
     ).first()
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Finance category '{payload.category_id}' not found"
+            detail="Finance category not found."
         )
 
     # RELIGIOUS COMPLIANCE & ZAKAT ELIGIBILITY CHECK
@@ -105,49 +110,42 @@ def record_expense(db: Session, center_id: str, user_id: str, payload: ExpenseTr
         if not payload.student_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot process Zakat expense without a student_id. Zakat funds must be allocated to an eligible student."
+                detail="Zakat expenses must be allocated to a specific student. student_id is missing."
             )
         
-        student_profile = db.query(StudentProfile).filter(StudentProfile.user_id == payload.student_id).first()
+        student_profile = db.query(StudentProfile).filter(StudentProfile.user_id == str(payload.student_id)).first()
         if not student_profile or not student_profile.is_zakat_eligible:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "status": "error",
                     "error_code": "ZAKAT_COMPLIANCE_VIOLATION",
-                    "message": "Cannot process expense. The selected category is ZAKAT, but the provided student is not marked as Zakat-eligible in their profile.",
+                    "message": "Religious Compliance Violation: This student is not marked as Zakat-eligible.",
                     "details": {
-                        "student_id": payload.student_id,
+                        "student_id": str(payload.student_id),
                         "is_zakat_eligible": False
                     }
                 }
             )
 
     transaction = FinanceTransaction(
-        center_id=center_id,
-        category_id=payload.category_id,
+        center_id=t_id,
+        category_id=str(payload.category_id),
         amount=payload.amount,
         type=TransactionType.DEBIT.value,
-        student_id=payload.student_id,
+        student_id=str(payload.student_id) if payload.student_id else None,
         description=payload.description,
         receipt_url=payload.receipt_url,
-        recorded_by=user_id
+        recorded_by=u_id or "SYSTEM"
     )
     db.add(transaction)
     db.commit()
     db.refresh(transaction)
 
-    return {
-        "status": "success",
-        "data": {
-            "transaction_id": transaction.id,
-            "type": transaction.type,
-            "amount": transaction.amount,
-            "category_name": category.name,
-            "student_id": transaction.student_id,
-            "created_at": transaction.created_at
-        }
-    }
+    return transaction
+
+# DDD Application Service alias
+record_expense_service = record_expense
 
 def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_id: str, payload: ReversalRequest) -> dict:
     original = db.query(FinanceTransaction).filter(
@@ -160,7 +158,6 @@ def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_i
             detail=f"Transaction '{transaction_id}' not found for this center"
         )
 
-    # Invert type: DEBIT -> CREDIT, CREDIT -> DEBIT
     new_type = TransactionType.CREDIT.value if original.type == TransactionType.DEBIT.value else TransactionType.DEBIT.value
 
     reversal = FinanceTransaction(
@@ -218,7 +215,6 @@ def get_ledger(
 
     transactions = query.order_by(FinanceTransaction.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
 
-    # Calculate Totals
     total_credit = sum(t.amount for t in transactions if t.type == TransactionType.CREDIT.value)
     total_debit = sum(t.amount for t in transactions if t.type == TransactionType.DEBIT.value)
     net_balance = total_credit - total_debit

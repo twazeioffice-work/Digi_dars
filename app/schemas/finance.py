@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
+from uuid import UUID
 
 class CategoryCreate(BaseModel):
     name: str
@@ -19,19 +20,33 @@ class CategoryResponseWrapper(BaseModel):
     status: str = "success"
     data: CategoryResponseData
 
-class IncomeTransactionCreate(BaseModel):
-    category_id: str
-    amount: float = Field(gt=0, description="Amount must be greater than 0")
+class ExpenseCreate(BaseModel):
+    category_id: Union[UUID, str]
+    amount: float = Field(..., gt=0, description="Amount must be greater than zero")
     description: str
     receipt_url: Optional[str] = None
-    student_id: Optional[str] = None
+    student_id: Optional[Union[UUID, str]] = None
 
-class ExpenseTransactionCreate(BaseModel):
-    category_id: str
-    amount: float = Field(gt=0, description="Amount must be greater than 0")
+class ExpenseTransactionCreate(ExpenseCreate):
+    pass
+
+class IncomeTransactionCreate(BaseModel):
+    category_id: Union[UUID, str]
+    amount: float = Field(..., gt=0, description="Amount must be greater than zero")
     description: str
     receipt_url: Optional[str] = None
-    student_id: Optional[str] = None
+    student_id: Optional[Union[UUID, str]] = None
+
+class TransactionResponse(BaseModel):
+    id: Union[UUID, str]
+    category_id: Union[UUID, str]
+    amount: float
+    type: str
+    description: str
+    student_id: Optional[Union[UUID, str]] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 class TransactionDataResponse(BaseModel):
     transaction_id: str

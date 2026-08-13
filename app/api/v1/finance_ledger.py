@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Query, status, Request
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
 from app.database import get_db
 from app.schemas.finance import (
-    CategoryCreate, IncomeTransactionCreate, ExpenseTransactionCreate, ReversalRequest
+    CategoryCreate, IncomeTransactionCreate, ExpenseCreate, ExpenseTransactionCreate, ReversalRequest, TransactionResponse
 )
 from app.services import finance_ledger
 from app.core.guards import role_guard
@@ -80,13 +80,27 @@ def record_income_endpoint(
 )
 def record_expense_endpoint(
     request: Request,
-    payload: ExpenseTransactionCreate,
+    payload: Union[ExpenseCreate, ExpenseTransactionCreate],
     db: Session = Depends(get_db)
 ):
     """(Nazim / Admin Only) Record outgoing funds (DEBIT). Enforces Zakat student eligibility verification."""
-    center_id = request.state.center_id
-    user_id = request.state.user_id
-    return finance_ledger.record_expense(db, center_id, user_id, payload)
+    center_id = getattr(request.state, "center_id", None)
+    user_id = getattr(request.state, "user_id", None)
+    tx = finance_ledger.record_expense(db, center_id, user_id, payload)
+    return {
+        "status": "success",
+        "data": {
+            "transaction_id": tx.id,
+            "id": tx.id,
+            "type": tx.type,
+            "amount": tx.amount,
+            "category_id": tx.category_id,
+            "category_name": getattr(tx.category, "name", ""),
+            "description": tx.description,
+            "student_id": tx.student_id,
+            "created_at": tx.created_at
+        }
+    }
 
 @router.post(
     "/transactions/{transaction_id}/reverse",
