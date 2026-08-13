@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-from typing import List
 from app.database import get_db
 from app.schemas.auth import (
     CenterCreate, CenterUpdateStatus, CenterResponse,
@@ -12,7 +11,6 @@ from app.core.guards import role_guard
 
 router = APIRouter(prefix="/v1", tags=["Module 1: Auth & Multi-Tenancy"])
 
-# Tenant (Center) Management
 @router.post(
     "/centers",
     response_model=CenterResponse,
@@ -29,7 +27,7 @@ def create_center_endpoint(payload: CenterCreate, db: Session = Depends(get_db))
     dependencies=[Depends(role_guard(["SUPER_ADMIN"]))]
 )
 def update_center_status_endpoint(
-    center_id: int,
+    center_id: str,
     payload: CenterUpdateStatus,
     db: Session = Depends(get_db)
 ):
@@ -37,11 +35,10 @@ def update_center_status_endpoint(
     return auth_tenant.update_center_status(db, center_id, payload.status)
 
 @router.get("/centers/{center_id}", response_model=CenterResponse)
-def get_center_details_endpoint(center_id: int, db: Session = Depends(get_db)):
+def get_center_details_endpoint(center_id: str, db: Session = Depends(get_db)):
     """Retrieve details and metadata for a specific center."""
     return auth_tenant.get_center_details(db, center_id)
 
-# User & Role Management
 @router.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user_endpoint(payload: UserRegister, db: Session = Depends(get_db)):
     """Register a new user (Ustad, Nazim, Parent, Student, etc.)."""
@@ -63,4 +60,9 @@ def link_parent_to_student_endpoint(
     db: Session = Depends(get_db)
 ):
     """Link a Parent user to a Student user."""
-    return auth_tenant.link_parent_to_student(db, payload.parent_id, payload.student_id)
+    return auth_tenant.link_parent_to_student(
+        db,
+        payload.parent_id,
+        payload.student_id,
+        payload.relation_type or "GUARDIAN"
+    )

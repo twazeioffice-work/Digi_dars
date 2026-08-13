@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from app.models.auth import Center, User, ParentStudentLink, CenterStatus, UserRole
-from app.schemas.auth import CenterCreate, UserRegister, UserLogin
+from datetime import datetime, timezone, date
+from app.models.auth import Center, User, StudentProfile, ParentStudentLink, CenterStatus, UserRole
+from app.schemas.auth import CenterCreate, UserRegister, UserLogin, ParentStudentLinkCreate
 from app.core.security import hash_password, verify_password, create_access_token
 
 def create_center(db: Session, payload: CenterCreate) -> Center:
@@ -23,7 +24,7 @@ def create_center(db: Session, payload: CenterCreate) -> Center:
     db.refresh(center)
     return center
 
-def update_center_status(db: Session, center_id: int, status_val: str) -> Center:
+def update_center_status(db: Session, center_id: str, status_val: str) -> Center:
     status_upper = status_val.upper()
     if status_upper not in [s.value for s in CenterStatus]:
         raise HTTPException(
@@ -34,19 +35,19 @@ def update_center_status(db: Session, center_id: int, status_val: str) -> Center
     if not center:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Center with id {center_id} not found"
+            detail=f"Center with id '{center_id}' not found"
         )
     center.status = status_upper
     db.commit()
     db.refresh(center)
     return center
 
-def get_center_details(db: Session, center_id: int) -> Center:
+def get_center_details(db: Session, center_id: str) -> Center:
     center = db.query(Center).filter(Center.id == center_id).first()
     if not center:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Center with id {center_id} not found"
+            detail=f"Center with id '{center_id}' not found"
         )
     return center
 
@@ -58,7 +59,6 @@ def register_user(db: Session, payload: UserRegister) -> User:
             detail=f"Invalid role '{payload.role}'"
         )
     
-    # Non-SUPER_ADMIN users must belong to a valid center
     if role_upper != UserRole.SUPER_ADMIN.value and payload.center_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -70,7 +70,7 @@ def register_user(db: Session, payload: UserRegister) -> User:
         if not center:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Center with id {payload.center_id} not found"
+                detail=f"Center with id '{payload.center_id}' not found"
             )
 
     existing_user = db.query(User).filter(User.email == payload.email).first()
@@ -86,11 +86,24 @@ def register_user(db: Session, payload: UserRegister) -> User:
         full_name=payload.full_name,
         role=role_upper,
         center_id=payload.center_id if role_upper != UserRole.SUPER_ADMIN.value else None,
+        phone=payload.phone,
         is_active=True
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Automatically create StudentProfile if registering a STUDENT
+    if role_upper == UserRole.STUDENT.value:
+        profile = StudentProfile(
+            user_id=user.id,
+            is_zakat_eligible=payload.is_zakat_eligible or False,
+            enrollment_date=datetime.now(timezone.utc).date()
+        )
+        db.add(profile)
+        db.commit()
+        db.refresh(user)
+
     return user
 
 def login(db: Session, payload: UserLogin) -> dict:
@@ -106,7 +119,6 @@ def login(db: Session, payload: UserLogin) -> dict:
             detail="User account is suspended"
         )
 
-    # Check center status if not super admin
     if user.center_id:
         center = db.query(Center).filter(Center.id == user.center_id).first()
         if center and center.status == CenterStatus.SUSPENDED.value:
@@ -128,18 +140,18 @@ def login(db: Session, payload: UserLogin) -> dict:
         "user": user
     }
 
-def link_parent_to_student(db: Session, parent_id: int, student_id: int) -> ParentStudentLink:
+def link_parent_to_student(db: Session, parent_id: str, student_id: str, relation_type: str = "GUARDIAN") -> ParentStudentLink:
     parent = db.query(User).filter(User.id == parent_id, User.role == UserRole.PARENT.value).first()
     if not parent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Parent user with id {parent_id} not found"
+            detail=f"Parent user with id '{parent_id}' not found"
         )
     student = db.query(User).filter(User.id == student_id, User.role == UserRole.STUDENT.value).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student user with id {student_id} not found"
+            detail=f"Student user with id '{student_id}' not found"
         )
 
     existing = db.query(ParentStudentLink).filter(
@@ -149,7 +161,11 @@ def link_parent_to_student(db: Session, parent_id: int, student_id: int) -> Pare
     if existing:
         return existing
 
-    link = ParentStudentLink(parent_id=parent_id, student_id=student_id)
+    link = ParentStudentLink(
+        parent_id=parent_id,
+        student_id=student_id,
+        relation_type=relation_type or "GUARDIAN"
+    )
     db.add(link)
     db.commit()
     db.refresh(link)

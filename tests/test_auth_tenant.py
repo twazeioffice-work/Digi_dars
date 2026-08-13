@@ -62,6 +62,7 @@ def test_module1_auth_and_tenant_flow():
     assert center_res.status_code == 201
     center_data = center_res.json()
     center_id = center_data["id"]
+    assert isinstance(center_id, str)
     assert center_data["code"] == "MASJID_NOOR_01"
 
     # 4. Get Center Details
@@ -91,8 +92,10 @@ def test_module1_auth_and_tenant_flow():
         "password": "StudentPassword123",
         "full_name": "Hamza Tariq (Student)",
         "role": "STUDENT",
-        "center_id": center_id
+        "center_id": center_id,
+        "is_zakat_eligible": True
     }).json()
+    assert student_user["student_profile"]["is_zakat_eligible"] is True
 
     # 6. Login as Student and verify role guard blocks center creation
     student_login = client.post("/api/v1/auth/login", json={
@@ -110,11 +113,13 @@ def test_module1_auth_and_tenant_flow():
     # 7. Link Parent to Student (Authorized Admin)
     link_res = client.post("/api/v1/parents/link-student", json={
         "parent_id": parent_user["id"],
-        "student_id": student_user["id"]
+        "student_id": student_user["id"],
+        "relation_type": "FATHER"
     }, headers=headers_super)
     assert link_res.status_code == 201
     assert link_res.json()["parent_id"] == parent_user["id"]
     assert link_res.json()["student_id"] == student_user["id"]
+    assert link_res.json()["relation_type"] == "FATHER"
 
     # 8. Update Center Status (Suspend Center)
     suspend_res = client.patch(
