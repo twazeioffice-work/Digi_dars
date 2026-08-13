@@ -50,6 +50,19 @@ def test_module4_communications_and_ticketing_flow():
     }, headers=headers_super).json()
     center_id = center["id"]
 
+    nazim = client.post("/api/v1/auth/register", json={
+        "email": "nazim@comm.org",
+        "password": "Password123",
+        "full_name": "Nazim Sb",
+        "role": "NAZIM",
+        "center_id": center_id
+    }).json()
+    nazim_token = client.post("/api/v1/auth/login", json={
+        "email": "nazim@comm.org",
+        "password": "Password123"
+    }).json()["access_token"]
+    headers_nazim = {"Authorization": f"Bearer {nazim_token}"}
+
     ustad = client.post("/api/v1/auth/register", json={
         "email": "ustad@comm.org",
         "password": "Password123",
@@ -84,77 +97,89 @@ def test_module4_communications_and_ticketing_flow():
         "center_id": center_id
     }).json()
 
-    # Link Parent & Student
-    client.post("/api/v1/parents/link-student", json={
-        "parent_id": parent["id"],
-        "student_id": student["id"],
-        "relation_type": "FATHER"
-    }, headers=headers_super)
-
-    # 1. Internal Staff Ticket (Ustad -> Nazim)
-    ticket_res = client.post("/api/v1/communications/tickets", json={
-        "subject": "Need new Mishkat-ul-Masabih copies",
-        "description": "Boarding students require 5 new copies of Mishkat."
+    # Flow 1: Create Internal Ticket (Ustad ➝ Nazim)
+    ticket_res = client.post("/api/v1/communication/internal-tickets", json={
+        "subject": "Need 5 copies of Hidayah Vol 1",
+        "description": "Five new students have joined the morning Halqa and do not have the kitab. Please arrange from the library.",
+        "category": "ACADEMIC_SUPPLIES"
     }, headers=headers_ustad)
     assert ticket_res.status_code == 201
-    ticket_id = ticket_res.json()["id"]
-    assert ticket_res.json()["status"] == "OPEN"
+    ticket_json = ticket_res.json()
+    assert ticket_json["status"] == "success"
+    ticket_id = ticket_json["data"]["ticket_id"]
+    assert ticket_json["data"]["status"] == "OPEN"
 
-    # Update Ticket Status (Resolve)
-    resolve_res = client.patch(f"/api/v1/communications/tickets/{ticket_id}/status", json={
+    # Nazim Resolves Ticket
+    resolve_res = client.patch(f"/api/v1/communication/internal-tickets/{ticket_id}/status", json={
         "status": "RESOLVED"
-    }, headers=headers_super)
+    }, headers=headers_nazim)
     assert resolve_res.status_code == 200
     assert resolve_res.json()["status"] == "RESOLVED"
 
-    # 2. Broadcast Notice (Admin -> Parents)
-    broadcast_res = client.post("/api/v1/communications/broadcasts", json={
-        "audience": "All Parents",
-        "message": "Assalamu Alaikum. Center will remain closed for Eid holidays from Friday.",
-        "center_id": center_id
-    }, headers=headers_super)
+    # Flow 2: Send Broadcast (Nazim ➝ Parents)
+    broadcast_res = client.post("/api/v1/communication/broadcasts", json={
+        "audience": "SPECIFIC_HALQA",
+        "target_halqa_id": "hq-1234abcd-5678",
+        "subject": "Change in Asr Timing",
+        "message": "Respected Parents, Asr Jamaat timing for the Hifz batch will shift to 5:00 PM starting tomorrow."
+    }, headers=headers_nazim)
     assert broadcast_res.status_code == 201
-    assert broadcast_res.json()["audience"] == "All Parents"
+    bc_json = broadcast_res.json()
+    assert bc_json["status"] == "success"
+    assert bc_json["message"] == "Broadcast queued for delivery"
+    assert bc_json["data"]["audience"] == "SPECIFIC_HALQA"
 
-    # 3. Academic Update (Ustad -> Parent) & Reply
-    progress_res = client.post("/api/v1/communications/progress-updates", json={
-        "student_id": student["id"],
-        "message": "Assalamu Alaikum. Son Student's Tajweed is improving MashaAllah."
+    # Flow 3: Academic Direct Message (Ustad ↔ Parent)
+    from app.services.communications import get_or_create_thread
+    db = next(override_get_db())
+    try:
+        thread = get_or_create_thread(db, center_id, ustad["id"], student["id"])
+        thread_id = thread.id
+    finally:
+        db.close()
+
+    msg_res = client.post(f"/api/v1/communication/threads/{thread_id}/messages", json={
+        "message": "Assalamu Alaikum. Abdullah has completed Surah Rahman today. Please listen to his revision at home this weekend."
     }, headers=headers_ustad)
-    assert progress_res.status_code == 201
-    msg_id = progress_res.json()["id"]
+    assert msg_res.status_code == 201
+    msg_json = msg_res.json()
+    assert msg_json["status"] == "success"
+    assert msg_json["data"]["thread_id"] == thread_id
 
-    reply_res = client.post(f"/api/v1/communications/progress-updates/{msg_id}/reply", json={
-        "reply_text": "JazakAllah Khair Ustad ji. We will revise at home as well."
-    }, headers=headers_parent)
-    assert reply_res.status_code == 201
-    assert reply_res.json()["reply_text"] == "JazakAllah Khair Ustad ji. We will revise at home as well."
-
-    # 4. Super Admin Escalation (Bypasses center filter)
-    escalation_res = client.post("/api/v1/communications/escalations", json={
-        "subject": "Urgent Facilities Grievance",
-        "grievance_description": "Water filtration unit requires immediate maintenance.",
-        "priority": "URGENT"
+    # Flow 4: Submit Escalation (Parent ➝ Super Admin)
+    escalation_res = client.post("/api/v1/communication/escalations", json={
+        "subject": "Recurring issue with boarding food quality",
+        "complaint_details": "I have raised this twice with the local Nazim, but the meals provided to the Hifz students late at night are consistently stale. Requesting HQ intervention."
     }, headers=headers_parent)
     assert escalation_res.status_code == 201
-    assert escalation_res.json()["priority"] == "URGENT"
+    esc_json = escalation_res.json()
+    assert esc_json["status"] == "success"
+    assert "Super Admin Headquarters" in esc_json["message"]
+    assert esc_json["data"]["status"] == "OPEN"
 
-    # 5. Public Inquiry Routing
-    # Case A: Center ID provided -> Route to LOCAL_NAZIM
-    local_inquiry = client.post("/api/v1/communications/inquiries", json={
+    # RLS Security Check: Local Nazim attempt to view HQ Escalations MUST be BLOCKED (403 Forbidden)
+    blocked_res = client.get("/api/v1/communication/escalations", headers=headers_nazim)
+    assert blocked_res.status_code == 403
+    assert "not authorized" in blocked_res.json()["detail"]
+
+    # Super Admin can view HQ Escalations
+    hq_res = client.get("/api/v1/communication/escalations", headers=headers_super)
+    assert hq_res.status_code == 200
+    assert len(hq_res.json()) >= 1
+
+    # Public Inquiry Auto-Routing
+    local_inquiry = client.post("/api/v1/communication/inquiries", json={
         "name": "Applicant Parent",
         "email": "applicant@gmail.com",
-        "phone": "+919876543210",
-        "message": "Requesting admission details for Hifz class",
+        "message": "Requesting admission details",
         "center_id": center_id
     }).json()
     assert local_inquiry["routed_to"] == "LOCAL_NAZIM"
 
-    # Case B: Center ID null -> Route to SUPER_ADMIN
-    hq_inquiry = client.post("/api/v1/communications/inquiries", json={
+    hq_inquiry = client.post("/api/v1/communication/inquiries", json={
         "name": "Franchise Investor",
         "email": "investor@gmail.com",
-        "message": "Requesting new Dars center franchise information",
+        "message": "Franchise inquiry",
         "center_id": None
     }).json()
     assert hq_inquiry["routed_to"] == "SUPER_ADMIN"

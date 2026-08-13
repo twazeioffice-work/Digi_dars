@@ -1,101 +1,106 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
+# --- Flow 1: Internal Tickets ---
 class InternalTicketCreate(BaseModel):
     subject: str
     description: str
-    center_id: Optional[str] = None
+    category: Optional[str] = "GENERAL"  # MAINTENANCE, ACADEMIC_SUPPLIES, LEAVE_REQUEST
 
-class InternalTicketStatusUpdate(BaseModel):
-    status: str  # OPEN, IN_PROGRESS, RESOLVED, CLOSED
-
-class InternalTicketResponse(BaseModel):
-    id: str
-    center_id: str
-    ustad_id: str
+class InternalTicketResponseData(BaseModel):
+    ticket_id: str
     subject: str
-    description: str
     status: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-class BroadcastNoticeCreate(BaseModel):
-    audience: str  # "All Parents", "Hifz Batch Parents"
-    message: str
-    center_id: Optional[str] = None
+class InternalTicketResponseWrapper(BaseModel):
+    status: str = "success"
+    data: InternalTicketResponseData
 
-class BroadcastNoticeResponse(BaseModel):
-    id: str
-    center_id: str
-    audience: str
+class TicketStatusUpdate(BaseModel):
+    status: str  # OPEN, IN_PROGRESS, RESOLVED, CLOSED
+
+# --- Flow 2: Broadcasts ---
+class BroadcastCreate(BaseModel):
+    audience: str  # ALL_PARENTS, HIFZ_PARENTS, AALIM_PARENTS, SPECIFIC_HALQA
+    target_halqa_id: Optional[str] = None
+    subject: str
     message: str
-    created_by: str
+
+class BroadcastResponseData(BaseModel):
+    broadcast_id: str
+    audience: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-class ProgressUpdateCreate(BaseModel):
+class BroadcastResponseWrapper(BaseModel):
+    status: str = "success"
+    message: str = "Broadcast queued for delivery"
+    data: BroadcastResponseData
+
+# --- Flow 3: Academic Threads & Direct Messages ---
+class ThreadCreate(BaseModel):
+    student_id: str
+
+class AcademicMessageCreate(BaseModel):
+    message: str
+
+class AcademicMessageResponseData(BaseModel):
+    message_id: str
+    thread_id: str
+    sender_id: str
+    message: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AcademicMessageResponseWrapper(BaseModel):
+    status: str = "success"
+    data: AcademicMessageResponseData
+
+# Legacy / Direct Progress Message Compatibility
+class ProgressMessageCreate(BaseModel):
     student_id: str
     message: str
 
 class ProgressReplyCreate(BaseModel):
     reply_text: str
 
-class ProgressReplyResponse(BaseModel):
-    id: str
-    message_id: str
-    sender_id: str
-    reply_text: str
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-class ProgressMessageResponse(BaseModel):
-    id: str
-    student_id: str
-    ustad_id: str
-    parent_id: Optional[str] = None
-    message: str
-    replies: List[ProgressReplyResponse] = []
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
+# --- Flow 4: Super Admin Escalations ---
 class EscalationCreate(BaseModel):
     subject: str
-    grievance_description: str
-    priority: Optional[str] = "URGENT"
+    complaint_details: str
 
-class EscalationResponse(BaseModel):
-    id: str
-    user_id: str
-    center_id: Optional[str] = None
-    subject: str
-    grievance_description: str
-    priority: str
+class EscalationResponseData(BaseModel):
+    escalation_id: str
     status: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-class InquiryCreate(BaseModel):
-    name: str
-    email: EmailStr
-    phone: Optional[str] = None
-    message: str
-    center_id: Optional[str] = None  # If null -> routes to Super Admin
+class EscalationResponseWrapper(BaseModel):
+    status: str = "success"
+    message: str = "Your grievance has been securely forwarded directly to Super Admin Headquarters. A representative will contact you."
+    data: EscalationResponseData
 
-class InquiryResponse(BaseModel):
-    id: str
+# --- Public Inquiries ---
+class InquiryCreate(BaseModel):
     name: str
     email: str
     phone: Optional[str] = None
     message: str
     center_id: Optional[str] = None
-    routed_to: str  # "LOCAL_NAZIM" or "SUPER_ADMIN"
-    status: str
+
+class InquiryResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    message: str
+    routed_to: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

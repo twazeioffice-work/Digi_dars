@@ -2,147 +2,216 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import Optional, List
 from app.models.communication import (
-    InternalTicket, BroadcastNotice, ProgressMessage, ProgressMessageReply,
-    SuperAdminEscalation, PublicInquiry, TicketStatus
+    InternalTicket, Broadcast, AcademicThread, AcademicMessage,
+    SuperAdminEscalation, PublicInquiry, TicketStatus, BroadcastAudience
 )
-from app.models.auth import User, ParentStudentLink
+from app.models.auth import User
 from app.schemas.communication import (
-    InternalTicketCreate, BroadcastNoticeCreate, ProgressUpdateCreate,
-    ProgressReplyCreate, EscalationCreate, InquiryCreate
+    InternalTicketCreate, BroadcastCreate, AcademicMessageCreate,
+    EscalationCreate, InquiryCreate
 )
 
-def create_internal_ticket(db: Session, request_center_id: Optional[str], ustad_id: str, payload: InternalTicketCreate) -> InternalTicket:
-    target_center_id = payload.center_id or request_center_id
+# --- Flow 1: Internal Tickets ---
+def create_internal_ticket(db: Session, created_by: str, request_center_id: Optional[str], payload: InternalTicketCreate) -> dict:
+    user = db.query(User).filter(User.id == created_by).first()
+    target_center_id = request_center_id or (user.center_id if user else None)
     if not target_center_id:
-        ustad = db.query(User).filter(User.id == ustad_id).first()
-        if ustad:
-            target_center_id = ustad.center_id
-
-    if not target_center_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A valid center_id must be provided or linked to user"
-        )
+        raise HTTPException(status_code=400, detail="Center ID required to create internal ticket")
 
     ticket = InternalTicket(
         center_id=target_center_id,
-        ustad_id=ustad_id,
+        created_by=created_by,
         subject=payload.subject,
         description=payload.description,
+        category=payload.category or "GENERAL",
         status=TicketStatus.OPEN.value
     )
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
-    return ticket
+    return {
+        "status": "success",
+        "data": {
+            "ticket_id": ticket.id,
+            "subject": ticket.subject,
+            "status": ticket.status,
+            "created_at": ticket.created_at
+        }
+    }
 
-def update_ticket_status(db: Session, request_center_id: Optional[str], ticket_id: str, status_val: str) -> InternalTicket:
+def update_ticket_status(db: Session, ticket_id: str, new_status: str) -> InternalTicket:
     ticket = db.query(InternalTicket).filter(InternalTicket.id == ticket_id).first()
     if not ticket:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Ticket '{ticket_id}' not found"
-        )
-    status_upper = status_val.upper()
+        raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found")
+    
+    status_upper = new_status.upper()
     if status_upper not in [s.value for s in TicketStatus]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status '{status_val}'"
-        )
+        raise HTTPException(status_code=400, detail=f"Invalid status '{new_status}'")
+    
     ticket.status = status_upper
     db.commit()
     db.refresh(ticket)
     return ticket
 
-def send_broadcast_message(db: Session, request_center_id: Optional[str], created_by: str, payload: BroadcastNoticeCreate) -> BroadcastNotice:
-    target_center_id = payload.center_id or request_center_id
+# --- Flow 2: Broadcasts ---
+def create_broadcast(db: Session, sent_by: str, request_center_id: Optional[str], payload: BroadcastCreate) -> dict:
+    user = db.query(User).filter(User.id == sent_by).first()
+    target_center_id = request_center_id or (user.center_id if user else None)
     if not target_center_id:
-        sender = db.query(User).filter(User.id == created_by).first()
-        if sender:
-            target_center_id = sender.center_id
+        raise HTTPException(status_code=400, detail="Center ID required to publish broadcast")
 
-    if not target_center_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A valid center_id must be provided or linked to user"
-        )
+    aud_upper = payload.audience.upper()
+    if aud_upper not in [a.value for a in BroadcastAudience]:
+        raise HTTPException(status_code=400, detail=f"Invalid audience '{payload.audience}'")
 
-    notice = BroadcastNotice(
+    broadcast = Broadcast(
         center_id=target_center_id,
-        audience=payload.audience,
-        message=payload.message,
-        created_by=created_by
-    )
-    db.add(notice)
-    db.commit()
-    db.refresh(notice)
-    return notice
-
-def send_progress_update(db: Session, ustad_id: str, payload: ProgressUpdateCreate) -> ProgressMessage:
-    student = db.query(User).filter(User.id == payload.student_id).first()
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student '{payload.student_id}' not found"
-        )
-
-    link = db.query(ParentStudentLink).filter(ParentStudentLink.student_id == payload.student_id).first()
-    parent_id = link.parent_id if link else None
-
-    progress_msg = ProgressMessage(
-        student_id=payload.student_id,
-        ustad_id=ustad_id,
-        parent_id=parent_id,
+        sent_by=sent_by,
+        audience=aud_upper,
+        target_halqa_id=payload.target_halqa_id,
+        subject=payload.subject,
         message=payload.message
     )
-    db.add(progress_msg)
+    db.add(broadcast)
     db.commit()
-    db.refresh(progress_msg)
-    return progress_msg
+    db.refresh(broadcast)
 
-def reply_to_ustad(db: Session, message_id: str, sender_id: str, payload: ProgressReplyCreate) -> ProgressMessageReply:
-    parent_msg = db.query(ProgressMessage).filter(ProgressMessage.id == message_id).first()
-    if not parent_msg:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Progress message thread '{message_id}' not found"
+    return {
+        "status": "success",
+        "message": "Broadcast queued for delivery",
+        "data": {
+            "broadcast_id": broadcast.id,
+            "audience": broadcast.audience,
+            "created_at": broadcast.created_at
+        }
+    }
+
+# --- Flow 3: Academic Threads & Direct Messaging ---
+def get_or_create_thread(db: Session, center_id: str, ustad_id: str, student_id: str) -> AcademicThread:
+    thread = db.query(AcademicThread).filter(
+        AcademicThread.ustad_id == ustad_id,
+        AcademicThread.student_id == student_id
+    ).first()
+
+    if not thread:
+        thread = AcademicThread(
+            center_id=center_id,
+            ustad_id=ustad_id,
+            student_id=student_id
         )
+        db.add(thread)
+        db.commit()
+        db.refresh(thread)
+    return thread
 
-    reply = ProgressMessageReply(
-        message_id=message_id,
+def send_academic_message(db: Session, thread_id: str, sender_id: str, payload: AcademicMessageCreate) -> dict:
+    thread = db.query(AcademicThread).filter(AcademicThread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(status_code=404, detail=f"Thread '{thread_id}' not found")
+
+    msg = AcademicMessage(
+        thread_id=thread_id,
         sender_id=sender_id,
-        reply_text=payload.reply_text
+        message=payload.message
     )
-    db.add(reply)
+    db.add(msg)
     db.commit()
-    db.refresh(reply)
-    return reply
+    db.refresh(msg)
 
-def create_super_admin_escalation(db: Session, user_id: str, center_id: Optional[str], payload: EscalationCreate) -> SuperAdminEscalation:
+    return {
+        "status": "success",
+        "data": {
+            "message_id": msg.id,
+            "thread_id": msg.thread_id,
+            "sender_id": msg.sender_id,
+            "message": msg.message,
+            "created_at": msg.created_at
+        }
+    }
+
+def send_progress_message(db: Session, ustad_id: str, request_center_id: Optional[str], student_id: str, message_text: str) -> AcademicMessage:
+    student = db.query(User).filter(User.id == student_id).first()
+    target_center_id = request_center_id or (student.center_id if student else "default")
+    thread = get_or_create_thread(db, target_center_id, ustad_id, student_id)
+    
+    msg = AcademicMessage(
+        thread_id=thread.id,
+        sender_id=ustad_id,
+        message=message_text
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return msg
+
+def reply_to_progress_message(db: Session, message_id: str, sender_id: str, reply_text: str) -> dict:
+    original_msg = db.query(AcademicMessage).filter(AcademicMessage.id == message_id).first()
+    if not original_msg:
+        raise HTTPException(status_code=404, detail=f"Message '{message_id}' not found")
+
+    reply_msg = AcademicMessage(
+        thread_id=original_msg.thread_id,
+        sender_id=sender_id,
+        message=reply_text
+    )
+    db.add(reply_msg)
+    db.commit()
+    db.refresh(reply_msg)
+    return {
+        "id": reply_msg.id,
+        "thread_id": reply_msg.thread_id,
+        "sender_id": reply_msg.sender_id,
+        "reply_text": reply_msg.message,
+        "created_at": reply_msg.created_at
+    }
+
+# --- Flow 4: Super Admin Escalations ---
+def create_escalation(db: Session, submitted_by: str, request_center_id: Optional[str], payload: EscalationCreate) -> dict:
+    user = db.query(User).filter(User.id == submitted_by).first()
+    target_center_id = request_center_id or (user.center_id if user else None)
+    if not target_center_id:
+        raise HTTPException(status_code=400, detail="Center ID required to submit escalation")
+
     escalation = SuperAdminEscalation(
-        user_id=user_id,
-        center_id=center_id,
+        center_id=target_center_id,
+        submitted_by=submitted_by,
         subject=payload.subject,
-        grievance_description=payload.grievance_description,
-        priority=payload.priority or "URGENT",
+        complaint_details=payload.complaint_details,
         status=TicketStatus.OPEN.value
     )
     db.add(escalation)
     db.commit()
     db.refresh(escalation)
-    return escalation
 
-def submit_inquiry(db: Session, payload: InquiryCreate) -> PublicInquiry:
-    routed_target = "LOCAL_NAZIM" if payload.center_id else "SUPER_ADMIN"
+    return {
+        "status": "success",
+        "message": "Your grievance has been securely forwarded directly to Super Admin Headquarters. A representative will contact you.",
+        "data": {
+            "escalation_id": escalation.id,
+            "status": escalation.status,
+            "created_at": escalation.created_at
+        }
+    }
 
+def get_super_admin_escalations(db: Session, user_role: str) -> List[SuperAdminEscalation]:
+    # Local Nazims are STRICTLY BLOCKED from querying escalations
+    if user_role != "SUPER_ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: Escalations to Super Admin Headquarters are isolated and restricted from local admins."
+        )
+    return db.query(SuperAdminEscalation).order_by(SuperAdminEscalation.created_at.desc()).all()
+
+# --- Public Inquiry Routing ---
+def route_public_inquiry(db: Session, payload: InquiryCreate) -> PublicInquiry:
+    routed_to = "LOCAL_NAZIM" if payload.center_id else "SUPER_ADMIN"
     inquiry = PublicInquiry(
+        center_id=payload.center_id,
         name=payload.name,
         email=payload.email,
         phone=payload.phone,
         message=payload.message,
-        center_id=payload.center_id,
-        routed_to=routed_target,
-        status=TicketStatus.OPEN.value
+        routed_to=routed_to
     )
     db.add(inquiry)
     db.commit()
