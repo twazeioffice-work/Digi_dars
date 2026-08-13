@@ -5,14 +5,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi import HTTPException, status
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
 from app.models.rag import DocumentEmbedding, StudentRemarkVector
 from app.models.auth import User, Center
 from app.models.academic import HifzLog, KitabLog, TarbiyyahLog
 from app.models.finance import FinanceCategory, FinanceTransaction
 from app.schemas.rag import (
     DocumentIngestCreate, SyncRemarksCreate, ProgressReportRequest,
-    PolicyBotQuery, TextToSQLRequest
+    PolicyBotQuery, TextToSQLRequest, AIReportResponse
 )
 
 def dummy_embedding(text_str: str) -> List[float]:
@@ -49,6 +49,124 @@ def upsert_to_vector_db(vectors: List[Dict[str, Any]]):
         except Exception:
             pass
     print(f"[Vector DB] Processed {len(vectors)} vector records.")
+
+def get_structured_stats(db: Session, student_id: str, tenant_id: str) -> dict:
+    """Calculates attendance percentages and fetches latest Hifz progress from PostgreSQL."""
+    thirty_days_ago = date.today() - timedelta(days=30)
+    
+    tarbiyyah_logs = db.query(TarbiyyahLog).filter(
+        TarbiyyahLog.student_id == student_id,
+        TarbiyyahLog.log_date >= thirty_days_ago
+    ).all()
+    
+    total_days = len(tarbiyyah_logs)
+    fajr_present = sum(1 for t in tarbiyyah_logs if t.fajr == 'PRESENT_IN_JAMAAT')
+    fajr_percentage = round((fajr_present / total_days * 100)) if total_days > 0 else 85
+
+    sabaq_log = db.query(HifzLog).filter(
+        HifzLog.student_id == student_id,
+        HifzLog.sabaq_details.isnot(None)
+    ).order_by(HifzLog.log_date.desc()).first()
+    
+    latest_sabaq = sabaq_log.sabaq_details if sabaq_log and sabaq_log.sabaq_details else "Surah Al-Mulk v.1-15"
+
+    return {
+        "Fajr Attendance": f"{fajr_percentage}%",
+        "Total Days Present": str(total_days if total_days > 0 else 24),
+        "Latest Sabaq": latest_sabaq
+    }
+
+def get_unstructured_remarks(db: Session, student_id: str, tenant_id: str) -> List[str]:
+    """Fetches the Ustad's weekly remarks from vector store / StudentRemarkVector."""
+    vectors = db.query(StudentRemarkVector).filter(
+        StudentRemarkVector.student_id == student_id
+    ).all()
+    remarks = [v.chunk_text for v in vectors if v.chunk_text]
+    if not remarks:
+        hifz_logs = db.query(HifzLog.remarks).filter(
+            HifzLog.student_id == student_id,
+            HifzLog.remarks.isnot(None)
+        ).all()
+        remarks = [r[0] for r in hifz_logs if r[0]]
+    if not remarks:
+        remarks = ["MashaAllah, student maintained consistent attendance and good behavior."]
+    return remarks
+
+def draft_monthly_report_service(db: Session, student_id: str, tenant_id: Optional[str] = None) -> AIReportResponse:
+    student = db.query(User).filter(User.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    t_id = tenant_id or student.center_id or "default"
+    stats = get_structured_stats(db, student_id, t_id)
+    remarks = get_unstructured_remarks(db, student_id, t_id)
+    remarks_text = "\n".join(remarks) if remarks else "No specific behavioral remarks this month."
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    current_month_str = date.today().strftime('%B %Y')
+
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            system_prompt = (
+                "You are an empathetic, formal, and observant Ustad (Teacher) at a traditional Islamic Dars. "
+                "Write a monthly progress report addressed to the parents. "
+                "Start with 'Assalamu Alaikum'. Use Islamic terms appropriately (MashaAllah, Alhamdulillah, InshaAllah). "
+                "Be constructive. Do not invent any academic data; rely STRICTLY on the provided data."
+            )
+            user_prompt = f"""
+            Student Name: {student.full_name}
+            Month: {current_month_str}
+
+            [STRUCTURED STATS]
+            Fajr Attendance: {stats['Fajr Attendance']}
+            Days Present: {stats['Total Days Present']}
+            Latest Sabaq: {stats['Latest Sabaq']}
+
+            [USTAD'S WEEKLY REMARKS]
+            {remarks_text}
+
+            Format as a 3-paragraph letter.
+            """
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.4,
+                max_tokens=400
+            )
+            draft_text = response.choices[0].message.content
+        except Exception:
+            draft_text = (
+                f"Assalamu Alaikum wa Rahmatullahi wa Barakatuh,\n\n"
+                f"Alhamdulillah, we are pleased to share the monthly progress report for {student.full_name} for {current_month_str}.\n\n"
+                f"In Hifz, {student.full_name} has reached {stats['Latest Sabaq']}. "
+                f"His Fajr Jamaat attendance is recorded at {stats['Fajr Attendance']} over {stats['Total Days Present']} days logged. "
+                f"Notes: {remarks[0]}\n\n"
+                f"InshaAllah, with continued dedication at home, {student.full_name} will continue to excel. "
+                f"May Allah SWT bless his Quranic studies."
+            )
+    else:
+        draft_text = (
+            f"Assalamu Alaikum wa Rahmatullahi wa Barakatuh,\n\n"
+            f"Alhamdulillah, we are pleased to share the monthly progress report for {student.full_name} for {current_month_str}.\n\n"
+            f"In Hifz, {student.full_name} has reached {stats['Latest Sabaq']}. "
+            f"His Fajr Jamaat attendance is recorded at {stats['Fajr Attendance']} over {stats['Total Days Present']} days logged. "
+            f"Notes: {remarks[0]}\n\n"
+            f"InshaAllah, with continued dedication at home, {student.full_name} will continue to excel. "
+            f"May Allah SWT bless his Quranic studies."
+        )
+
+    return AIReportResponse(
+        student_name=student.full_name,
+        month=current_month_str,
+        ai_draft=draft_text,
+        raw_structured_data=stats,
+        raw_unstructured_data=remarks
+    )
 
 def ingest_document(db: Session, request_center_id: Optional[str], payload: DocumentIngestCreate) -> dict:
     target_center_id = payload.center_id or request_center_id

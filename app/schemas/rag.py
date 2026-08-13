@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
 class DocumentIngestCreate(BaseModel):
@@ -24,6 +24,13 @@ class ProgressReportRequest(BaseModel):
     student_id: str
     month: Optional[str] = "August"
     year: Optional[str] = "2026"
+
+class AIReportResponse(BaseModel):
+    student_name: str
+    month: str
+    ai_draft: str
+    raw_structured_data: Dict[str, Any]
+    raw_unstructured_data: List[str]
 
 class BatchReportRequest(BaseModel):
     halqa_id: str

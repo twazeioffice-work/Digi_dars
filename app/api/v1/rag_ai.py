@@ -4,7 +4,7 @@ from typing import Optional
 from app.database import get_db
 from app.schemas.rag import (
     DocumentIngestCreate, DocumentIngestResponse,
-    SyncRemarksCreate, ProgressReportRequest,
+    SyncRemarksCreate, ProgressReportRequest, AIReportResponse,
     BatchReportRequest, BatchReportResponse,
     PolicyBotQuery, PolicyBotResponse,
     TextToSQLRequest, TextToSQLResponse,
@@ -37,6 +37,24 @@ def sync_student_remarks_endpoint(student_id: str, payload: SyncRemarksCreate, d
     """Synchronize daily Ustad remarks into vector storage."""
     return rag_ai.sync_student_remarks(db, student_id, payload.month or "August", payload.year or "2026")
 
+@router.get(
+    "/reports/generate/{student_id}",
+    response_model=AIReportResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
+)
+def generate_student_report_endpoint(
+    student_id: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    RAG Endpoint: Generates a monthly progress report for a student 
+    using PostgreSQL for stats and Pinecone for qualitative remarks.
+    """
+    tenant_id = getattr(request.state, "center_id", None)
+    return rag_ai.draft_monthly_report_service(db, student_id=student_id, tenant_id=tenant_id)
+
 @router.post(
     "/reports/generate",
     dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
@@ -58,7 +76,6 @@ def batch_generate_reports_endpoint(payload: BatchReportRequest, request: Reques
     and sends completion push notifications to Ustad via q_urgent.
     """
     ustad_id = getattr(request.state, "user_id", None)
-    # Query student count in halqa for response metadata
     from app.models.academic import HalqaEnrollment
     enrollments = db.query(HalqaEnrollment).filter(
         HalqaEnrollment.halqa_id == payload.halqa_id,
@@ -66,7 +83,6 @@ def batch_generate_reports_endpoint(payload: BatchReportRequest, request: Reques
     ).all()
     count = len(enrollments)
 
-    # Fire Celery Master Task
     async_res = generate_batch_reports.delay(
         halqa_id=payload.halqa_id,
         month=payload.month or "August",
