@@ -53,6 +53,9 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+# DDD Alias
+LoginRequest = UserLogin
+
 class UserResponse(BaseModel):
     id: Union[UUID, str]
     email: str
@@ -69,7 +72,9 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: UserResponse
+    role: Optional[Union[UserRole, str]] = None
+    center_id: Optional[Union[UUID, str]] = None
+    user: Optional[UserResponse] = None
 
 class ParentStudentLinkCreate(BaseModel):
     parent_id: str

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.auth import (
     CenterCreate, CenterUpdateStatus, CenterResponse,
-    UserCreate, UserRegister, UserLogin, TokenResponse, UserResponse,
+    UserCreate, UserRegister, UserLogin, LoginRequest, TokenResponse, UserResponse,
     ParentStudentLinkCreate, ParentStudentLinkResponse
 )
 from app.services import auth_tenant
@@ -66,6 +66,20 @@ def register_user_by_admin(
     The center_id is automatically inherited from the logged-in NAZIM's token.
     """
     return auth_tenant.register_user(db, payload)
+
+@users_router.post(
+    "/login",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK
+)
+def users_login_endpoint(
+    payload: LoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Authenticate a user and return a JWT access token.
+    """
+    return auth_tenant.login(payload=payload, db=db)
 
 @router.post(
     "/parents/link-student",

@@ -7,7 +7,7 @@ from typing import Union
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.context import current_tenant_id
 from app.models.auth import Center, User, StudentProfile, ParentStudentLink, CenterStatus, UserRole
-from app.schemas.auth import CenterCreate, UserCreate, UserRegister, UserLogin, ParentStudentLinkCreate
+from app.schemas.auth import CenterCreate, UserCreate, UserRegister, UserLogin, LoginRequest, TokenResponse, ParentStudentLinkCreate
 
 def create_center(db: Session, payload: CenterCreate) -> Center:
     existing = db.query(Center).filter(Center.code == payload.code).first()
@@ -122,17 +122,18 @@ def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User
 # DDD Application Service alias
 register_user_service = register_user
 
-def login(db: Session, payload: UserLogin) -> dict:
+def login(db: Session, payload: Union[UserLogin, LoginRequest]) -> dict:
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"}
         )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is suspended"
+            detail="This account has been suspended."
         )
 
     if user.center_id:
@@ -144,17 +145,23 @@ def login(db: Session, payload: UserLogin) -> dict:
             )
 
     token_data = {
-        "user_id": user.id,
+        "sub": user.email,
+        "user_id": str(user.id),
         "role": user.role,
-        "center_id": user.center_id,
+        "center_id": str(user.center_id) if user.center_id else None,
         "email": user.email
     }
     access_token = create_access_token(data=token_data)
     return {
         "access_token": access_token,
         "token_type": "bearer",
+        "role": user.role,
+        "center_id": user.center_id,
         "user": user
     }
+
+# DDD Application Service alias
+login_user_service = login
 
 def link_parent_to_student(db: Session, parent_id: str, student_id: str, relation_type: str = "GUARDIAN") -> ParentStudentLink:
     parent = db.query(User).filter(User.id == parent_id, User.role == UserRole.PARENT.value).first()
