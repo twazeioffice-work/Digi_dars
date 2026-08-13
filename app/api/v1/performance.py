@@ -21,6 +21,21 @@ def get_leaderboard_endpoint(db: Session = Depends(get_db)):
     """Retrieve global institution leaderboard and rankings for current month."""
     return performance.get_global_leaderboard(db)
 
+@router.get("/usthad-rankings")
+def get_usthad_rankings_endpoint(db: Session = Depends(get_db)):
+    """Retrieve monthly ranking list of all Usthads across centers."""
+    return performance.get_usthad_rankings(db)
+
+@router.get("/nazim-rankings")
+def get_nazim_rankings_endpoint(db: Session = Depends(get_db)):
+    """Retrieve monthly ranking list of all Nazims based on operational duty compliance."""
+    return performance.get_nazim_rankings(db)
+
+@router.get("/student-rankings")
+def get_student_rankings_endpoint(db: Session = Depends(get_db)):
+    """Retrieve top performing student rankings across all centers."""
+    return performance.get_student_rankings(db)
+
 @router.post("/trigger-compilation")
 def trigger_performance_compilation(
     target_date: Optional[str] = None,

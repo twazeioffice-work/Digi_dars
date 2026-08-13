@@ -401,3 +401,74 @@ def get_global_leaderboard(db: Session, target_date: Optional[date] = None) -> d
         "current_month": first_day,
         "leaderboard": items
     }
+
+def get_usthad_rankings(db: Session, target_date: Optional[date] = None) -> List[dict]:
+    today = target_date or date.today()
+    first_day = get_first_day_of_month(today)
+    
+    cards = db.query(StaffProgressCard).filter(
+        StaffProgressCard.role == "USTAD"
+    ).order_by(StaffProgressCard.final_rating.desc()).all()
+    
+    results = []
+    for idx, card in enumerate(cards, start=1):
+        user = db.query(User).filter(User.id == card.user_id).first()
+        center = db.query(Center).filter(Center.id == card.center_id).first()
+        results.append({
+            "rank": idx,
+            "user_id": card.user_id,
+            "name": user.full_name if user else "Usthad",
+            "email": user.email if user else "",
+            "center_name": center.name if center else "Main Center",
+            "performance_score": card.performance_score,
+            "penalty_points": card.penalty_points,
+            "final_rating": card.final_rating,
+            "log_month": card.log_month
+        })
+    return results
+
+def get_nazim_rankings(db: Session, target_date: Optional[date] = None) -> List[dict]:
+    today = target_date or date.today()
+    first_day = get_first_day_of_month(today)
+    
+    cards = db.query(StaffProgressCard).filter(
+        StaffProgressCard.role == "NAZIM"
+    ).order_by(StaffProgressCard.final_rating.desc()).all()
+    
+    results = []
+    for idx, card in enumerate(cards, start=1):
+        user = db.query(User).filter(User.id == card.user_id).first()
+        center = db.query(Center).filter(Center.id == card.center_id).first()
+        results.append({
+            "rank": idx,
+            "user_id": card.user_id,
+            "name": user.full_name if user else "Nazim",
+            "email": user.email if user else "",
+            "center_name": center.name if center else "Main Center",
+            "duty_compliance_score": card.final_rating,
+            "penalty_points": card.penalty_points,
+            "final_rating": card.final_rating,
+            "log_month": card.log_month
+        })
+    return results
+
+def get_student_rankings(db: Session, target_date: Optional[date] = None) -> List[dict]:
+    cards = db.query(StudentProgressCard).order_by(StudentProgressCard.overall_score.desc()).all()
+    results = []
+    for idx, card in enumerate(cards, start=1):
+        user = db.query(User).filter(User.id == card.student_id).first()
+        center = db.query(Center).filter(Center.id == card.center_id).first()
+        results.append({
+            "rank": idx,
+            "student_id": card.student_id,
+            "name": user.full_name if user else f"Student #{card.student_id[:6]}",
+            "card_id": getattr(user, "student_card_id", "STU-101") if user else "STU-101",
+            "center_name": center.name if center else "Main Center",
+            "namaz_score": card.namaz_score,
+            "hygiene_score": card.hygiene_score,
+            "study_score": card.study_score,
+            "chores_score": card.chores_score,
+            "overall_score": card.overall_score,
+            "log_month": card.log_month
+        })
+    return results
