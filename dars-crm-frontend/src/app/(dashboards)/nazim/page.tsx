@@ -33,6 +33,17 @@ interface UserOption {
   email: string;
 }
 
+const getErrorMessage = (err: any, fallback: string) => {
+  const detail = err?.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
+  }
+  if (typeof detail === "object") return JSON.stringify(detail);
+  return fallback;
+};
+
 export default function NazimDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,7 +121,13 @@ export default function NazimDashboard() {
     setSubmitting(true);
     try {
       await api.post("/auth/register", {
-        ...studentForm,
+        full_name: studentForm.full_name,
+        email: studentForm.email,
+        password: studentForm.password,
+        phone: studentForm.phone.trim() || undefined,
+        emergency_contact: studentForm.emergency_contact.trim() || undefined,
+        address: studentForm.address.trim() || undefined,
+        is_zakat_eligible: studentForm.is_zakat_eligible,
         role: "STUDENT",
       });
       toast.success("Student added successfully!");
@@ -127,7 +144,7 @@ export default function NazimDashboard() {
       fetchDashboardData();
       fetchUserLists();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to add student");
+      toast.error(getErrorMessage(err, "Failed to add student"));
     } finally {
       setSubmitting(false);
     }

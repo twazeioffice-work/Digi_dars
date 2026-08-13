@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { 
-  DollarSign, ArrowUpRight, ArrowDownRight, PlusCircle, ShieldCheck, Search, Loader2, RefreshCw 
+  DollarSign, ArrowUpRight, ArrowDownRight, ShieldCheck, Loader2, RefreshCw 
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -23,6 +23,17 @@ interface StudentOption {
   full_name: string;
   email: string;
 }
+
+const getErrorMessage = (err: any, fallback: string) => {
+  const detail = err?.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
+  }
+  if (typeof detail === "object") return JSON.stringify(detail);
+  return fallback;
+};
 
 export default function ZakatFinancePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -49,7 +60,6 @@ export default function ZakatFinancePage() {
   const fetchLedger = async () => {
     try {
       const res = await api.get("/finance/transactions");
-      // Res contains ledger list or items
       const data = res.data?.transactions || res.data?.data || res.data || [];
       const txList: Transaction[] = Array.isArray(data) ? data : [];
       setTransactions(txList);
@@ -57,14 +67,15 @@ export default function ZakatFinancePage() {
       let collected = 0;
       let disbursed = 0;
       txList.forEach((t) => {
-        if (t.type === "CREDIT") collected += Number(t.amount || 0);
-        if (t.type === "DEBIT") disbursed += Number(t.amount || 0);
+        const amt = Number(t.amount) || 0;
+        if (t.type === "CREDIT") collected += amt;
+        if (t.type === "DEBIT") disbursed += amt;
       });
       setTotalCollected(collected);
       setTotalDisbursed(disbursed);
       setBalance(collected - disbursed);
     } catch (err) {
-      toast.error("Failed to load financial ledger.");
+      toast.error(getErrorMessage(err, "Failed to load financial ledger."));
     } finally {
       setLoading(false);
     }
@@ -73,7 +84,7 @@ export default function ZakatFinancePage() {
   const fetchStudents = async () => {
     try {
       const res = await api.get("/users/students");
-      setStudents(res.data || []);
+      setStudents(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.warn("Could not fetch students", e);
     }
@@ -86,27 +97,28 @@ export default function ZakatFinancePage() {
 
   const handleRecordTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.amount || parseFloat(form.amount) <= 0) {
-      toast.error("Please enter a valid amount");
+    const parsedAmount = parseFloat(form.amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please enter a valid positive amount");
       return;
     }
     setSubmitting(true);
     try {
       if (txType === "INCOME") {
         await api.post("/finance/transactions/income", {
-          amount: parseFloat(form.amount),
+          amount: parsedAmount,
           fund_type: form.fund_type,
-          category_name: form.category_name,
-          description: form.description,
+          category_name: form.category_name || "DONATION",
+          description: form.description.trim() || "Income collection",
         });
         toast.success("Income recorded into ledger!");
       } else {
         await api.post("/finance/transactions/expense", {
-          amount: parseFloat(form.amount),
+          amount: parsedAmount,
           fund_type: form.fund_type,
-          category_name: form.category_name,
-          description: form.description,
-          student_id: form.student_id || undefined,
+          category_name: form.category_name || "STIPEND",
+          description: form.description.trim() || "Expense disbursement",
+          student_id: form.student_id ? form.student_id : undefined,
         });
         toast.success("Disbursement recorded into ledger!");
       }
@@ -115,7 +127,7 @@ export default function ZakatFinancePage() {
       setForm({ amount: "", fund_type: "ZAKAT", category_name: "STIPEND", description: "", student_id: "" });
       fetchLedger();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Transaction failed");
+      toast.error(getErrorMessage(err, "Transaction failed"));
     } finally {
       setSubmitting(false);
     }
@@ -247,7 +259,7 @@ export default function ZakatFinancePage() {
                       {t.category_name && <span className="text-xs text-gray-400 block">{t.category_name}</span>}
                     </td>
                     <td className={`px-6 py-4 font-bold text-base ${t.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"}`}>
-                      {t.type === "CREDIT" ? "+" : "-"}₹{Number(t.amount).toLocaleString()}
+                      {t.type === "CREDIT" ? "+" : "-"}₹{(Number(t.amount) || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-xs text-gray-600 max-w-xs truncate">
                       {t.description || "N/A"}
@@ -316,7 +328,7 @@ export default function ZakatFinancePage() {
                     <option value="">Select a Student (If applicable)...</option>
                     {students.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.full_name} ({s.email})
+                        {s.full_name || "Student"} ({s.email || "N/A"})
                       </option>
                     ))}
                   </select>

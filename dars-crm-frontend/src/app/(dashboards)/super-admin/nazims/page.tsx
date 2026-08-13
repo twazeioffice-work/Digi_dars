@@ -21,6 +21,17 @@ interface Center {
   code: string;
 }
 
+const getErrorMessage = (err: any, fallback: string) => {
+  const detail = err?.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
+  }
+  if (typeof detail === "object") return JSON.stringify(detail);
+  return fallback;
+};
+
 export default function ManageNazimsPage() {
   const [nazims, setNazims] = useState<NazimUser[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
@@ -43,10 +54,10 @@ export default function ManageNazimsPage() {
         api.get("/users/nazims").catch(() => ({ data: [] })),
         api.get("/centers").catch(() => ({ data: [] }))
       ]);
-      setNazims(nRes.data || []);
-      setCenters(cRes.data || []);
+      setNazims(Array.isArray(nRes.data) ? nRes.data : []);
+      setCenters(Array.isArray(cRes.data) ? cRes.data : []);
     } catch (err) {
-      toast.error("Failed to load Nazim accounts list");
+      toast.error(getErrorMessage(err, "Failed to load Nazim accounts list"));
     } finally {
       setLoading(false);
     }
@@ -65,7 +76,11 @@ export default function ManageNazimsPage() {
     setSubmitting(true);
     try {
       await api.post("/auth/register", {
-        ...form,
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone.trim() || undefined,
+        center_id: form.center_id,
         role: "NAZIM",
       });
       toast.success("Nazim registered successfully!");
@@ -73,7 +88,7 @@ export default function ManageNazimsPage() {
       setForm({ full_name: "", email: "", password: "", phone: "", center_id: "" });
       fetchData();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to register Nazim");
+      toast.error(getErrorMessage(err, "Failed to register Nazim"));
     } finally {
       setSubmitting(false);
     }
@@ -85,10 +100,12 @@ export default function ManageNazimsPage() {
     return found ? `${found.name} (${found.code})` : centerId.slice(0, 8);
   };
 
-  const filtered = nazims.filter(n =>
-    n.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    n.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = nazims.filter((n) => {
+    const q = (search || "").toLowerCase();
+    const nameMatch = (n.full_name || "").toLowerCase().includes(q);
+    const emailMatch = (n.email || "").toLowerCase().includes(q);
+    return nameMatch || emailMatch;
+  });
 
   return (
     <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
@@ -147,38 +164,41 @@ export default function ManageNazimsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((nazim) => (
-                <tr key={nazim.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                    <div className="p-2 bg-emerald-50 text-emerald-700 rounded-full font-black text-xs">
-                      {nazim.full_name.charAt(0)}
-                    </div>
-                    {nazim.full_name}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="flex items-center gap-1.5 text-slate-700">
-                      <Mail className="h-3.5 w-3.5 text-slate-400" /> {nazim.email}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-slate-800">
-                    <span className="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded text-xs">
-                      <Building2 className="h-3.5 w-3.5 text-slate-500" /> {getCenterName(nazim.center_id)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-500">
-                    {nazim.phone ? (
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5 text-slate-400" /> {nazim.phone}
+              {filtered.map((nazim) => {
+                const initial = (nazim.full_name || "N").charAt(0).toUpperCase();
+                return (
+                  <tr key={nazim.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
+                      <div className="p-2 bg-emerald-50 text-emerald-700 rounded-full font-black text-xs">
+                        {initial}
+                      </div>
+                      {nazim.full_name || "Unnamed Nazim"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="flex items-center gap-1.5 text-slate-700">
+                        <Mail className="h-3.5 w-3.5 text-slate-400" /> {nazim.email || "N/A"}
                       </span>
-                    ) : "N/A"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
-                      ● Active Nazim
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-800">
+                      <span className="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded text-xs">
+                        <Building2 className="h-3.5 w-3.5 text-slate-500" /> {getCenterName(nazim.center_id)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-500">
+                      {nazim.phone ? (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5 text-slate-400" /> {nazim.phone}
+                        </span>
+                      ) : "N/A"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
+                        ● Active Nazim
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -85,13 +85,15 @@ def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User
         )
 
     hashed_pwd = get_password_hash(payload.password)
+    clean_phone = payload.phone.strip() if (payload.phone and payload.phone.strip()) else None
+
     user = User(
         email=payload.email,
         hashed_password=hashed_pwd,
         full_name=payload.full_name,
         role=role_upper,
         center_id=tenant_id if role_upper != UserRole.SUPER_ADMIN.value else None,
-        phone=payload.phone,
+        phone=clean_phone,
         is_active=True
     )
     

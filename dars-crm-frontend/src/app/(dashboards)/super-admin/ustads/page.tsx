@@ -21,6 +21,17 @@ interface Center {
   code: string;
 }
 
+const getErrorMessage = (err: any, fallback: string) => {
+  const detail = err?.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
+  }
+  if (typeof detail === "object") return JSON.stringify(detail);
+  return fallback;
+};
+
 export default function ManageUstadsPage() {
   const [ustads, setUstads] = useState<UstadUser[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
@@ -43,10 +54,10 @@ export default function ManageUstadsPage() {
         api.get("/users/ustads").catch(() => ({ data: [] })),
         api.get("/centers").catch(() => ({ data: [] }))
       ]);
-      setUstads(uRes.data || []);
-      setCenters(cRes.data || []);
+      setUstads(Array.isArray(uRes.data) ? uRes.data : []);
+      setCenters(Array.isArray(cRes.data) ? cRes.data : []);
     } catch (err) {
-      toast.error("Failed to load Ustad accounts list");
+      toast.error(getErrorMessage(err, "Failed to load Ustad accounts list"));
     } finally {
       setLoading(false);
     }
@@ -61,7 +72,11 @@ export default function ManageUstadsPage() {
     setSubmitting(true);
     try {
       await api.post("/auth/register", {
-        ...form,
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone.trim() || undefined,
+        center_id: form.center_id || undefined,
         role: "USTAD",
       });
       toast.success("Ustad registered successfully!");
@@ -69,7 +84,7 @@ export default function ManageUstadsPage() {
       setForm({ full_name: "", email: "", password: "", phone: "", center_id: "" });
       fetchData();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to register Ustad");
+      toast.error(getErrorMessage(err, "Failed to register Ustad"));
     } finally {
       setSubmitting(false);
     }
@@ -81,10 +96,12 @@ export default function ManageUstadsPage() {
     return found ? `${found.name} (${found.code})` : centerId.slice(0, 8);
   };
 
-  const filtered = ustads.filter(u =>
-    u.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = ustads.filter((u) => {
+    const q = (search || "").toLowerCase();
+    const nameMatch = (u.full_name || "").toLowerCase().includes(q);
+    const emailMatch = (u.email || "").toLowerCase().includes(q);
+    return nameMatch || emailMatch;
+  });
 
   return (
     <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
@@ -143,38 +160,41 @@ export default function ManageUstadsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((ustad) => (
-                <tr key={ustad.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                    <div className="p-2 bg-indigo-50 text-indigo-700 rounded-full font-black text-xs">
-                      {ustad.full_name.charAt(0)}
-                    </div>
-                    {ustad.full_name}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="flex items-center gap-1.5 text-slate-700">
-                      <Mail className="h-3.5 w-3.5 text-slate-400" /> {ustad.email}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-slate-800">
-                    <span className="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded text-xs">
-                      <Building2 className="h-3.5 w-3.5 text-slate-500" /> {getCenterName(ustad.center_id)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-500">
-                    {ustad.phone ? (
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5 text-slate-400" /> {ustad.phone}
+              {filtered.map((ustad) => {
+                const initial = (ustad.full_name || "U").charAt(0).toUpperCase();
+                return (
+                  <tr key={ustad.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
+                      <div className="p-2 bg-indigo-50 text-indigo-700 rounded-full font-black text-xs">
+                        {initial}
+                      </div>
+                      {ustad.full_name || "Unnamed Ustad"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="flex items-center gap-1.5 text-slate-700">
+                        <Mail className="h-3.5 w-3.5 text-slate-400" /> {ustad.email || "N/A"}
                       </span>
-                    ) : "N/A"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
-                      ● Active Ustad
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-800">
+                      <span className="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded text-xs">
+                        <Building2 className="h-3.5 w-3.5 text-slate-500" /> {getCenterName(ustad.center_id)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-500">
+                      {ustad.phone ? (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5 text-slate-400" /> {ustad.phone}
+                        </span>
+                      ) : "N/A"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+                        ● Active Ustad
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

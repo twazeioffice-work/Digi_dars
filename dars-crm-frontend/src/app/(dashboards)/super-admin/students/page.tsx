@@ -20,6 +20,17 @@ interface StudentUser {
   created_at?: string;
 }
 
+const getErrorMessage = (err: any, fallback: string) => {
+  const detail = err?.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
+  }
+  if (typeof detail === "object") return JSON.stringify(detail);
+  return fallback;
+};
+
 export default function SuperAdminManageStudentsPage() {
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,9 +51,9 @@ export default function SuperAdminManageStudentsPage() {
   const fetchData = async () => {
     try {
       const res = await api.get("/users/students");
-      setStudents(res.data || []);
+      setStudents(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      toast.error("Failed to load students list");
+      toast.error(getErrorMessage(err, "Failed to load students list"));
     } finally {
       setLoading(false);
     }
@@ -57,7 +68,13 @@ export default function SuperAdminManageStudentsPage() {
     setSubmitting(true);
     try {
       await api.post("/auth/register", {
-        ...form,
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone.trim() || undefined,
+        emergency_contact: form.emergency_contact.trim() || undefined,
+        address: form.address.trim() || undefined,
+        is_zakat_eligible: form.is_zakat_eligible,
         role: "STUDENT",
       });
       toast.success("Student registered successfully!");
@@ -73,17 +90,19 @@ export default function SuperAdminManageStudentsPage() {
       });
       fetchData();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to register student");
+      toast.error(getErrorMessage(err, "Failed to register student"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filtered = students.filter(s =>
-    s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase()) ||
-    (s.student_profile?.address && s.student_profile.address.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = students.filter((s) => {
+    const q = (search || "").toLowerCase();
+    const nameMatch = (s.full_name || "").toLowerCase().includes(q);
+    const emailMatch = (s.email || "").toLowerCase().includes(q);
+    const addrMatch = (s.student_profile?.address || "").toLowerCase().includes(q);
+    return nameMatch || emailMatch || addrMatch;
+  });
 
   return (
     <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
@@ -144,17 +163,18 @@ export default function SuperAdminManageStudentsPage() {
                 const isZakat = student.student_profile?.is_zakat_eligible;
                 const address = student.student_profile?.address;
                 const emergency = student.student_profile?.emergency_contact;
+                const initial = (student.full_name || "S").charAt(0).toUpperCase();
                 return (
                   <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
                       <div className="p-2 bg-blue-50 text-blue-700 rounded-full font-black text-xs">
-                        {student.full_name.charAt(0)}
+                        {initial}
                       </div>
-                      {student.full_name}
+                      {student.full_name || "Unnamed Student"}
                     </td>
                     <td className="px-6 py-4">
                       <span className="flex items-center gap-1.5 text-slate-700">
-                        <Mail className="h-3.5 w-3.5 text-slate-400" /> {student.email}
+                        <Mail className="h-3.5 w-3.5 text-slate-400" /> {student.email || "N/A"}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-xs space-y-1">
