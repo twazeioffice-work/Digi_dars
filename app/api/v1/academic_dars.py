@@ -6,7 +6,8 @@ from app.database import get_db
 from app.schemas.academic import (
     HalqaCreate, HalqaResponse, HalqaEnrollmentCreate, HalqaEnrollmentResponse,
     HifzLogCreate, HifzLogResponse, KitabLogCreate, KitabLogResponse,
-    TarbiyyahLogCreate, BulkTarbiyyahCreate, TarbiyyahLogResponse, LeaveRequestCreate, LeaveRequestResponse, LeaveApprovalUpdate
+    TarbiyyahLogCreate, BulkTarbiyyahCreate, TarbiyyahLogResponse, LeaveRequestCreate, LeaveRequestResponse, LeaveApprovalUpdate,
+    NazimDashboardResponse
 )
 from app.services import academic_dars
 from app.core.guards import role_guard
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/v1/academic", tags=["Module 3: Academic & Tarbiyyah 
 
 @router.get(
     "/dashboard/nazim",
+    response_model=NazimDashboardResponse,
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM"]))]
 )

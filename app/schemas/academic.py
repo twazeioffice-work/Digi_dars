@@ -144,3 +144,24 @@ class LeaveRequestResponse(BaseModel):
 
 class LeaveApprovalUpdate(BaseModel):
     status: str  # APPROVED or REJECTED
+
+class AttendanceTrend(BaseModel):
+    date: str
+    percent: float
+
+class HalqaStat(BaseModel):
+    id: Union[UUID, str]
+    name: str
+    ustad_name: str
+    student_count: int
+    avg_attendance: float
+    sabaq_completion_rate: float
+
+class NazimDashboardResponse(BaseModel):
+    center_name: str
+    total_students: int
+    zakat_eligible_count: int
+    active_halqas: int
+    overall_attendance: float
+    attendance_trend: List[AttendanceTrend]
+    halqas: List[HalqaStat]
