@@ -21,3 +21,4 @@ prometheus-fastapi-instrumentator==7.0.0
 aiosqlite>=0.20.0
 sentry-sdk[fastapi]>=2.0.0
 fastapi-limiter==0.1.5
+stripe>=15.0.0
