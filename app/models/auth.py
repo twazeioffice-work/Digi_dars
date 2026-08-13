@@ -45,6 +45,8 @@ class User(TenantBase):
     address = Column(String(500), nullable=True)
     emergency_contact = Column(String(50), nullable=True)
     gov_id_card_url = Column(String(500), nullable=True)
+    kiosk_pin = Column(String(10), default="1234", nullable=True)
+    student_card_id = Column(String(50), nullable=True, index=True)
 
     # Relationships
     center = relationship("Center", back_populates="users")
