@@ -65,7 +65,7 @@ class TransactionResponseWrapper(BaseModel):
     data: TransactionDataResponse
 
 class ReversalRequest(BaseModel):
-    reason: str
+    reason: str = Field(..., min_length=10, description="Detailed reason for the reversal")
 
 class ReversalDataResponse(BaseModel):
     reversal_transaction_id: str

@@ -114,9 +114,33 @@ def reverse_transaction_endpoint(
     db: Session = Depends(get_db)
 ):
     """(Nazim / Admin Only) Reverse an existing transaction by creating a balancing entry."""
-    center_id = request.state.center_id
-    user_id = request.state.user_id
-    return finance_ledger.reverse_transaction(db, center_id, user_id, transaction_id, payload)
+    center_id = getattr(request.state, "center_id", None)
+    user_id = getattr(request.state, "user_id", None)
+    reversal = finance_ledger.reverse_transaction(db, center_id, user_id, transaction_id, payload)
+    if isinstance(reversal, dict):
+        return reversal
+    return {
+        "status": "success",
+        "message": "Transaction successfully reversed.",
+        "data": {
+            "reversal_transaction_id": reversal.id,
+            "reversal_for_id": reversal.reversal_for_id,
+            "id": reversal.id,
+            "category_id": reversal.category_id,
+            "type": reversal.type,
+            "amount": reversal.amount,
+            "description": reversal.description,
+            "student_id": reversal.student_id,
+            "created_at": reversal.created_at
+        },
+        "id": reversal.id,
+        "category_id": reversal.category_id,
+        "amount": reversal.amount,
+        "type": reversal.type,
+        "description": reversal.description,
+        "student_id": reversal.student_id,
+        "created_at": reversal.created_at
+    }
 
 @router.get(
     "/transactions",

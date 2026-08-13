@@ -147,46 +147,58 @@ def record_expense(db: Session, center_id: str, user_id: str, payload: Union[Exp
 # DDD Application Service alias
 record_expense_service = record_expense
 
-def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_id: str, payload: ReversalRequest) -> dict:
-    original = db.query(FinanceTransaction).filter(
-        FinanceTransaction.id == transaction_id,
-        FinanceTransaction.center_id == center_id
+def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_id: str, payload: ReversalRequest) -> FinanceTransaction:
+    t_id = center_id or current_tenant_id.get()
+    u_id = user_id or current_user_id.get()
+
+    original_txn = db.query(FinanceTransaction).filter(
+        FinanceTransaction.id == str(transaction_id),
+        FinanceTransaction.center_id == t_id
     ).first()
-    if not original:
+    if not original_txn:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Transaction '{transaction_id}' not found for this center"
+            detail="Original transaction not found."
         )
 
-    new_type = TransactionType.CREDIT.value if original.type == TransactionType.DEBIT.value else TransactionType.DEBIT.value
+    # Prevent reversing a transaction that is already a reversal entry
+    if original_txn.reversal_for_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot reverse a transaction that is already a reversal entry."
+        )
 
-    reversal = FinanceTransaction(
-        center_id=center_id,
-        category_id=original.category_id,
-        amount=original.amount,
+    # Check if this transaction has already been reversed
+    existing_reversal = db.query(FinanceTransaction).filter(
+        FinanceTransaction.reversal_for_id == str(transaction_id)
+    ).first()
+    if existing_reversal:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This transaction has already been reversed."
+        )
+
+    new_type = TransactionType.CREDIT.value if original_txn.type == TransactionType.DEBIT.value else TransactionType.DEBIT.value
+
+    reversal_txn = FinanceTransaction(
+        center_id=t_id,
+        category_id=original_txn.category_id,
+        amount=original_txn.amount,
         type=new_type,
-        student_id=original.student_id,
-        description=f"[REVERSAL] {payload.reason}",
-        receipt_url=original.receipt_url,
-        recorded_by=user_id,
-        reversal_for_id=original.id
+        student_id=original_txn.student_id,
+        description=f"[REVERSAL] {payload.reason} | Original Ref: {original_txn.id}",
+        receipt_url=original_txn.receipt_url,
+        recorded_by=u_id or "SYSTEM",
+        reversal_for_id=original_txn.id
     )
-    db.add(reversal)
+    db.add(reversal_txn)
     db.commit()
-    db.refresh(reversal)
+    db.refresh(reversal_txn)
 
-    return {
-        "status": "success",
-        "message": "Transaction successfully reversed.",
-        "data": {
-            "reversal_transaction_id": reversal.id,
-            "reversal_for_id": original.id,
-            "type": reversal.type,
-            "amount": reversal.amount,
-            "description": reversal.description,
-            "created_at": reversal.created_at
-        }
-    }
+    return reversal_txn
+
+# DDD Application Service alias
+reverse_transaction_service = reverse_transaction
 
 def get_ledger(
     db: Session,
