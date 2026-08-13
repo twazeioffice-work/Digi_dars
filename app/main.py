@@ -2,6 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
+from app.core.logging import setup_structured_logging
+
+# Initialize logging BEFORE anything else
+setup_structured_logging()
+
 from app.core.middleware import TenantContextMiddleware
 from app.api.router import api_router
 from app.api.v1.auth_tenant import router as auth_router
@@ -19,7 +24,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# 2. Configure CORS (Crucial for the Next.js Frontend)
+# Configure CORS (Crucial for the Next.js Frontend)
 origins = [
     "http://localhost:3000",  # Next.js local development
     "http://localhost:8000",
@@ -33,10 +38,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Add Multi-Tenant Auth Gatekeeper
+# Add Multi-Tenant Auth Gatekeeper with structlog Context Binding
 app.add_middleware(TenantContextMiddleware)
 
-# 4. Mount API Routers
+# Mount API Routers
 app.include_router(api_router)
 app.include_router(auth_router)
 app.include_router(finance_router)
@@ -45,7 +50,7 @@ app.include_router(comms_router)
 app.include_router(comms_plural_router)
 app.include_router(ai_router)
 
-# 5. Root Health Check Endpoint
+# Root Health Check Endpoint
 @app.get("/", tags=["Health"])
 async def root_health_check():
     return {
