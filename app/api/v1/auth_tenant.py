@@ -48,6 +48,11 @@ def get_center_details_endpoint(center_id: str, db: Session = Depends(get_db)):
     """Retrieve details and metadata for a specific center."""
     return auth_tenant.get_center_details(db, center_id)
 
+@users_router.get("/nazims", response_model=List[UserResponse])
+def get_nazims_endpoint(db: Session = Depends(get_db)):
+    """Retrieve all Nazims."""
+    return auth_tenant.get_users_by_role(db, "NAZIM")
+
 @users_router.get("/ustads", response_model=List[UserResponse])
 def get_ustads_endpoint(db: Session = Depends(get_db)):
     """Retrieve all Ustads."""

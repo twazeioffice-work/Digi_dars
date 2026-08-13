@@ -18,6 +18,8 @@ export default function NazimLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/nazim', label: '📊 Center Overview' },
+    { href: '/nazim/ustads', label: '👳‍♂️ Manage Ustads' },
+    { href: '/nazim/students', label: '🎓 Manage Students' },
     { href: '/nazim/finance', label: '💰 Zakat & Finance Ledger' },
   ];
 

@@ -19,6 +19,10 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const navItems = [
     { href: '/super-admin', label: '🏢 Global Dashboard' },
     { href: '/super-admin/centers', label: '🕌 Manage Masjids & Centers' },
+    { href: '/super-admin/nazims', label: '👤 Manage Nazims' },
+    { href: '/super-admin/ustads', label: '👳‍♂️ Manage Ustads' },
+    { href: '/super-admin/students', label: '🎓 Manage Students' },
+    { href: '/super-admin/finance', label: '💰 Global Zakat & AI' },
   ];
 
   return (
