@@ -4,6 +4,7 @@ from app.api.v1.finance_ledger import router as finance_ledger_router
 from app.api.v1.academic_dars import router as academic_dars_router
 from app.api.v1.communications import router as communications_router
 from app.api.v1.rag_ai import router as rag_ai_router
+from app.api.v1.websocket import router as websocket_router
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth_tenant_router)
@@ -11,3 +12,5 @@ api_router.include_router(finance_ledger_router)
 api_router.include_router(academic_dars_router)
 api_router.include_router(communications_router)
 api_router.include_router(rag_ai_router)
+api_router.include_router(websocket_router)
+
