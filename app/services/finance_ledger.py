@@ -1,13 +1,16 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException, status
-from typing import Optional, Union
+from typing import Optional, Union, List
 from datetime import datetime
 
 from app.core.context import current_tenant_id, current_user_id
 from app.models.finance import FinanceCategory, FinanceTransaction, TransactionType, FundCategory
-from app.models.auth import StudentProfile, User
-from app.schemas.finance import CategoryCreate, IncomeTransactionCreate, ExpenseTransactionCreate, ExpenseCreate, ReversalRequest
+from app.models.auth import StudentProfile, User, Center
+from app.schemas.finance import (
+    CategoryCreate, IncomeTransactionCreate, ExpenseTransactionCreate, ExpenseCreate, ReversalRequest,
+    GlobalZakatStatsResponse, CenterZakatSummary
+)
 
 def create_finance_category(db: Session, center_id: str, user_id: str, payload: CategoryCreate) -> FinanceCategory:
     fund_upper = payload.fund_type.upper()
@@ -144,7 +147,6 @@ def record_expense(db: Session, center_id: str, user_id: str, payload: Union[Exp
 
     return transaction
 
-# DDD Application Service alias
 record_expense_service = record_expense
 
 def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_id: str, payload: ReversalRequest) -> FinanceTransaction:
@@ -161,14 +163,12 @@ def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_i
             detail="Original transaction not found."
         )
 
-    # Prevent reversing a transaction that is already a reversal entry
     if original_txn.reversal_for_id is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot reverse a transaction that is already a reversal entry."
         )
 
-    # Check if this transaction has already been reversed
     existing_reversal = db.query(FinanceTransaction).filter(
         FinanceTransaction.reversal_for_id == str(transaction_id)
     ).first()
@@ -197,8 +197,79 @@ def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_i
 
     return reversal_txn
 
-# DDD Application Service alias
 reverse_transaction_service = reverse_transaction
+
+def get_global_zakat_stats_service(db: Session) -> GlobalZakatStatsResponse:
+    """
+    Fetches Zakat statistics across all Masjids/Centers for the Super Admin.
+    Cross-tenant rollup query ignoring current_tenant_id context filter.
+    """
+    results = db.query(
+        Center.id,
+        Center.name,
+        FinanceTransaction.type,
+        func.sum(FinanceTransaction.amount).label("total_amount")
+    ).join(
+        FinanceTransaction, FinanceTransaction.center_id == Center.id
+    ).join(
+        FinanceCategory, FinanceTransaction.category_id == FinanceCategory.id
+    ).filter(
+        FinanceCategory.fund_type == FundCategory.ZAKAT.value
+    ).group_by(
+        Center.id, Center.name, FinanceTransaction.type
+    ).all()
+
+    breakdown_map = {}
+    global_collected = 0.0
+    global_spent = 0.0
+
+    for center_id, center_name, txn_type, total_amount in results:
+        cid_str = str(center_id)
+        if cid_str not in breakdown_map:
+            breakdown_map[cid_str] = {
+                "center_id": cid_str,
+                "center_name": center_name,
+                "total_collected": 0.0,
+                "total_spent": 0.0
+            }
+        
+        amount = float(total_amount or 0.0)
+
+        if txn_type == TransactionType.CREDIT.value:
+            breakdown_map[cid_str]["total_collected"] += amount
+            global_collected += amount
+        elif txn_type == TransactionType.DEBIT.value:
+            breakdown_map[cid_str]["total_spent"] += amount
+            global_spent += amount
+
+    if not breakdown_map:
+        centers = db.query(Center).all()
+        for c in centers:
+            cid_str = str(c.id)
+            breakdown_map[cid_str] = {
+                "center_id": cid_str,
+                "center_name": c.name,
+                "total_collected": 0.0,
+                "total_spent": 0.0
+            }
+
+    centers_breakdown = [
+        CenterZakatSummary(
+            center_id=data["center_id"],
+            center_name=data["center_name"],
+            total_collected=data["total_collected"],
+            total_spent=data["total_spent"],
+            balance=data["total_collected"] - data["total_spent"]
+        )
+        for data in breakdown_map.values()
+    ]
+
+    return GlobalZakatStatsResponse(
+        global_collected=global_collected,
+        global_spent=global_spent,
+        global_balance=global_collected - global_spent,
+        centers_breakdown=centers_breakdown
+    )
 
 def get_ledger(
     db: Session,

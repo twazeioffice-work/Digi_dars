@@ -4,12 +4,25 @@ from typing import Optional, Union
 from datetime import datetime
 from app.database import get_db
 from app.schemas.finance import (
-    CategoryCreate, IncomeTransactionCreate, ExpenseCreate, ExpenseTransactionCreate, ReversalRequest, TransactionResponse
+    CategoryCreate, IncomeTransactionCreate, ExpenseCreate, ExpenseTransactionCreate, ReversalRequest, TransactionResponse,
+    GlobalZakatStatsResponse
 )
 from app.services import finance_ledger
 from app.core.guards import role_guard
 
 router = APIRouter(prefix="/v1/finance", tags=["Module 2: Immutable Finance Ledger"])
+
+@router.get(
+    "/global-stats/zakat",
+    response_model=GlobalZakatStatsResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN"]))]
+)
+def get_global_zakat_statistics(db: Session = Depends(get_db)):
+    """
+    Super Admin endpoint: Fetch total Zakat collected and spent across all Dars centers.
+    """
+    return finance_ledger.get_global_zakat_stats_service(db)
 
 @router.post(
     "/categories",

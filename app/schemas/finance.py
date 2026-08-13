@@ -96,3 +96,16 @@ class LedgerResponseWrapper(BaseModel):
     summary: LedgerSummary
     data: List[Dict[str, Any]]
     pagination: PaginationInfo
+
+class CenterZakatSummary(BaseModel):
+    center_id: Union[UUID, str]
+    center_name: str
+    total_collected: float
+    total_spent: float
+    balance: float
+
+class GlobalZakatStatsResponse(BaseModel):
+    global_collected: float
+    global_spent: float
+    global_balance: float
+    centers_breakdown: List[CenterZakatSummary]
