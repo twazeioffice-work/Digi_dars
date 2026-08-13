@@ -1,61 +1,90 @@
 version: '3.8'
 
 services:
-  web:
-    build: .
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://dars_user:dars_password@postgres:5432/dars_db
-      - REDIS_URL=redis://redis:6379/0
-      - REDIS_BACKEND_URL=redis://redis:6379/1
-      - SECRET_KEY=production_secret_key_change_me_in_env
-    depends_on:
-      - postgres
-      - redis
-
-  celery_worker:
-    build: .
-    command: celery -A app.core.celery_app.celery_app worker --loglevel=info -Q q_urgent,q_vector_sync,q_llm_batch
-    environment:
-      - DATABASE_URL=postgresql://dars_user:dars_password@postgres:5432/dars_db
-      - REDIS_URL=redis://redis:6379/0
-      - REDIS_BACKEND_URL=redis://redis:6379/1
-      - SECRET_KEY=production_secret_key_change_me_in_env
-    depends_on:
-      - postgres
-      - redis
-
-  celery_beat:
-    build: .
-    command: celery -A app.core.celery_app.celery_app beat --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql://dars_user:dars_password@postgres:5432/dars_db
-      - REDIS_URL=redis://redis:6379/0
-      - REDIS_BACKEND_URL=redis://redis:6379/1
-      - SECRET_KEY=production_secret_key_change_me_in_env
-    depends_on:
-      - postgres
-      - redis
-
-  postgres:
-    image: postgres:16-alpine
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:15-alpine
     container_name: dars_postgres
+    restart: always
     environment:
-      - POSTGRES_USER=dars_user
-      - POSTGRES_PASSWORD=dars_password
-      - POSTGRES_DB=dars_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: dars_crm
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dars_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  # 2. Redis (Message Broker for Celery)
   redis:
     image: redis:7-alpine
     container_name: dars_redis
+    restart: always
     ports:
       - "6379:6379"
 
+  # 3. FastAPI Web Server
+  api:
+    build: .
+    container_name: dars_api
+    restart: always
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      # Override DB URL to point to the Docker internal network name 'db'
+      DATABASE_URL: postgresql+asyncpg://postgres:supersecretpassword@db:5432/dars_crm
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+
+  # 4. Celery Worker (Executes the background tasks like push notifications)
+  celery_worker:
+    build: .
+    container_name: dars_celery_worker
+    restart: always
+    command: celery -A config.celery_app worker --loglevel=info
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:supersecretpassword@db:5432/dars_crm
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+
+  # 5. Celery Beat (Schedules the weekly RAG Vector DB Sync)
+  celery_beat:
+    build: .
+    container_name: dars_celery_beat
+    restart: always
+    command: celery -A config.celery_app beat --loglevel=info
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:supersecretpassword@db:5432/dars_crm
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+
+# Define persistent storage for the database
 volumes:
   postgres_data:
