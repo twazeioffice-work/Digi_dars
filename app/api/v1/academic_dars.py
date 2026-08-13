@@ -6,7 +6,7 @@ from app.database import get_db
 from app.schemas.academic import (
     HalqaCreate, HalqaResponse, HalqaEnrollmentCreate, HalqaEnrollmentResponse,
     HifzLogCreate, HifzLogResponse, KitabLogCreate, KitabLogResponse,
-    BulkTarbiyyahCreate, TarbiyyahLogResponse, LeaveRequestCreate, LeaveRequestResponse, LeaveApprovalUpdate
+    TarbiyyahLogCreate, BulkTarbiyyahCreate, TarbiyyahLogResponse, LeaveRequestCreate, LeaveRequestResponse, LeaveApprovalUpdate
 )
 from app.services import academic_dars
 from app.core.guards import role_guard
@@ -35,6 +35,21 @@ def enroll_student_endpoint(payload: HalqaEnrollmentCreate, db: Session = Depend
     return academic_dars.enroll_student_in_halqa(db, payload)
 
 @router.post(
+    "/hifz",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
+)
+def log_hifz_progress(
+    log_data: HifzLogCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Record or update a student's daily Hifz progress (Sabaq, Sabqi, Manzil)."""
+    center_id = getattr(request.state, "center_id", None)
+    ustad_id = getattr(request.state, "user_id", None)
+    return academic_dars.record_hifz_log_service(db, center_id, ustad_id, log_data)
+
+@router.post(
     "/hifz/logs",
     response_model=HifzLogResponse,
     status_code=status.HTTP_201_CREATED,
@@ -45,6 +60,19 @@ def record_hifz_log_endpoint(payload: HifzLogCreate, request: Request, db: Sessi
     center_id = request.state.center_id
     ustad_id = request.state.user_id
     return academic_dars.record_hifz_log(db, center_id, ustad_id, payload)
+
+@router.post(
+    "/tarbiyyah",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
+)
+def log_tarbiyyah_attendance(
+    log_data: TarbiyyahLogCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Record or update a student's daily prayer attendance and Adab score."""
+    return academic_dars.record_tarbiyyah_log_service(db, log_data)
 
 @router.post(
     "/kitab/logs",

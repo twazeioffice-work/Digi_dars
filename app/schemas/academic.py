@@ -1,6 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
+from uuid import UUID
+from app.models.enums import MasteryLevel, JamaatStatus
 
 class HalqaCreate(BaseModel):
     name: str
@@ -33,15 +35,15 @@ class HalqaEnrollmentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class HifzLogCreate(BaseModel):
-    student_id: str
-    log_date: Optional[date] = None
+    student_id: Union[UUID, str]
+    log_date: date = Field(default_factory=date.today)
     sabaq_details: Optional[str] = None
-    sabaq_grade: Optional[str] = "EXCELLENT"  # EXCELLENT, GOOD, NEEDS_WORK, FAIL
+    sabaq_grade: Optional[Union[MasteryLevel, str]] = None
     sabqi_details: Optional[str] = None
-    sabqi_grade: Optional[str] = "GOOD"
+    sabqi_grade: Optional[Union[MasteryLevel, str]] = None
     manzil_details: Optional[str] = None
-    manzil_grade: Optional[str] = "GOOD"
-    remarks: Optional[str] = None
+    manzil_grade: Optional[Union[MasteryLevel, str]] = None
+    remarks: Optional[str] = Field(None, description="Behavioral or academic notes for AI ingestion")
 
 class HifzLogResponse(BaseModel):
     id: str
@@ -84,17 +86,20 @@ class KitabLogResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class SingleTarbiyyahEntry(BaseModel):
-    student_id: str
-    log_date: Optional[date] = None
-    is_on_leave: Optional[bool] = False
-    fajr: Optional[str] = "PRESENT_IN_JAMAAT"  # PRESENT_IN_JAMAAT, LATE, PRAYED_ALONE, MISSED, EXCUSED
-    zuhr: Optional[str] = "PRESENT_IN_JAMAAT"
-    asr: Optional[str] = "PRESENT_IN_JAMAAT"
-    maghrib: Optional[str] = "PRESENT_IN_JAMAAT"
-    isha: Optional[str] = "PRESENT_IN_JAMAAT"
-    adab_score: Optional[int] = Field(5, ge=1, le=5)
+class TarbiyyahLogCreate(BaseModel):
+    student_id: Union[UUID, str]
+    log_date: date = Field(default_factory=date.today)
+    is_on_leave: bool = False
+    fajr: Optional[Union[JamaatStatus, str]] = None
+    zuhr: Optional[Union[JamaatStatus, str]] = None
+    asr: Optional[Union[JamaatStatus, str]] = None
+    maghrib: Optional[Union[JamaatStatus, str]] = None
+    isha: Optional[Union[JamaatStatus, str]] = None
+    adab_score: int = Field(5, ge=1, le=5, description="Score from 1 (Poor) to 5 (Excellent)")
     behavior_remarks: Optional[str] = None
+
+class SingleTarbiyyahEntry(TarbiyyahLogCreate):
+    pass
 
 class BulkTarbiyyahCreate(BaseModel):
     entries: List[SingleTarbiyyahEntry]

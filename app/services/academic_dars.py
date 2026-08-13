@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from datetime import datetime, timezone, date
-from typing import Optional, List
+from typing import Optional, List, Union
+from app.core.context import current_tenant_id, current_user_id
 from app.models.academic import (
     Halqa, HalqaEnrollment, HifzLog, KitabLog, TarbiyyahLog, LeaveRequest,
     DepartmentType, MasteryLevel, JamaatStatus, LeaveStatus
@@ -9,12 +10,12 @@ from app.models.academic import (
 from app.models.auth import User
 from app.schemas.academic import (
     HalqaCreate, HalqaEnrollmentCreate, HifzLogCreate,
-    KitabLogCreate, BulkTarbiyyahCreate, LeaveRequestCreate
+    KitabLogCreate, TarbiyyahLogCreate, BulkTarbiyyahCreate, LeaveRequestCreate
 )
 from app.services.rag_ai import sync_student_remarks
 
 def create_halqa(db: Session, request_center_id: Optional[str], payload: HalqaCreate) -> Halqa:
-    target_center_id = payload.center_id or request_center_id
+    target_center_id = payload.center_id or request_center_id or current_tenant_id.get()
     if not target_center_id and payload.ustad_id:
         ustad = db.query(User).filter(User.id == payload.ustad_id).first()
         if ustad:
@@ -86,33 +87,40 @@ def enroll_student_in_halqa(db: Session, payload: HalqaEnrollmentCreate) -> Halq
     db.refresh(enrollment)
     return enrollment
 
-def record_hifz_log(db: Session, center_id: str, ustad_id: str, payload: HifzLogCreate) -> HifzLog:
-    student = db.query(User).filter(User.id == payload.student_id).first()
+def record_hifz_log(db: Session, center_id: Optional[str], ustad_id: Optional[str], payload: HifzLogCreate) -> HifzLog:
+    tenant_id = center_id or current_tenant_id.get()
+    user_id = ustad_id or current_user_id.get()
+
+    student_str = str(payload.student_id)
+    student = db.query(User).filter(User.id == student_str).first()
     if not student:
         raise HTTPException(status_code=404, detail=f"Student '{payload.student_id}' not found")
 
-    target_center_id = student.center_id or center_id
+    target_center_id = tenant_id or student.center_id
     log_date = payload.log_date or datetime.now(timezone.utc).date()
 
-    existing = db.query(HifzLog).filter(
-        HifzLog.student_id == payload.student_id,
+    existing_log = db.query(HifzLog).filter(
+        HifzLog.student_id == student_str,
         HifzLog.log_date == log_date
     ).first()
 
-    if existing:
-        existing.sabaq_details = payload.sabaq_details
-        existing.sabaq_grade = payload.sabaq_grade
-        existing.sabqi_details = payload.sabqi_details
-        existing.sabqi_grade = payload.sabqi_grade
-        existing.manzil_details = payload.manzil_details
-        existing.manzil_grade = payload.manzil_grade
-        existing.remarks = payload.remarks
-        log_obj = existing
+    if existing_log:
+        existing_log.sabaq_details = payload.sabaq_details or existing_log.sabaq_details
+        existing_log.sabaq_grade = payload.sabaq_grade or existing_log.sabaq_grade
+        existing_log.sabqi_details = payload.sabqi_details or existing_log.sabqi_details
+        existing_log.sabqi_grade = payload.sabqi_grade or existing_log.sabqi_grade
+        existing_log.manzil_details = payload.manzil_details or existing_log.manzil_details
+        existing_log.manzil_grade = payload.manzil_grade or existing_log.manzil_grade
+        
+        if payload.remarks:
+            existing_log.remarks = f"{existing_log.remarks or ''} | {payload.remarks}".strip(" | ")
+
+        log_obj = existing_log
     else:
         log_obj = HifzLog(
             center_id=target_center_id,
-            student_id=payload.student_id,
-            ustad_id=ustad_id,
+            student_id=student_str,
+            ustad_id=user_id or "SYSTEM",
             log_date=log_date,
             sabaq_details=payload.sabaq_details,
             sabaq_grade=payload.sabaq_grade,
@@ -129,9 +137,74 @@ def record_hifz_log(db: Session, center_id: str, ustad_id: str, payload: HifzLog
 
     # Vector Sync Hook: Push remarks to RAG vector DB
     if payload.remarks:
-        sync_student_remarks(db, payload.student_id)
+        sync_student_remarks(db, student_str)
 
     return log_obj
+
+record_hifz_log_service = record_hifz_log
+
+def record_tarbiyyah_log_service(db: Session, payload: TarbiyyahLogCreate) -> TarbiyyahLog:
+    tenant_id = current_tenant_id.get()
+    ustad_id = current_user_id.get()
+
+    student_str = str(payload.student_id)
+    student = db.query(User).filter(User.id == student_str).first()
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student '{payload.student_id}' not found")
+
+    target_center_id = tenant_id or student.center_id
+    log_date = payload.log_date or datetime.now(timezone.utc).date()
+
+    existing_log = db.query(TarbiyyahLog).filter(
+        TarbiyyahLog.student_id == student_str,
+        TarbiyyahLog.log_date == log_date
+    ).first()
+
+    # The "Leave" Override: If on leave, skip prayer statuses
+    if payload.is_on_leave:
+        fajr, zuhr, asr, maghrib, isha = None, None, None, None, None
+    else:
+        fajr = payload.fajr or JamaatStatus.PRESENT_IN_JAMAAT.value
+        zuhr = payload.zuhr or JamaatStatus.PRESENT_IN_JAMAAT.value
+        asr = payload.asr or JamaatStatus.PRESENT_IN_JAMAAT.value
+        maghrib = payload.maghrib or JamaatStatus.PRESENT_IN_JAMAAT.value
+        isha = payload.isha or JamaatStatus.PRESENT_IN_JAMAAT.value
+
+    if existing_log:
+        existing_log.is_on_leave = payload.is_on_leave
+        if payload.fajr: existing_log.fajr = payload.fajr
+        if payload.zuhr: existing_log.zuhr = payload.zuhr
+        if payload.asr: existing_log.asr = payload.asr
+        if payload.maghrib: existing_log.maghrib = payload.maghrib
+        if payload.isha: existing_log.isha = payload.isha
+        if payload.adab_score: existing_log.adab_score = payload.adab_score
+        if payload.behavior_remarks: existing_log.behavior_remarks = payload.behavior_remarks
+        existing_log.recorded_by = ustad_id or "SYSTEM"
+        log_entry = existing_log
+    else:
+        log_entry = TarbiyyahLog(
+            center_id=target_center_id,
+            student_id=student_str,
+            log_date=log_date,
+            is_on_leave=payload.is_on_leave,
+            fajr=fajr,
+            zuhr=zuhr,
+            asr=asr,
+            maghrib=maghrib,
+            isha=isha,
+            adab_score=payload.adab_score,
+            behavior_remarks=payload.behavior_remarks,
+            recorded_by=ustad_id or "SYSTEM"
+        )
+        db.add(log_entry)
+
+    db.commit()
+    db.refresh(log_entry)
+
+    if payload.behavior_remarks:
+        sync_student_remarks(db, student_str)
+
+    return log_entry
 
 def record_kitab_log(db: Session, center_id: str, ustad_id: str, payload: KitabLogCreate) -> KitabLog:
     student = db.query(User).filter(User.id == payload.student_id).first()
@@ -165,14 +238,13 @@ def record_kitab_log(db: Session, center_id: str, ustad_id: str, payload: KitabL
 def log_bulk_tarbiyyah(db: Session, center_id: str, user_id: str, payload: BulkTarbiyyahCreate) -> List[TarbiyyahLog]:
     saved_logs = []
     for entry in payload.entries:
-        student = db.query(User).filter(User.id == entry.student_id).first()
+        student = db.query(User).filter(User.id == str(entry.student_id)).first()
         if not student:
             continue
 
         target_center_id = student.center_id or center_id
         log_date = entry.log_date or datetime.now(timezone.utc).date()
 
-        # The "Leave" Override: If on leave, skip prayer statuses
         if entry.is_on_leave:
             fajr, zuhr, asr, maghrib, isha = None, None, None, None, None
         else:
@@ -183,7 +255,7 @@ def log_bulk_tarbiyyah(db: Session, center_id: str, user_id: str, payload: BulkT
             isha = entry.isha or JamaatStatus.PRESENT_IN_JAMAAT.value
 
         existing = db.query(TarbiyyahLog).filter(
-            TarbiyyahLog.student_id == entry.student_id,
+            TarbiyyahLog.student_id == str(entry.student_id),
             TarbiyyahLog.log_date == log_date
         ).first()
 
@@ -201,7 +273,7 @@ def log_bulk_tarbiyyah(db: Session, center_id: str, user_id: str, payload: BulkT
         else:
             log_item = TarbiyyahLog(
                 center_id=target_center_id,
-                student_id=entry.student_id,
+                student_id=str(entry.student_id),
                 log_date=log_date,
                 is_on_leave=entry.is_on_leave or False,
                 fajr=fajr,
@@ -218,9 +290,8 @@ def log_bulk_tarbiyyah(db: Session, center_id: str, user_id: str, payload: BulkT
         db.flush()
         saved_logs.append(log_item)
 
-        # Vector Sync Hook
         if entry.behavior_remarks:
-            sync_student_remarks(db, entry.student_id)
+            sync_student_remarks(db, str(entry.student_id))
 
     db.commit()
     for log_item in saved_logs:
