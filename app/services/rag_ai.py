@@ -1,4 +1,5 @@
 import math
+import os
 import re
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -18,6 +19,36 @@ def dummy_embedding(text_str: str) -> List[float]:
     """Lightweight 16-dim deterministic embedding generator for local testing / production fallback."""
     val = sum(ord(c) for c in text_str)
     return [round(math.sin(val + i), 4) for i in range(16)]
+
+async def get_embedding(text: str) -> List[float]:
+    """Calls OpenAI to generate a vector embedding for the text chunk (with fallback)."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        try:
+            from openai import AsyncOpenAI
+            openai_client = AsyncOpenAI(api_key=api_key)
+            response = await openai_client.embeddings.create(
+                input=text,
+                model="text-embedding-3-small"
+            )
+            return response.data[0].embedding
+        except Exception:
+            return dummy_embedding(text)
+    return dummy_embedding(text)
+
+def upsert_to_vector_db(vectors: List[Dict[str, Any]]):
+    """Pushes a batch of vectors to Pinecone (or logs locally if Pinecone is unconfigured)."""
+    api_key = os.getenv("PINECONE_API_KEY")
+    if api_key and vectors:
+        try:
+            from pinecone import Pinecone
+            pc = Pinecone(api_key=api_key)
+            pinecone_index = pc.Index("dars-crm-index")
+            pinecone_index.upsert(vectors=vectors)
+            return
+        except Exception:
+            pass
+    print(f"[Vector DB] Processed {len(vectors)} vector records.")
 
 def ingest_document(db: Session, request_center_id: Optional[str], payload: DocumentIngestCreate) -> dict:
     target_center_id = payload.center_id or request_center_id
@@ -103,7 +134,6 @@ def generate_natural_language_report(db: Session, student_id: str, month: str = 
     if not student:
         raise HTTPException(status_code=404, detail=f"Student '{student_id}' not found")
 
-    # 1. Structured Data Engine (PostgreSQL / SQLite)
     tarbiyyah_logs = db.query(TarbiyyahLog).filter(TarbiyyahLog.student_id == student_id).all()
     total_days = len(tarbiyyah_logs)
     fajr_jamaat = sum(1 for t in tarbiyyah_logs if t.fajr == "PRESENT_IN_JAMAAT")
@@ -121,7 +151,6 @@ def generate_natural_language_report(db: Session, student_id: str, month: str = 
         "department": "Hifz"
     }
 
-    # 2. Unstructured Data Engine (Vector Search)
     vectors = db.query(StudentRemarkVector).filter(
         StudentRemarkVector.student_id == student_id,
         StudentRemarkVector.month_name == month
@@ -130,7 +159,6 @@ def generate_natural_language_report(db: Session, student_id: str, month: str = 
     if not unstructured_context:
         unstructured_context = ["MashaAllah, showed great Adab and Tajweed progress."]
 
-    # 3. Hybrid RAG Prompt Synthesis (Islamic Persona)
     report_text = (
         f"Assalamu Alaikum wa Rahmatullahi wa Barakatuh,\n\n"
         f"We pray this monthly update finds you in the best of health and Eeman. Alhamdulillah, we are pleased to share "
