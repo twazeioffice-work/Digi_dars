@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from app.models.rag import DocumentEmbedding, StudentRemarkVector
 from app.models.auth import User, Center
-from app.models.academic import HifzProgress, KitabProgress, DailyTarbiyyah
+from app.models.academic import HifzLog, KitabLog, TarbiyyahLog
 from app.models.finance import FinanceCategory, FinanceTransaction
 from app.schemas.rag import (
     DocumentIngestCreate, SyncRemarksCreate, ProgressReportRequest,
@@ -25,7 +25,6 @@ def ingest_document(db: Session, request_center_id: Optional[str], payload: Docu
     if not text_content:
         raise HTTPException(status_code=400, detail="Document content cannot be empty")
 
-    # Entity-Temporal Chunking
     chunks = [text_content[i:i+400] for i in range(0, len(text_content), 400)]
     created_ids = []
 
@@ -54,14 +53,14 @@ def sync_student_remarks(db: Session, student_id: str, month: str = "August", ye
     if not student:
         raise HTTPException(status_code=404, detail=f"Student '{student_id}' not found")
 
-    hifz_remarks = db.query(HifzProgress.remarks).filter(
-        HifzProgress.student_id == student_id,
-        HifzProgress.remarks.isnot(None)
+    hifz_remarks = db.query(HifzLog.remarks).filter(
+        HifzLog.student_id == student_id,
+        HifzLog.remarks.isnot(None)
     ).all()
 
-    tarbiyyah_remarks = db.query(DailyTarbiyyah.behavioral_remarks).filter(
-        DailyTarbiyyah.student_id == student_id,
-        DailyTarbiyyah.behavioral_remarks.isnot(None)
+    tarbiyyah_remarks = db.query(TarbiyyahLog.behavior_remarks).filter(
+        TarbiyyahLog.student_id == student_id,
+        TarbiyyahLog.behavior_remarks.isnot(None)
     ).all()
 
     combined_text = []
@@ -75,7 +74,6 @@ def sync_student_remarks(db: Session, student_id: str, month: str = "August", ye
     if not combined_text:
         combined_text = ["MashaAllah, student maintained consistent attendance and good behavior."]
 
-    # Chunk by weekly blocks
     chunks = [combined_text[i:i+3] for i in range(0, len(combined_text), 3)]
     synced_count = 0
 
@@ -106,13 +104,13 @@ def generate_natural_language_report(db: Session, student_id: str, month: str = 
         raise HTTPException(status_code=404, detail=f"Student '{student_id}' not found")
 
     # 1. Structured Data Engine (PostgreSQL / SQLite)
-    tarbiyyah_logs = db.query(DailyTarbiyyah).filter(DailyTarbiyyah.student_id == student_id).all()
+    tarbiyyah_logs = db.query(TarbiyyahLog).filter(TarbiyyahLog.student_id == student_id).all()
     total_days = len(tarbiyyah_logs)
-    fajr_jamaat = sum(1 for t in tarbiyyah_logs if t.fajr == "PRESENT_JAMAAT")
+    fajr_jamaat = sum(1 for t in tarbiyyah_logs if t.fajr == "PRESENT_IN_JAMAAT")
     fajr_pct = round((fajr_jamaat / total_days * 100), 1) if total_days > 0 else 100.0
 
-    hifz_logs = db.query(HifzProgress).filter(HifzProgress.student_id == student_id).all()
-    sabaq_list = [h.sabaq for h in hifz_logs]
+    hifz_logs = db.query(HifzLog).filter(HifzLog.student_id == student_id).all()
+    sabaq_list = [h.sabaq_details for h in hifz_logs if h.sabaq_details]
     latest_sabaq = sabaq_list[0] if sabaq_list else "Surah Al-Mulk v.1-15"
 
     structured_metrics = {
@@ -187,7 +185,6 @@ def query_policy_bot(db: Session, request_center_id: Optional[str], payload: Pol
 def execute_text_to_sql(db: Session, request_center_id: Optional[str], payload: TextToSQLRequest) -> dict:
     prompt_text = payload.prompt.strip()
 
-    # Security check: Ensure read-only query (block write/drop operations)
     forbidden = ["insert", "update", "delete", "drop", "alter", "truncate"]
     if any(re.search(rf"\b{f}\b", prompt_text, re.IGNORECASE) for f in forbidden):
         raise HTTPException(
@@ -195,7 +192,6 @@ def execute_text_to_sql(db: Session, request_center_id: Optional[str], payload: 
             detail="Security Violation: Only read-only queries are permitted for Text-to-SQL analytics."
         )
 
-    # Safe generated SQL translation for Financial ratio analysis
     generated_sql = (
         "SELECT c.name AS category_name, c.fund_type, SUM(t.amount) AS total_spent "
         "FROM finance_categories c "

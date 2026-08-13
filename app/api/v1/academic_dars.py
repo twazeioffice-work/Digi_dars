@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, Query, status, Request
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 from app.database import get_db
 from app.schemas.academic import (
     HalqaCreate, HalqaResponse, HalqaEnrollmentCreate, HalqaEnrollmentResponse,
-    HifzProgressCreate, HifzProgressResponse, KitabProgressCreate, KitabProgressResponse,
-    DailyTarbiyyahCreate, DailyTarbiyyahResponse, LeaveRequestCreate, LeaveRequestResponse, LeaveApprovalUpdate
+    HifzLogCreate, HifzLogResponse, KitabLogCreate, KitabLogResponse,
+    BulkTarbiyyahCreate, TarbiyyahLogResponse, LeaveRequestCreate, LeaveRequestResponse, LeaveApprovalUpdate
 )
 from app.services import academic_dars
 from app.core.guards import role_guard
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/v1/academic", tags=["Module 3: Academic & Tarbiyyah 
     dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM"]))]
 )
 def create_halqa_endpoint(payload: HalqaCreate, request: Request, db: Session = Depends(get_db)):
-    """(Admin / Nazim Only) Create a new Halqa (batch)."""
+    """(Admin / Nazim Only) Create a new Halqa (batch) for Hifz, Aalim Course, Nazira, or Maktab."""
     center_id = request.state.center_id
     return academic_dars.create_halqa(db, center_id, payload)
 
@@ -35,26 +35,40 @@ def enroll_student_endpoint(payload: HalqaEnrollmentCreate, db: Session = Depend
     return academic_dars.enroll_student_in_halqa(db, payload)
 
 @router.post(
-    "/hifz/progress",
-    response_model=HifzProgressResponse,
+    "/hifz/logs",
+    response_model=HifzLogResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
 )
-def record_hifz_progress_endpoint(payload: HifzProgressCreate, request: Request, db: Session = Depends(get_db)):
-    """(Ustad Only) Record daily Hifz progress (Sabaq, Sabqi, Manzil)."""
+def record_hifz_log_endpoint(payload: HifzLogCreate, request: Request, db: Session = Depends(get_db)):
+    """(Ustad Only) Record daily Hifz progress (Sabaq, Sabqi, Manzil & Mastery level grades). Triggers Vector DB sync."""
+    center_id = request.state.center_id
     ustad_id = request.state.user_id
-    return academic_dars.record_hifz_progress(db, ustad_id, payload)
+    return academic_dars.record_hifz_log(db, center_id, ustad_id, payload)
 
 @router.post(
-    "/kitab/progress",
-    response_model=KitabProgressResponse,
+    "/kitab/logs",
+    response_model=KitabLogResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
 )
-def record_kitab_progress_endpoint(payload: KitabProgressCreate, request: Request, db: Session = Depends(get_db)):
-    """(Ustad Only) Record daily Kitab progress (book name, chapters completed)."""
+def record_kitab_log_endpoint(payload: KitabLogCreate, request: Request, db: Session = Depends(get_db)):
+    """(Ustad Only) Record Kitab progress (book name, chapter, Mutala'a status, comprehension grade)."""
+    center_id = request.state.center_id
     ustad_id = request.state.user_id
-    return academic_dars.record_kitab_progress(db, ustad_id, payload)
+    return academic_dars.record_kitab_log(db, center_id, ustad_id, payload)
+
+@router.post(
+    "/tarbiyyah/bulk",
+    response_model=List[TarbiyyahLogResponse],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
+)
+def log_bulk_tarbiyyah_endpoint(payload: BulkTarbiyyahCreate, request: Request, db: Session = Depends(get_db)):
+    """(Ustad Only) Bulk log daily Tarbiyyah & 5-daily prayer attendance for an entire Halqa with conflict resolution & Vector Sync hook."""
+    center_id = request.state.center_id
+    user_id = request.state.user_id
+    return academic_dars.log_bulk_tarbiyyah(db, center_id, user_id, payload)
 
 @router.get(
     "/students/{student_id}/history",
@@ -68,17 +82,6 @@ def get_student_academic_history_endpoint(
 ):
     """Retrieve full academic and Tarbiyyah history for a student."""
     return academic_dars.get_student_academic_history(db, student_id, start_date, end_date)
-
-@router.post(
-    "/tarbiyyah",
-    response_model=DailyTarbiyyahResponse,
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
-)
-def log_daily_tarbiyyah_endpoint(payload: DailyTarbiyyahCreate, request: Request, db: Session = Depends(get_db)):
-    """(Ustad Only) Log daily prayer attendance and behavioral remarks."""
-    ustad_id = request.state.user_id
-    return academic_dars.log_daily_tarbiyyah(db, ustad_id, payload)
 
 @router.post(
     "/leave-requests",

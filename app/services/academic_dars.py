@@ -1,17 +1,21 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from datetime import datetime, timezone, date
-from typing import Optional
-from app.models.academic import Halqa, HalqaEnrollment, HifzProgress, KitabProgress, DailyTarbiyyah, LeaveRequest, LeaveStatus
-from app.models.auth import User, UserRole
-from app.schemas.academic import (
-    HalqaCreate, HalqaEnrollmentCreate, HifzProgressCreate,
-    KitabProgressCreate, DailyTarbiyyahCreate, LeaveRequestCreate
+from typing import Optional, List
+from app.models.academic import (
+    Halqa, HalqaEnrollment, HifzLog, KitabLog, TarbiyyahLog, LeaveRequest,
+    DepartmentType, MasteryLevel, JamaatStatus, LeaveStatus
 )
+from app.models.auth import User
+from app.schemas.academic import (
+    HalqaCreate, HalqaEnrollmentCreate, HifzLogCreate,
+    KitabLogCreate, BulkTarbiyyahCreate, LeaveRequestCreate
+)
+from app.services.rag_ai import sync_student_remarks
 
 def create_halqa(db: Session, request_center_id: Optional[str], payload: HalqaCreate) -> Halqa:
     target_center_id = payload.center_id or request_center_id
-    if payload.ustad_id and not target_center_id:
+    if not target_center_id and payload.ustad_id:
         ustad = db.query(User).filter(User.id == payload.ustad_id).first()
         if ustad:
             target_center_id = ustad.center_id
@@ -22,19 +26,26 @@ def create_halqa(db: Session, request_center_id: Optional[str], payload: HalqaCr
             detail="A valid center_id must be provided in the payload or request context"
         )
 
-    if payload.ustad_id:
-        ustad = db.query(User).filter(User.id == payload.ustad_id).first()
-        if not ustad:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Ustad with id '{payload.ustad_id}' not found"
-            )
+    ustad = db.query(User).filter(User.id == payload.ustad_id).first() if payload.ustad_id else None
+    if payload.ustad_id and not ustad:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ustad with id '{payload.ustad_id}' not found"
+        )
+
+    dept_upper = payload.department.upper()
+    if dept_upper not in [d.value for d in DepartmentType]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid department '{payload.department}'. Allowed: {[d.value for d in DepartmentType]}"
+        )
 
     halqa = Halqa(
         center_id=target_center_id,
+        ustad_id=payload.ustad_id or (ustad.id if ustad else None),
         name=payload.name,
-        department=payload.department,
-        ustad_id=payload.ustad_id
+        department=dept_upper,
+        is_active=True
     )
     db.add(halqa)
     db.commit()
@@ -55,60 +66,166 @@ def enroll_student_in_halqa(db: Session, payload: HalqaEnrollmentCreate) -> Halq
             detail=f"Student '{payload.student_id}' not found"
         )
 
+    existing = db.query(HalqaEnrollment).filter(
+        HalqaEnrollment.halqa_id == payload.halqa_id,
+        HalqaEnrollment.student_id == payload.student_id
+    ).first()
+    if existing:
+        existing.status = payload.status or "ACTIVE"
+        db.commit()
+        db.refresh(existing)
+        return existing
+
     enrollment = HalqaEnrollment(
         halqa_id=payload.halqa_id,
-        student_id=payload.student_id
+        student_id=payload.student_id,
+        status=payload.status or "ACTIVE"
     )
     db.add(enrollment)
     db.commit()
     db.refresh(enrollment)
     return enrollment
 
-def record_hifz_progress(db: Session, ustad_id: str, payload: HifzProgressCreate) -> HifzProgress:
+def record_hifz_log(db: Session, center_id: str, ustad_id: str, payload: HifzLogCreate) -> HifzLog:
     student = db.query(User).filter(User.id == payload.student_id).first()
     if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student '{payload.student_id}' not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Student '{payload.student_id}' not found")
 
+    target_center_id = student.center_id or center_id
     log_date = payload.log_date or datetime.now(timezone.utc).date()
-    progress = HifzProgress(
+
+    existing = db.query(HifzLog).filter(
+        HifzLog.student_id == payload.student_id,
+        HifzLog.log_date == log_date
+    ).first()
+
+    if existing:
+        existing.sabaq_details = payload.sabaq_details
+        existing.sabaq_grade = payload.sabaq_grade
+        existing.sabqi_details = payload.sabqi_details
+        existing.sabqi_grade = payload.sabqi_grade
+        existing.manzil_details = payload.manzil_details
+        existing.manzil_grade = payload.manzil_grade
+        existing.remarks = payload.remarks
+        log_obj = existing
+    else:
+        log_obj = HifzLog(
+            center_id=target_center_id,
+            student_id=payload.student_id,
+            ustad_id=ustad_id,
+            log_date=log_date,
+            sabaq_details=payload.sabaq_details,
+            sabaq_grade=payload.sabaq_grade,
+            sabqi_details=payload.sabqi_details,
+            sabqi_grade=payload.sabqi_grade,
+            manzil_details=payload.manzil_details,
+            manzil_grade=payload.manzil_grade,
+            remarks=payload.remarks
+        )
+        db.add(log_obj)
+
+    db.commit()
+    db.refresh(log_obj)
+
+    # Vector Sync Hook: Push remarks to RAG vector DB
+    if payload.remarks:
+        sync_student_remarks(db, payload.student_id)
+
+    return log_obj
+
+def record_kitab_log(db: Session, center_id: str, ustad_id: str, payload: KitabLogCreate) -> KitabLog:
+    student = db.query(User).filter(User.id == payload.student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student '{payload.student_id}' not found")
+
+    target_center_id = student.center_id or center_id
+    log_date = payload.log_date or datetime.now(timezone.utc).date()
+
+    log_obj = KitabLog(
+        center_id=target_center_id,
         student_id=payload.student_id,
         ustad_id=ustad_id,
         log_date=log_date,
-        sabaq=payload.sabaq,
-        sabqi=payload.sabqi,
-        manzil=payload.manzil,
+        kitab_name=payload.kitab_name,
+        chapter_or_topic=payload.chapter_or_topic,
+        mutalaa_completed=payload.mutalaa_completed or False,
+        comprehension_grade=payload.comprehension_grade,
         remarks=payload.remarks
     )
-    db.add(progress)
+    db.add(log_obj)
     db.commit()
-    db.refresh(progress)
-    return progress
+    db.refresh(log_obj)
 
-def record_kitab_progress(db: Session, ustad_id: str, payload: KitabProgressCreate) -> KitabProgress:
-    student = db.query(User).filter(User.id == payload.student_id).first()
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student '{payload.student_id}' not found"
-        )
+    # Vector Sync Hook
+    if payload.remarks:
+        sync_student_remarks(db, payload.student_id)
 
-    log_date = payload.log_date or datetime.now(timezone.utc).date()
-    progress = KitabProgress(
-        student_id=payload.student_id,
-        ustad_id=ustad_id,
-        log_date=log_date,
-        book_name=payload.book_name,
-        chapter_completed=payload.chapter_completed,
-        pages_read=payload.pages_read or 0,
-        remarks=payload.remarks
-    )
-    db.add(progress)
+    return log_obj
+
+def log_bulk_tarbiyyah(db: Session, center_id: str, user_id: str, payload: BulkTarbiyyahCreate) -> List[TarbiyyahLog]:
+    saved_logs = []
+    for entry in payload.entries:
+        student = db.query(User).filter(User.id == entry.student_id).first()
+        if not student:
+            continue
+
+        target_center_id = student.center_id or center_id
+        log_date = entry.log_date or datetime.now(timezone.utc).date()
+
+        # The "Leave" Override: If on leave, skip prayer statuses
+        if entry.is_on_leave:
+            fajr, zuhr, asr, maghrib, isha = None, None, None, None, None
+        else:
+            fajr = entry.fajr or JamaatStatus.PRESENT_IN_JAMAAT.value
+            zuhr = entry.zuhr or JamaatStatus.PRESENT_IN_JAMAAT.value
+            asr = entry.asr or JamaatStatus.PRESENT_IN_JAMAAT.value
+            maghrib = entry.maghrib or JamaatStatus.PRESENT_IN_JAMAAT.value
+            isha = entry.isha or JamaatStatus.PRESENT_IN_JAMAAT.value
+
+        existing = db.query(TarbiyyahLog).filter(
+            TarbiyyahLog.student_id == entry.student_id,
+            TarbiyyahLog.log_date == log_date
+        ).first()
+
+        if existing:
+            existing.is_on_leave = entry.is_on_leave or False
+            existing.fajr = fajr
+            existing.zuhr = zuhr
+            existing.asr = asr
+            existing.maghrib = maghrib
+            existing.isha = isha
+            existing.adab_score = entry.adab_score
+            existing.behavior_remarks = entry.behavior_remarks
+            existing.recorded_by = user_id
+            log_item = existing
+        else:
+            log_item = TarbiyyahLog(
+                center_id=target_center_id,
+                student_id=entry.student_id,
+                log_date=log_date,
+                is_on_leave=entry.is_on_leave or False,
+                fajr=fajr,
+                zuhr=zuhr,
+                asr=asr,
+                maghrib=maghrib,
+                isha=isha,
+                adab_score=entry.adab_score,
+                behavior_remarks=entry.behavior_remarks,
+                recorded_by=user_id
+            )
+            db.add(log_item)
+
+        db.flush()
+        saved_logs.append(log_item)
+
+        # Vector Sync Hook
+        if entry.behavior_remarks:
+            sync_student_remarks(db, entry.student_id)
+
     db.commit()
-    db.refresh(progress)
-    return progress
+    for log_item in saved_logs:
+        db.refresh(log_item)
+    return saved_logs
 
 def get_student_academic_history(
     db: Session,
@@ -116,50 +233,25 @@ def get_student_academic_history(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None
 ) -> dict:
-    hifz_query = db.query(HifzProgress).filter(HifzProgress.student_id == student_id)
-    kitab_query = db.query(KitabProgress).filter(KitabProgress.student_id == student_id)
-    tarbiyyah_query = db.query(DailyTarbiyyah).filter(DailyTarbiyyah.student_id == student_id)
+    hifz_query = db.query(HifzLog).filter(HifzLog.student_id == student_id)
+    kitab_query = db.query(KitabLog).filter(KitabLog.student_id == student_id)
+    tarbiyyah_query = db.query(TarbiyyahLog).filter(TarbiyyahLog.student_id == student_id)
 
     if start_date:
-        hifz_query = hifz_query.filter(HifzProgress.log_date >= start_date)
-        kitab_query = kitab_query.filter(KitabProgress.log_date >= start_date)
-        tarbiyyah_query = tarbiyyah_query.filter(DailyTarbiyyah.log_date >= start_date)
+        hifz_query = hifz_query.filter(HifzLog.log_date >= start_date)
+        kitab_query = kitab_query.filter(KitabLog.log_date >= start_date)
+        tarbiyyah_query = tarbiyyah_query.filter(TarbiyyahLog.log_date >= start_date)
     if end_date:
-        hifz_query = hifz_query.filter(HifzProgress.log_date <= end_date)
-        kitab_query = kitab_query.filter(KitabProgress.log_date <= end_date)
-        tarbiyyah_query = tarbiyyah_query.filter(DailyTarbiyyah.log_date <= end_date)
+        hifz_query = hifz_query.filter(HifzLog.log_date <= end_date)
+        kitab_query = kitab_query.filter(KitabLog.log_date <= end_date)
+        tarbiyyah_query = tarbiyyah_query.filter(TarbiyyahLog.log_date <= end_date)
 
     return {
         "student_id": student_id,
-        "hifz_logs": hifz_query.order_by(HifzProgress.log_date.desc()).all(),
-        "kitab_logs": kitab_query.order_by(KitabProgress.log_date.desc()).all(),
-        "tarbiyyah_logs": tarbiyyah_query.order_by(DailyTarbiyyah.log_date.desc()).all()
+        "hifz_logs": hifz_query.order_by(HifzLog.log_date.desc()).all(),
+        "kitab_logs": kitab_query.order_by(KitabLog.log_date.desc()).all(),
+        "tarbiyyah_logs": tarbiyyah_query.order_by(TarbiyyahLog.log_date.desc()).all()
     }
-
-def log_daily_tarbiyyah(db: Session, ustad_id: str, payload: DailyTarbiyyahCreate) -> DailyTarbiyyah:
-    student = db.query(User).filter(User.id == payload.student_id).first()
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student '{payload.student_id}' not found"
-        )
-
-    log_date = payload.log_date or datetime.now(timezone.utc).date()
-    tarbiyyah = DailyTarbiyyah(
-        student_id=payload.student_id,
-        ustad_id=ustad_id,
-        log_date=log_date,
-        fajr=payload.fajr or "PRESENT_JAMAAT",
-        dhuhr=payload.dhuhr or "PRESENT_JAMAAT",
-        asr=payload.asr or "PRESENT_JAMAAT",
-        maghrib=payload.maghrib or "PRESENT_JAMAAT",
-        isha=payload.isha or "PRESENT_JAMAAT",
-        behavioral_remarks=payload.behavioral_remarks
-    )
-    db.add(tarbiyyah)
-    db.commit()
-    db.refresh(tarbiyyah)
-    return tarbiyyah
 
 def submit_leave_request(db: Session, request_center_id: Optional[str], payload: LeaveRequestCreate) -> LeaveRequest:
     target_center_id = payload.center_id or request_center_id
@@ -171,7 +263,7 @@ def submit_leave_request(db: Session, request_center_id: Optional[str], payload:
     if not target_center_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A valid center_id must be provided or linked to the student"
+            detail="A valid center_id must be provided or linked to student"
         )
 
     leave = LeaveRequest(
@@ -190,16 +282,12 @@ def submit_leave_request(db: Session, request_center_id: Optional[str], payload:
 def approve_leave_request(db: Session, request_id: str, reviewer_id: str, status_val: str) -> LeaveRequest:
     leave = db.query(LeaveRequest).filter(LeaveRequest.id == request_id).first()
     if not leave:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Leave request '{request_id}' not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Leave request '{request_id}' not found")
+    
     status_upper = status_val.upper()
     if status_upper not in [LeaveStatus.APPROVED.value, LeaveStatus.REJECTED.value]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Status must be APPROVED or REJECTED"
-        )
+        raise HTTPException(status_code=400, detail="Status must be APPROVED or REJECTED")
+    
     leave.status = status_upper
     leave.reviewed_by = reviewer_id
     db.commit()
