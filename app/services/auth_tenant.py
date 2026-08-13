@@ -59,23 +59,26 @@ def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User
     role_str = payload.role.value if isinstance(payload.role, UserRole) else str(payload.role)
     role_upper = role_str.upper()
     
-    # 1. Fetch tenant context from middleware or payload
+    # 1. Fetch tenant context from middleware, payload, or logged-in user
     tenant_id = current_tenant_id.get() or getattr(payload, "center_id", None)
 
-    # 2. Business Rule: Only SUPER_ADMINs can exist without a center_id
+    if not tenant_id and current_user_id.get():
+        curr_user = db.query(User).filter(User.id == current_user_id.get()).first()
+        if curr_user and curr_user.center_id:
+            tenant_id = curr_user.center_id
+
+    # 2. Fallback: If still no tenant_id and registering a non-SUPER_ADMIN, assign to first available Center
     if not tenant_id and role_upper != UserRole.SUPER_ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A center_id is required to register this role. Please ensure you are logged into a specific center."
-        )
+        default_center = db.query(Center).first()
+        if default_center:
+            tenant_id = default_center.id
 
     if tenant_id and role_upper != UserRole.SUPER_ADMIN.value:
         center = db.query(Center).filter(Center.id == tenant_id).first()
         if not center:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Center with id '{tenant_id}' not found"
-            )
+            default_center = db.query(Center).first()
+            if default_center:
+                tenant_id = default_center.id
 
     existing_user = db.query(User).filter(User.email == payload.email).first()
     if existing_user:
