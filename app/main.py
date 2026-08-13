@@ -1,9 +1,21 @@
+import os
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import settings
 from app.database import engine, Base
 from app.core.logging import setup_structured_logging
+
+# 1. Initialize Sentry before FastAPI application setup
+sentry_dsn = os.getenv("SENTRY_DSN")
+if sentry_dsn:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        traces_sample_rate=1.0,
+        environment=os.getenv("ENVIRONMENT", "development"),
+        enable_tracing=True,
+    )
 
 # Initialize logging BEFORE anything else
 setup_structured_logging()
@@ -71,5 +83,5 @@ async def root_health_check():
     return {
         "status": "online",
         "service": "Dars SaaS CRM Engine",
-        "environment": "development"
+        "environment": os.getenv("ENVIRONMENT", "development")
     }

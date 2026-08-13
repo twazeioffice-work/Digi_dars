@@ -47,6 +47,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:supersecretpassword@db:5432/dars_crm
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      ENVIRONMENT: production
+      SENTRY_DSN: ${SENTRY_DSN:-https://your-backend-sentry-key@o12345.ingest.sentry.io/111111}
 
   # 4. Celery Worker (Executes background tasks)
   celery_worker:
@@ -132,6 +134,8 @@ services:
       - NEXT_PUBLIC_API_URL=http://api:8000/api/v1
       - NEXTAUTH_SECRET=supersecretfrontendkey
       - NEXTAUTH_URL=http://localhost:3000
+      - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-https://your-frontend-sentry-key@o12345.ingest.sentry.io/222222}
+      - SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN:-your-sentry-auth-token-for-source-maps}
     depends_on:
       - api
 

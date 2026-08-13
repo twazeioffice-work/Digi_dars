@@ -19,3 +19,4 @@ structlog>=24.1.0
 asgi-correlation-id>=4.3.0
 prometheus-fastapi-instrumentator==7.0.0
 aiosqlite>=0.20.0
+sentry-sdk[fastapi]>=2.0.0
