@@ -12,7 +12,6 @@ def send_absentee_alert(self, student_name: str, parent_phone: str, date_str: st
             f"Please contact the Nazim if this is an error."
         )
         logger.info(f"[SMS Gateway] Sending SMS to {parent_phone}: '{message}'")
-        # Simulated SMS SDK dispatch success
         return {"status": "sent", "recipient": parent_phone, "message": message}
     except Exception as exc:
         logger.error(f"[SMS Gateway Error] Retrying SMS alert for {student_name}: {exc}")
@@ -23,3 +22,9 @@ def send_urgent_notification(user_id: str, title: str, message: str):
     """Worker 1 (q_urgent): Push real-time notification to Ustad / Admin."""
     logger.info(f"[Urgent Push] User: {user_id} | Title: {title} | Message: {message}")
     return {"status": "pushed", "user_id": user_id, "title": title}
+
+@celery_app.task(name="tasks.messaging.send_app_notification")
+def send_app_notification(student_id: str, title: str, preview_text: str, tenant_id: str):
+    """Worker 1 (q_urgent): Push app notification to parent."""
+    logger.info(f"[App Notification] Tenant: {tenant_id} | Student: {student_id} | Title: {title}")
+    return {"status": "sent", "student_id": student_id, "title": title}

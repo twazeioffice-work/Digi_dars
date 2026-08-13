@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
+from uuid import UUID
 
 # --- Flow 1: Internal Tickets ---
 class InternalTicketCreate(BaseModel):
@@ -48,6 +49,19 @@ class ThreadCreate(BaseModel):
 
 class AcademicMessageCreate(BaseModel):
     message: str
+
+class ApprovedReportRequest(BaseModel):
+    final_text: str = Field(..., description="The Ustad-approved text to send to the parents.")
+
+class MessageResponse(BaseModel):
+    id: Union[UUID, str]
+    thread_id: Union[UUID, str]
+    sender_id: Union[UUID, str]
+    message: str
+    is_read: bool = False
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 class AcademicMessageResponseData(BaseModel):
     message_id: str

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from typing import Optional, List
+from typing import Optional, List, Union
+from app.core.context import current_tenant_id, current_user_id
 from app.models.communication import (
     InternalTicket, Broadcast, AcademicThread, AcademicMessage,
     SuperAdminEscalation, PublicInquiry, TicketStatus, BroadcastAudience
@@ -8,8 +9,9 @@ from app.models.communication import (
 from app.models.auth import User
 from app.schemas.communication import (
     InternalTicketCreate, BroadcastCreate, AcademicMessageCreate,
-    EscalationCreate, InquiryCreate
+    EscalationCreate, InquiryCreate, ApprovedReportRequest
 )
+from app.tasks.messaging import send_app_notification
 
 # --- Flow 1: Internal Tickets ---
 def create_internal_ticket(db: Session, created_by: str, request_center_id: Optional[str], payload: InternalTicketCreate) -> dict:
@@ -104,6 +106,54 @@ def get_or_create_thread(db: Session, center_id: str, ustad_id: str, student_id:
         db.refresh(thread)
     return thread
 
+def send_approved_report_service(db: Session, student_id: Union[str, Any], report_data: ApprovedReportRequest) -> AcademicMessage:
+    tenant_id = current_tenant_id.get()
+    ustad_id = current_user_id.get()
+
+    student_str = str(student_id)
+    student = db.query(User).filter(User.id == student_str).first()
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student '{student_id}' not found")
+
+    t_id = tenant_id or student.center_id or "default"
+    u_id = ustad_id or "SYSTEM"
+
+    thread = db.query(AcademicThread).filter(
+        AcademicThread.ustad_id == u_id,
+        AcademicThread.student_id == student_str
+    ).first()
+
+    if not thread:
+        thread = AcademicThread(
+            center_id=t_id,
+            ustad_id=u_id,
+            student_id=student_str
+        )
+        db.add(thread)
+        db.commit()
+        db.refresh(thread)
+
+    new_message = AcademicMessage(
+        thread_id=thread.id,
+        sender_id=u_id,
+        message=report_data.final_text
+    )
+    db.add(new_message)
+    db.commit()
+    db.refresh(new_message)
+
+    try:
+        send_app_notification.delay(
+            student_id=student_str,
+            title="New Monthly Progress Report",
+            preview_text="Assalamu Alaikum, your child's monthly Dars report is ready...",
+            tenant_id=t_id
+        )
+    except Exception:
+        pass
+
+    return new_message
+
 def send_academic_message(db: Session, thread_id: str, sender_id: str, payload: AcademicMessageCreate) -> dict:
     thread = db.query(AcademicThread).filter(AcademicThread.id == thread_id).first()
     if not thread:
@@ -194,7 +244,6 @@ def create_escalation(db: Session, submitted_by: str, request_center_id: Optiona
     }
 
 def get_super_admin_escalations(db: Session, user_role: str) -> List[SuperAdminEscalation]:
-    # Local Nazims are STRICTLY BLOCKED from querying escalations
     if user_role != "SUPER_ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

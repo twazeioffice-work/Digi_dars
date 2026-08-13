@@ -5,7 +5,7 @@ from app.database import get_db
 from app.schemas.communication import (
     InternalTicketCreate, InternalTicketResponseWrapper, TicketStatusUpdate,
     BroadcastCreate, BroadcastResponseWrapper,
-    AcademicMessageCreate, AcademicMessageResponseWrapper,
+    AcademicMessageCreate, AcademicMessageResponseWrapper, ApprovedReportRequest, MessageResponse,
     ProgressMessageCreate, ProgressReplyCreate,
     EscalationCreate, EscalationResponseWrapper,
     InquiryCreate, InquiryResponse
@@ -14,6 +14,7 @@ from app.services import communications
 from app.core.guards import role_guard
 
 router = APIRouter(prefix="/v1/communication", tags=["Module 4: 4-Way Communication & Ticketing"])
+plural_router = APIRouter(prefix="/v1/communications", tags=["Communications"])
 
 # Flow 1: Internal Tickets (Ustad ➝ Nazim)
 @router.post(
@@ -49,7 +50,41 @@ def send_broadcast_endpoint(payload: BroadcastCreate, request: Request, db: Sess
     center_id = getattr(request.state, "center_id", None)
     return communications.create_broadcast(db, sent_by, center_id, payload)
 
-# Flow 3: Academic Direct Messaging (Ustad ↔ Parent)
+# Flow 3: Academic Direct Messaging & Approved Report Dispatch
+@router.post(
+    "/students/{student_id}/report",
+    response_model=MessageResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_guard(["USTAD", "NAZIM", "CENTER_ADMIN", "SUPER_ADMIN"]))]
+)
+def dispatch_approved_report(
+    student_id: str,
+    payload: ApprovedReportRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Saves the final approved AI report to the parent inbox thread 
+    and triggers an async push notification.
+    """
+    return communications.send_approved_report_service(db, student_id, payload)
+
+@plural_router.post(
+    "/students/{student_id}/report",
+    response_model=MessageResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_guard(["USTAD", "NAZIM", "CENTER_ADMIN", "SUPER_ADMIN"]))]
+)
+def dispatch_approved_report_plural(
+    student_id: str,
+    payload: ApprovedReportRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Saves the final approved AI report to the parent inbox thread 
+    and triggers an async push notification.
+    """
+    return communications.send_approved_report_service(db, student_id, payload)
+
 @router.post(
     "/threads/{thread_id}/messages",
     response_model=AcademicMessageResponseWrapper,
