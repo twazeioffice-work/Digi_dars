@@ -158,6 +158,45 @@ export default function GlobalLeaderboardPage() {
         </div>
       </div>
 
+      {/* --- USTHAD PENALTY MECHANICS AUDIT BANNER --- */}
+      <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-md space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-6 w-6 text-emerald-400" />
+            <h2 className="text-base font-bold text-white">Usthad Penalty Mechanics & 30% Batch Rule</h2>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-full uppercase border border-indigo-400/30">
+            Institutional Weight: 35%
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60 space-y-1">
+            <span className="text-emerald-400 font-extrabold block uppercase text-[10px]">1. Underperforming Threshold</span>
+            <p className="text-slate-300">
+              Students averaging <strong className="text-white">&lt; 70.0%</strong> across Namaz, Hygiene, Study, & Chores are flagged as underperforming.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60 space-y-1">
+            <span className="text-amber-400 font-extrabold block uppercase text-[10px]">2. 30% Safe Zone Rule</span>
+            <p className="text-slate-300">
+              If <strong className="text-white">&le; 30%</strong> of the batch underperforms, Usthad penalty = <strong className="text-emerald-400">0 pts</strong> (Base Score 100).
+            </p>
+          </div>
+
+          <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60 space-y-1">
+            <span className="text-rose-400 font-extrabold block uppercase text-[10px]">3. Progressive Penalty Formula</span>
+            <p className="text-slate-300 font-mono text-[11px]">
+              Penalty = (Failure Rate - 0.30) &times; 100 &times; 1.5
+            </p>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Example: 50% failure rate &rarr; (0.50 - 0.30) &times; 150 = 30 pts penalty &rarr; Final Score 70.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* --- TOP 3 PODIUM --- */}
       {!loading && leaderboard.length >= 1 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
