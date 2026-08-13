@@ -11,6 +11,7 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = SessionLocal
 Base = declarative_base()
 
 def generate_uuid_str():
