@@ -97,19 +97,27 @@ os.makedirs("uploads/id_cards", exist_ok=True)
 from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Mount API Routers
+# Mount API Routers (both with and without /api prefix for Next.js proxy safety)
 app.include_router(api_router)
+app.include_router(auth_router, prefix="/api")
 app.include_router(auth_router)
+app.include_router(finance_router, prefix="/api")
 app.include_router(finance_router)
+app.include_router(academic_router, prefix="/api")
 app.include_router(academic_router)
+app.include_router(comms_router, prefix="/api")
 app.include_router(comms_router)
+app.include_router(comms_plural_router, prefix="/api")
 app.include_router(comms_plural_router)
+app.include_router(ai_router, prefix="/api")
 app.include_router(ai_router)
 app.include_router(whatsapp_router, prefix="/api")
 app.include_router(whatsapp_router)
 app.include_router(stripe_router, prefix="/api")
 app.include_router(stripe_router)
+app.include_router(performance_router, prefix="/api")
 app.include_router(performance_router)
+app.include_router(complaints_router, prefix="/api")
 app.include_router(complaints_router)
 
 # Initialize Prometheus instrumentation if explicitly enabled
