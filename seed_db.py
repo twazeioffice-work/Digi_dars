@@ -49,7 +49,6 @@ def seed_initial_data():
         db_session.add_all([zakat_category, sadaqah_category])
 
         # 4. Create the Global Super Admin
-        # Notice center_id is intentionally left as None so they have global access
         super_admin_email = os.getenv("SUPER_ADMIN_EMAIL", "admin@darscrm.com")
         super_admin_password = os.getenv("SUPER_ADMIN_PASSWORD", "SuperSecurePassword123!")
         
@@ -64,13 +63,50 @@ def seed_initial_data():
         )
         db_session.add(super_admin)
 
-        # 5. Commit all changes to the database safely
+        # 4b. Create Second Super Admin (superadmin@digidars.org)
+        super_admin_2 = User(
+            full_name="Global Super Admin",
+            email="superadmin@digidars.org",
+            phone="+12345678901",
+            hashed_password=get_password_hash("SuperSecretPassword123"),
+            role=UserRole.SUPER_ADMIN.value,
+            center_id=None,
+            is_active=True
+        )
+        db_session.add(super_admin_2)
+
+        # 5. Create Center Admin (Nazim)
+        nazim_user = User(
+            full_name="Nazim Sb",
+            email="admin@noor.org",
+            phone="+12345678902",
+            hashed_password=get_password_hash("AdminPassword123"),
+            role=UserRole.NAZIM.value,
+            center_id=first_center.id,
+            is_active=True
+        )
+        db_session.add(nazim_user)
+
+        # 6. Create Ustad User
+        ustad_user = User(
+            full_name="Ustad Ahmad",
+            email="ustad@darscrm.com",
+            phone="+12345678903",
+            hashed_password=get_password_hash("UstadPassword123"),
+            role=UserRole.USTAD.value,
+            center_id=first_center.id,
+            is_active=True
+        )
+        db_session.add(ustad_user)
+
+        # 7. Commit all changes to the database safely
         db_session.commit()
         
         print("==================================================")
-        print("Database successfully seeded!")
+        print("Database successfully seeded with all roles!")
         print(f"Super Admin Email: {super_admin_email}")
-        print("Please change this password immediately upon login.")
+        print("Nazim Email: admin@noor.org")
+        print("Ustad Email: ustad@darscrm.com")
         print("==================================================")
 
 if __name__ == "__main__":

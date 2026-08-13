@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any
 from app.core.context import current_tenant_id, current_user_id
 from app.models.communication import (
     InternalTicket, Broadcast, AcademicThread, AcademicMessage,
