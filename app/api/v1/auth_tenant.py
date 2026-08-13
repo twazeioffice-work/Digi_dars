@@ -63,6 +63,23 @@ def get_students_endpoint(db: Session = Depends(get_db)):
     """Retrieve all Students."""
     return auth_tenant.get_users_by_role(db, "STUDENT")
 
+import os
+import shutil
+from uuid import uuid4
+from fastapi import UploadFile, File
+
+@router.post("/auth/upload-id-card")
+async def upload_id_card(file: UploadFile = File(...)):
+    """Upload a photo of a government-approved ID card."""
+    upload_dir = "uploads/id_cards"
+    os.makedirs(upload_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1] or ".jpg"
+    filename = f"{uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"status": "success", "url": f"/uploads/id_cards/{filename}"}
+
 @router.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user_endpoint(payload: UserRegister, db: Session = Depends(get_db)):
     """Register a new user (Ustad, Nazim, Parent, Student, etc.)."""

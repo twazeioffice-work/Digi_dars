@@ -97,6 +97,9 @@ def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User
         role=role_upper,
         center_id=tenant_id if role_upper != UserRole.SUPER_ADMIN.value else None,
         phone=clean_phone,
+        address=getattr(payload, "address", None),
+        emergency_contact=getattr(payload, "emergency_contact", None),
+        gov_id_card_url=getattr(payload, "gov_id_card_url", None),
         is_active=True
     )
     

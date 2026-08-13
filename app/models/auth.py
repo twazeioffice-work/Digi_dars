@@ -42,6 +42,9 @@ class User(TenantBase):
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
+    address = Column(String(500), nullable=True)
+    emergency_contact = Column(String(50), nullable=True)
+    gov_id_card_url = Column(String(500), nullable=True)
 
     # Relationships
     center = relationship("Center", back_populates="users")

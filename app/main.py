@@ -90,6 +90,11 @@ app.add_middleware(
 # Add Multi-Tenant Auth Gatekeeper with structlog Context Binding
 app.add_middleware(TenantContextMiddleware)
 
+# Mount static uploads directory for ID card photos & receipts
+os.makedirs("uploads/id_cards", exist_ok=True)
+from fastapi.staticfiles import StaticFiles
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # Mount API Routers
 app.include_router(api_router)
 app.include_router(auth_router)
