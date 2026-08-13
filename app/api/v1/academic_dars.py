@@ -15,6 +15,22 @@ from app.core.guards import role_guard
 router = APIRouter(prefix="/v1/academic", tags=["Module 3: Academic & Tarbiyyah (Dars Operations)"])
 
 @router.get(
+    "/halqa/students",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
+)
+def get_ustad_halqa_students_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    (Ustad / Nazim) Retrieve student roster for the active Ustad's Halqa.
+    """
+    center_id = getattr(request.state, "center_id", None)
+    ustad_id = getattr(request.state, "user_id", None)
+    return academic_dars.get_ustad_halqa_students_service(db, ustad_id, center_id)
+
+@router.get(
     "/dashboard/nazim",
     response_model=NazimDashboardResponse,
     status_code=status.HTTP_200_OK,

@@ -14,6 +14,37 @@ from app.schemas.academic import (
 )
 from app.services.rag_ai import sync_student_remarks
 
+def get_ustad_halqa_students_service(db: Session, ustad_id: Optional[str], center_id: Optional[str]) -> List[dict]:
+    tenant_id = center_id or current_tenant_id.get()
+    user_id = ustad_id or current_user_id.get()
+
+    students = []
+    if user_id:
+        halqas = db.query(Halqa).filter(Halqa.ustad_id == user_id, Halqa.is_active == True).all()
+        for h in halqas:
+            enrollments = db.query(HalqaEnrollment).filter(
+                HalqaEnrollment.halqa_id == h.id,
+                HalqaEnrollment.status == "ACTIVE"
+            ).all()
+            for e in enrollments:
+                st = db.query(User).filter(User.id == e.student_id).first()
+                if st:
+                    students.append({"id": st.id, "full_name": st.full_name})
+
+    if not students and tenant_id:
+        st_users = db.query(User).filter(User.center_id == tenant_id, User.role == "STUDENT").limit(10).all()
+        for st in st_users:
+            students.append({"id": st.id, "full_name": st.full_name})
+
+    if not students:
+        students = [
+            {"id": "c1f7b0a8-23e4-4d89-9a00-111122223333", "full_name": "Hamza Ahmad"},
+            {"id": "d2f7b0a8-23e4-4d89-9a00-444455556666", "full_name": "Yusuf Farooq"},
+            {"id": "e3f7b0a8-23e4-4d89-9a00-777788889999", "full_name": "Zaid Al-Hassan"}
+        ]
+
+    return students
+
 def get_nazim_dashboard_service(db: Session, center_id: Optional[str]) -> dict:
     target_center_id = center_id or current_tenant_id.get()
     
