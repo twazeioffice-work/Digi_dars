@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from datetime import datetime, timezone
-from typing import Union
+from typing import Union, Optional, List
 
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.context import current_tenant_id
@@ -193,3 +193,12 @@ def link_parent_to_student(db: Session, parent_id: str, student_id: str, relatio
     db.commit()
     db.refresh(link)
     return link
+
+def get_all_centers(db: Session) -> list[Center]:
+    return db.query(Center).order_by(Center.created_at.desc()).all()
+
+def get_users_by_role(db: Session, role_val: str, center_id: Optional[str] = None) -> list[User]:
+    query = db.query(User).filter(User.role == role_val.upper())
+    if center_id:
+        query = query.filter(User.center_id == center_id)
+    return query.all()

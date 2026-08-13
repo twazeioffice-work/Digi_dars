@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from fastapi_limiter.depends import RateLimiter
@@ -37,10 +38,25 @@ def update_center_status_endpoint(
     """(Super Admin Only) Activate or suspend a Dars center."""
     return auth_tenant.update_center_status(db, center_id, payload.status)
 
+@router.get("/centers", response_model=List[CenterResponse])
+def get_all_centers_endpoint(db: Session = Depends(get_db)):
+    """Retrieve all Dars centers."""
+    return auth_tenant.get_all_centers(db)
+
 @router.get("/centers/{center_id}", response_model=CenterResponse)
 def get_center_details_endpoint(center_id: str, db: Session = Depends(get_db)):
     """Retrieve details and metadata for a specific center."""
     return auth_tenant.get_center_details(db, center_id)
+
+@users_router.get("/ustads", response_model=List[UserResponse])
+def get_ustads_endpoint(db: Session = Depends(get_db)):
+    """Retrieve all Ustads."""
+    return auth_tenant.get_users_by_role(db, "USTAD")
+
+@users_router.get("/students", response_model=List[UserResponse])
+def get_students_endpoint(db: Session = Depends(get_db)):
+    """Retrieve all Students."""
+    return auth_tenant.get_users_by_role(db, "STUDENT")
 
 @router.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user_endpoint(payload: UserRegister, db: Session = Depends(get_db)):

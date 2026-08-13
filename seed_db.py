@@ -4,7 +4,7 @@ import bcrypt
 from sqlalchemy import select
 
 # Import database session and models
-from app.database import SessionLocal, AsyncSessionLocal
+from app.database import SessionLocal, AsyncSessionLocal, engine, Base
 from app.models.auth import Center, User
 from app.models.enums import UserRole
 from app.models.finance import FinanceCategory, FundCategory
@@ -14,6 +14,7 @@ def get_password_hash(password: str) -> str:
 
 def seed_initial_data():
     print("Starting database bootstrap process...")
+    Base.metadata.create_all(bind=engine)
     
     with SessionLocal() as db_session:
         # 1. Check if a Super Admin already exists to prevent duplicate seeds
