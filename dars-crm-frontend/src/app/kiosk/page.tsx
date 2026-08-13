@@ -6,6 +6,9 @@ import {
   KeyRound, ShieldCheck, Lock, LogOut, Award, BookOpen, HeartHandshake, 
   MessageSquare, Send, CheckCircle2, AlertCircle, Clock, Sparkles, UserCheck 
 } from "lucide-react";
+import { 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
+} from "recharts";
 import toast from "react-hot-toast";
 
 interface StudentUser {
@@ -377,36 +380,40 @@ export default function StudentKioskPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-2 text-center">
-                <span className="text-xs text-slate-400 uppercase font-bold">Namaz Compliance</span>
-                <p className="text-3xl font-black text-emerald-400">{progressCard?.namaz_score || 95}%</p>
-                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${progressCard?.namaz_score || 95}%` }} />
-                </div>
+            {/* RECHARTS RADAR CHART VISUALIZATION */}
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="h-64 w-full md:w-1/2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
+                    { subject: 'Namaz', A: progressCard?.namaz_score || 95, fullMark: 100 },
+                    { subject: 'Hygiene', A: progressCard?.hygiene_score || 90, fullMark: 100 },
+                    { subject: 'Study', A: progressCard?.study_score || 88, fullMark: 100 },
+                    { subject: 'Chores', A: progressCard?.chores_score || 100, fullMark: 100 },
+                  ]}>
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis dataKey="subject" stroke="#94A3B8" fontSize={12} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#475569" fontSize={10} />
+                    <Radar name="Performance" dataKey="A" stroke="#10B981" fill="#10B981" fillOpacity={0.5} />
+                  </RadarChart>
+                </ResponsiveContainer>
               </div>
 
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-2 text-center">
-                <span className="text-xs text-slate-400 uppercase font-bold">Hygiene &amp; Adab</span>
-                <p className="text-3xl font-black text-indigo-400">{progressCard?.hygiene_score || 90}%</p>
-                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${progressCard?.hygiene_score || 90}%` }} />
+              <div className="w-full md:w-1/2 space-y-3 text-xs">
+                <div className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800">
+                  <span className="font-bold text-slate-300">Namaz Compliance</span>
+                  <span className="font-black text-emerald-400 text-sm">{progressCard?.namaz_score || 95}%</span>
                 </div>
-              </div>
-
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-2 text-center">
-                <span className="text-xs text-slate-400 uppercase font-bold">Study &amp; Sabaq</span>
-                <p className="text-3xl font-black text-amber-400">{progressCard?.study_score || 88}%</p>
-                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-amber-500 h-full rounded-full" style={{ width: `${progressCard?.study_score || 88}%` }} />
+                <div className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800">
+                  <span className="font-bold text-slate-300">Hygiene &amp; Adab</span>
+                  <span className="font-black text-indigo-400 text-sm">{progressCard?.hygiene_score || 90}%</span>
                 </div>
-              </div>
-
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-2 text-center">
-                <span className="text-xs text-slate-400 uppercase font-bold">Daily Chores</span>
-                <p className="text-3xl font-black text-purple-400">{progressCard?.chores_score || 100}%</p>
-                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-purple-500 h-full rounded-full" style={{ width: `${progressCard?.chores_score || 100}%` }} />
+                <div className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800">
+                  <span className="font-bold text-slate-300">Study &amp; Sabaq</span>
+                  <span className="font-black text-amber-400 text-sm">{progressCard?.study_score || 88}%</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800">
+                  <span className="font-bold text-slate-300">Daily Chores</span>
+                  <span className="font-black text-purple-400 text-sm">{progressCard?.chores_score || 100}%</span>
                 </div>
               </div>
             </div>
