@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import settings
 from app.database import engine, Base
 from app.core.logging import setup_structured_logging
@@ -40,6 +41,17 @@ app.add_middleware(
 
 # Add Multi-Tenant Auth Gatekeeper with structlog Context Binding
 app.add_middleware(TenantContextMiddleware)
+
+# Initialize Prometheus instrumentation and expose the /metrics endpoint
+Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=True,
+    should_instrument_requests_inprogress=True,
+    excluded_handlers=[".*admin.*", "/metrics"],
+    env_var_name="ENABLE_METRICS",
+    inprogress_name="inprogress",
+    inprogress_labels=True,
+).instrument(app).expose(app)
 
 # Mount API Routers
 app.include_router(api_router)

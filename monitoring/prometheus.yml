@@ -1,0 +1,11 @@
+# monitoring/prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'fastapi_dars_backend'
+    metrics_path: '/metrics'
+    static_configs:
+      # 'api' matches the service name in docker-compose, and 8000 is the FastAPI port
+      - targets: ['api:8000']

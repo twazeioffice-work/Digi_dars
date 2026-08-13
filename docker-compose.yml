@@ -44,12 +44,11 @@ services:
     env_file:
       - .env
     environment:
-      # Override DB URL to point to the Docker internal network name 'db'
       DATABASE_URL: postgresql+asyncpg://postgres:supersecretpassword@db:5432/dars_crm
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
 
-  # 4. Celery Worker (Executes the background tasks like push notifications)
+  # 4. Celery Worker (Executes background tasks)
   celery_worker:
     build: .
     container_name: dars_celery_worker
@@ -85,6 +84,43 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
 
-# Define persistent storage for the database
+  # 6. Prometheus Time-Series Database
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: dars_prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - api
+
+  # 7. Grafana Dashboard
+  grafana:
+    image: grafana/grafana:10.0.3
+    container_name: dars_grafana
+    restart: always
+    ports:
+      - "3001:3000" # Mapped to 3001 so it doesn't clash with Next.js frontend on 3000
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=supersecurepassword
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+# Persistent volumes block
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
