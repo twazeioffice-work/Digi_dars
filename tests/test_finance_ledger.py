@@ -18,13 +18,14 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
-
 @pytest.fixture(autouse=True)
 def setup_db():
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield
+    Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.clear()
 
 client = TestClient(app)
 
@@ -142,14 +143,13 @@ def test_module2_finance_ledger_flow():
     assert reversal_res.status_code == 201
     reversal_data = reversal_res.json()["data"]
     assert reversal_data["reversal_for_id"] == zakat_tx_id
-    assert reversal_data["type"] == "CREDIT"  # Inverse of DEBIT
+    assert reversal_data["type"] == "CREDIT"
     assert reversal_data["amount"] == 1200.00
 
     # 6. Fetch Ledger Summary & Transactions
     ledger_res = client.get("/api/v1/finance/transactions", headers=headers_nazim)
     assert ledger_res.status_code == 200
     summary = ledger_res.json()["summary"]
-    # Income (5000 CREDIT) + Reversal (1200 CREDIT) = 6200 CREDIT. Debit = 1200 DEBIT. Net = 5000.
     assert summary["total_credit"] == 6200.00
     assert summary["total_debit"] == 1200.00
     assert summary["net_balance"] == 5000.00

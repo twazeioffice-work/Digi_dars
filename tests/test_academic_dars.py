@@ -18,13 +18,14 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
-
 @pytest.fixture(autouse=True)
 def setup_db():
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield
+    Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.clear()
 
 client = TestClient(app)
 
@@ -74,6 +75,7 @@ def test_module3_academic_and_tarbiyyah_flow():
     halqa_res = client.post("/api/v1/academic/halqas", json={
         "name": "Hifz Batch A",
         "department": "Hifz",
+        "center_id": center_id,
         "ustad_id": ustad["id"]
     }, headers=headers_super)
     assert halqa_res.status_code == 201
