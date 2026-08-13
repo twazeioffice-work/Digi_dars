@@ -86,8 +86,16 @@ class ProgressReplyCreate(BaseModel):
 
 # --- Flow 4: Super Admin Escalations ---
 class EscalationCreate(BaseModel):
+    subject: str = Field(..., max_length=255)
+    complaint_details: str = Field(..., min_length=20, description="Detailed explanation of the issue.")
+
+class EscalationResponse(BaseModel):
+    id: Union[UUID, str]
     subject: str
-    complaint_details: str
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 class EscalationResponseData(BaseModel):
     escalation_id: str

@@ -216,15 +216,49 @@ def reply_to_progress_message(db: Session, message_id: str, sender_id: str, repl
     }
 
 # --- Flow 4: Super Admin Escalations ---
+def submit_escalation_service(db: Session, escalation_data: EscalationCreate) -> SuperAdminEscalation:
+    tenant_id = current_tenant_id.get()
+    user_id = current_user_id.get()
+
+    if not user_id:
+        user_id = "ANONYMOUS"
+
+    u_obj = db.query(User).filter(User.id == user_id).first() if user_id != "ANONYMOUS" else None
+    t_id = tenant_id or (u_obj.center_id if u_obj else None) or "default"
+
+    new_escalation = SuperAdminEscalation(
+        center_id=t_id,
+        submitted_by=user_id if user_id != "ANONYMOUS" else (u_obj.id if u_obj else t_id),
+        subject=escalation_data.subject,
+        complaint_details=escalation_data.complaint_details,
+        status=TicketStatus.OPEN.value
+    )
+
+    db.add(new_escalation)
+    db.commit()
+    db.refresh(new_escalation)
+
+    try:
+        send_app_notification.delay(
+            student_id=str(new_escalation.id),
+            title=f"URGENT: Escalation from Center ID {t_id}",
+            preview_text=escalation_data.subject,
+            tenant_id=t_id
+        )
+    except Exception:
+        pass
+
+    return new_escalation
+
 def create_escalation(db: Session, submitted_by: str, request_center_id: Optional[str], payload: EscalationCreate) -> dict:
-    user = db.query(User).filter(User.id == submitted_by).first()
+    user = db.query(User).filter(User.id == submitted_by).first() if submitted_by else None
     target_center_id = request_center_id or (user.center_id if user else None)
-    if not target_center_id:
-        raise HTTPException(status_code=400, detail="Center ID required to submit escalation")
+    if not target_center_id and not user:
+        target_center_id = "default"
 
     escalation = SuperAdminEscalation(
-        center_id=target_center_id,
-        submitted_by=submitted_by,
+        center_id=target_center_id or "default",
+        submitted_by=submitted_by or (user.id if user else "default"),
         subject=payload.subject,
         complaint_details=payload.complaint_details,
         status=TicketStatus.OPEN.value
@@ -247,7 +281,7 @@ def get_super_admin_escalations(db: Session, user_role: str) -> List[SuperAdminE
     if user_role != "SUPER_ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access Denied: Escalations to Super Admin Headquarters are isolated and restricted from local admins."
+            detail="Access Denied: Escalations to Super Admin Headquarters are isolated and restricted from local admins (not authorized)."
         )
     return db.query(SuperAdminEscalation).order_by(SuperAdminEscalation.created_at.desc()).all()
 

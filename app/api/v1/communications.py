@@ -7,7 +7,7 @@ from app.schemas.communication import (
     BroadcastCreate, BroadcastResponseWrapper,
     AcademicMessageCreate, AcademicMessageResponseWrapper, ApprovedReportRequest, MessageResponse,
     ProgressMessageCreate, ProgressReplyCreate,
-    EscalationCreate, EscalationResponseWrapper,
+    EscalationCreate, EscalationResponse, EscalationResponseWrapper,
     InquiryCreate, InquiryResponse
 )
 from app.services import communications
@@ -134,6 +134,22 @@ def submit_escalation_endpoint(payload: EscalationCreate, request: Request, db: 
     submitted_by = getattr(request.state, "user_id", None)
     center_id = getattr(request.state, "center_id", None)
     return communications.create_escalation(db, submitted_by, center_id, payload)
+
+@plural_router.post(
+    "/escalations",
+    response_model=EscalationResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_guard(["PARENT", "STUDENT", "SUPER_ADMIN"]))]
+)
+def submit_super_admin_escalation_plural(
+    payload: EscalationCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Submit a confidential grievance directly to the Super Admin (HQ).
+    Local Center Admins (Nazims) cannot view these tickets.
+    """
+    return communications.submit_escalation_service(db, payload)
 
 @router.get(
     "/escalations",
