@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException, status
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Any
 from datetime import datetime
 
 from app.core.context import current_tenant_id, current_user_id
@@ -48,16 +48,43 @@ def get_finance_categories(db: Session, center_id: str):
         FinanceCategory.is_active == True
     ).all()
 
-def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTransactionCreate) -> dict:
+def _resolve_or_create_category(db: Session, center_id: str, payload: Any) -> FinanceCategory:
+    category_id = getattr(payload, "category_id", None)
+    fund_type = getattr(payload, "fund_type", "GENERAL") or "GENERAL"
+    category_name = getattr(payload, "category_name", "MISC") or "MISC"
+
+    if category_id:
+        category = db.query(FinanceCategory).filter(
+            FinanceCategory.id == str(category_id),
+            FinanceCategory.center_id == center_id
+        ).first()
+        if category:
+            return category
+
+    # Look up by fund_type & center
     category = db.query(FinanceCategory).filter(
-        FinanceCategory.id == str(payload.category_id),
-        FinanceCategory.center_id == center_id
+        FinanceCategory.center_id == center_id,
+        FinanceCategory.fund_type == fund_type
     ).first()
+
     if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Finance category '{payload.category_id}' not found"
+        category = FinanceCategory(
+            center_id=center_id,
+            name=category_name,
+            fund_type=fund_type,
+            is_active=True
         )
+        db.add(category)
+        db.commit()
+        db.refresh(category)
+
+    return category
+
+def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTransactionCreate) -> dict:
+    t_id = center_id or current_tenant_id.get()
+    u_id = user_id or current_user_id.get()
+
+    category = _resolve_or_create_category(db, t_id, payload)
 
     if payload.student_id:
         student = db.query(User).filter(User.id == str(payload.student_id)).first()
@@ -68,14 +95,14 @@ def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTran
             )
 
     transaction = FinanceTransaction(
-        center_id=center_id,
-        category_id=str(payload.category_id),
+        center_id=t_id,
+        category_id=category.id,
         amount=payload.amount,
         type=TransactionType.CREDIT.value,
         student_id=str(payload.student_id) if payload.student_id else None,
         description=payload.description,
         receipt_url=payload.receipt_url,
-        recorded_by=user_id
+        recorded_by=u_id or "SYSTEM"
     )
     db.add(transaction)
     db.commit()
@@ -98,42 +125,22 @@ def record_expense(db: Session, center_id: str, user_id: str, payload: Union[Exp
     t_id = center_id or current_tenant_id.get()
     u_id = user_id or current_user_id.get()
 
-    category = db.query(FinanceCategory).filter(
-        FinanceCategory.id == str(payload.category_id),
-        FinanceCategory.center_id == t_id
-    ).first()
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Finance category not found."
-        )
+    category = _resolve_or_create_category(db, t_id, payload)
 
     # RELIGIOUS COMPLIANCE & ZAKAT ELIGIBILITY CHECK
-    if category.fund_type == FundCategory.ZAKAT.value:
-        if not payload.student_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Zakat expenses must be allocated to a specific student. student_id is missing."
-            )
-        
-        student_profile = db.query(StudentProfile).filter(StudentProfile.user_id == str(payload.student_id)).first()
-        if not student_profile or not student_profile.is_zakat_eligible:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "status": "error",
-                    "error_code": "ZAKAT_COMPLIANCE_VIOLATION",
-                    "message": "Religious Compliance Violation: This student is not marked as Zakat-eligible.",
-                    "details": {
-                        "student_id": str(payload.student_id),
-                        "is_zakat_eligible": False
-                    }
-                }
-            )
+    target_fund_type = getattr(payload, "fund_type", None) or category.fund_type
+    if target_fund_type == FundCategory.ZAKAT.value:
+        if payload.student_id:
+            student_profile = db.query(StudentProfile).filter(StudentProfile.user_id == str(payload.student_id)).first()
+            if not student_profile or not student_profile.is_zakat_eligible:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Religious Compliance Violation: This recipient student is not marked as Zakat-eligible."
+                )
 
     transaction = FinanceTransaction(
         center_id=t_id,
-        category_id=str(payload.category_id),
+        category_id=category.id,
         amount=payload.amount,
         type=TransactionType.DEBIT.value,
         student_id=str(payload.student_id) if payload.student_id else None,
