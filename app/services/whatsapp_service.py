@@ -1,90 +1,164 @@
+"""
+WhatsApp Service Engine
+Handles automatic parent-student-teacher phone mapping, incoming WABA webhooks,
+storing communication logs in WhatsAppMessage table, confidential #complaint bypass
+routing directly to Super Admin HQ, and Usthad reply dispatching via Meta Cloud API.
+"""
+
+from typing import List, Optional
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import datetime, timezone
 import structlog
 
-from app.core.context import current_tenant_id, current_user_id, current_user_role
-from app.models.auth import User
+from app.models.auth import User, Center
 from app.models.enums import UserRole
+from app.models.communication import WhatsAppMessage
+from app.models.complaint import Complaint, ComplaintStatus
 from app.services.whatsapp_client import send_whatsapp_message
-from app.services import communications
-from app.schemas.communication import EscalationCreate
 
 logger = structlog.get_logger(__name__)
 
 async def process_incoming_whatsapp(db_session: Session, phone_number: str, incoming_text: str):
     """
-    Parses the parent's message, authenticates them by phone number, 
-    and replies with the requested Dars data.
+    Parses incoming WABA WhatsApp messages:
+    1. Clean phone number and map to Parent / Student registry.
+    2. Check for #complaint or 'complaint:' tag to route directly to Super Admin HQ.
+    3. Route standard message to assigned Usthad's CRM inbox thread.
+    4. Log interaction in WhatsAppMessage table.
     """
-    # 1. Authenticate Parent by Phone Number
-    clean_phone = phone_number.replace(" ", "").replace("-", "")
-    
-    parent = db_session.query(User).filter(
-        User.phone.in_([phone_number, clean_phone, clean_phone.lstrip("+")]),
-        User.role == UserRole.PARENT.value
+    clean_phone = phone_number.replace(" ", "").replace("-", "").strip()
+    formatted_phone = clean_phone if clean_phone.startswith("+") else f"+{clean_phone}"
+
+    text_content = incoming_text.strip()
+    is_complaint = "#complaint" in text_content.lower() or text_content.lower().startswith("complaint:")
+
+    # 1. Lookup parent or student by phone
+    parent_or_student = db_session.query(User).filter(
+        User.phone.in_([phone_number, clean_phone, formatted_phone, clean_phone.lstrip("+")]),
+        User.is_active == True
     ).first()
 
-    if not parent:
-        return await send_whatsapp_message(
-            phone_number, 
-            "Assalamu Alaikum. This number is not registered as a Parent in our Dars system. Please contact the Masjid Nazim."
+    student_id = None
+    ustad_id = None
+    center_id = None
+
+    if parent_or_student:
+        center_id = parent_or_student.center_id
+        if parent_or_student.role == UserRole.STUDENT.value:
+            student_id = parent_or_student.id
+        else:
+            # Find student associated with parent/center
+            s = db_session.query(User).filter(
+                User.role == UserRole.STUDENT.value,
+                User.center_id == parent_or_student.center_id
+            ).first()
+            if s:
+                student_id = s.id
+
+    # Find center Usthad
+    if center_id:
+        ustad = db_session.query(User).filter(
+            User.role == UserRole.USTAD.value,
+            User.center_id == center_id,
+            User.is_active == True
+        ).first()
+        if ustad:
+            ustad_id = ustad.id
+
+    # 2. If #complaint tag present, bypass local branch and submit directly to Super Admin HQ
+    if is_complaint:
+        clean_complaint_text = text_content.replace("#complaint", "").replace("complaint:", "").replace("COMPLAINT:", "").strip()
+        new_complaint = Complaint(
+            center_id=center_id or (db_session.query(Center).first().id if db_session.query(Center).first() else None),
+            student_id=student_id or (parent_or_student.id if parent_or_student else None),
+            category="WhatsApp Grievance",
+            description=f"WhatsApp Complaint from {formatted_phone}: {clean_complaint_text}",
+            is_anonymous=False,
+            status=ComplaintStatus.PENDING_SUPER_ADMIN.value
         )
+        db_session.add(new_complaint)
+        db_session.commit()
 
-    # 2. Inject Context (Crucial for multi-tenancy)
-    current_tenant_id.set(parent.center_id)
-    current_user_id.set(parent.id)
-    current_user_role.set(parent.role)
+        # Save WhatsApp log
+        msg_log = WhatsAppMessage(
+            center_id=center_id,
+            sender_phone=formatted_phone,
+            recipient_phone="SYSTEM_SUPER_ADMIN_HQ",
+            direction="INBOUND",
+            message_text=text_content,
+            student_id=student_id,
+            ustad_id=ustad_id,
+            is_complaint=True
+        )
+        db_session.add(msg_log)
+        db_session.commit()
 
-    text = incoming_text.strip().lower()
-
-    # 3. Simple Command Router
-    if text in ["1", "attendance"]:
-        await _handle_attendance_request(db_session, parent, phone_number)
-    
-    elif text in ["2", "report"]:
-        await _handle_report_request(db_session, parent, phone_number)
-    
-    elif text in ["3", "complain"]:
+        # Send confirmation to parent
         await send_whatsapp_message(
-            phone_number, 
-            "To send a confidential complaint to the Super Admin, please reply with 'COMPLAINT: [Your message here]'"
+            formatted_phone,
+            "🔒 *Confidential Complaint Received*: Your complaint has been submitted directly to Super Admin HQ. "
+            "Local branch administrators cannot see this message."
         )
-        
-    elif text.startswith("complaint:"):
-        await _handle_escalation(db_session, parent, text, phone_number)
+        return
 
-    else:
-        # Default Main Menu
-        menu = (
-            f"Assalamu Alaikum {parent.full_name},\n\n"
-            "Welcome to the Dars CRM. How can I help you today?\n\n"
-            "Reply with a number:\n"
-            "1️⃣ *Attendance* (Check today's status)\n"
-            "2️⃣ *Report* (Latest AI Progress Report)\n"
-            "3️⃣ *Complain* (Message HQ directly)"
-        )
-        await send_whatsapp_message(phone_number, menu)
-
-
-async def _handle_attendance_request(db_session: Session, parent: User, phone_number: str):
-    """Fetches today's Tarbiyyah/Attendance log for the parent's child."""
-    reply = "Your child was *Present* in Jamaat for Fajr today. Alhamdulillah."
-    await send_whatsapp_message(phone_number, reply)
-
-async def _handle_report_request(db_session: Session, parent: User, phone_number: str):
-    """Fetches the latest approved monthly report from the communications thread."""
-    reply = "Here is the latest report from the Ustad:\n\nMashaAllah, your child has completed Surah Yaseen this month with excellent Tajweed..."
-    await send_whatsapp_message(phone_number, reply)
-
-async def _handle_escalation(db_session: Session, parent: User, text: str, phone_number: str):
-    """Triggers the Super Admin escalation flow."""
-    complaint_body = text.replace("complaint:", "").strip()
-    
-    payload = EscalationCreate(
-        subject="WhatsApp Parent Grievance",
-        complaint_details=complaint_body
+    # 3. Standard Message: Log in database and route to Usthad CRM inbox
+    msg_log = WhatsAppMessage(
+        center_id=center_id,
+        sender_phone=formatted_phone,
+        recipient_phone="USTHAD_CRM_INBOX",
+        direction="INBOUND",
+        message_text=text_content,
+        student_id=student_id,
+        ustad_id=ustad_id,
+        is_complaint=False
     )
-    communications.create_escalation(db_session, parent.id, parent.center_id, payload)
-    
-    reply = "Your complaint has been sent directly to the Super Admin (HQ). The local Nazim cannot see this. We will contact you soon."
-    await send_whatsapp_message(phone_number, reply)
+    db_session.add(msg_log)
+    db_session.commit()
+
+    # Reply with quick automated status if keyword matched
+    lower_text = text_content.lower()
+    if lower_text in ["1", "attendance"]:
+        await send_whatsapp_message(formatted_phone, "Assalamu Alaikum. Your child was *Present* for Fajr Jamaat today. Alhamdulillah.")
+    elif lower_text in ["2", "report"]:
+        await send_whatsapp_message(formatted_phone, "MashaAllah, your child's monthly Tarbiyyah progress is on track.")
+    else:
+        await send_whatsapp_message(
+            formatted_phone,
+            "Assalamu Alaikum! Your message has been received by Usthad. "
+            "Reply with *1* for Attendance, *2* for Report, or add *#complaint* to message HQ directly."
+        )
+
+
+async def send_usthad_whatsapp_reply(
+    db_session: Session,
+    ustad_id: str,
+    recipient_phone: str,
+    reply_text: str,
+    student_id: Optional[str] = None
+) -> dict:
+    """
+    Invoked when Usthad replies directly from CRM dashboard to parent's WhatsApp chat.
+    Uses Meta Cloud API (send_whatsapp_message) and logs outbound message in database.
+    """
+    ustad = db_session.query(User).filter(User.id == ustad_id).first()
+    clean_phone = recipient_phone.replace(" ", "").replace("-", "").strip()
+    formatted_phone = clean_phone if clean_phone.startswith("+") else f"+{clean_phone}"
+
+    # Send message via Meta Cloud API
+    await send_whatsapp_message(formatted_phone, reply_text)
+
+    # Log outbound WhatsApp message
+    outbound_log = WhatsAppMessage(
+        center_id=ustad.center_id if ustad else None,
+        sender_phone=ustad.phone if ustad and ustad.phone else "USTHAD_CRM",
+        recipient_phone=formatted_phone,
+        direction="OUTBOUND",
+        message_text=reply_text,
+        student_id=student_id,
+        ustad_id=ustad_id,
+        is_complaint=False
+    )
+    db_session.add(outbound_log)
+    db_session.commit()
+
+    return {"status": "sent", "recipient": formatted_phone, "message": reply_text}

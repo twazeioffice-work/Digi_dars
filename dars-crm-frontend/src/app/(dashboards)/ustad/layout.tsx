@@ -18,6 +18,7 @@ export default function UstadLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/ustad', label: '📖 My Halqa Overview' },
+    { href: '/ustad/whatsapp', label: '💬 WhatsApp Parent Chat' },
     { href: '/ustad/reports', label: '✨ AI Report Reviewer' },
   ];
 

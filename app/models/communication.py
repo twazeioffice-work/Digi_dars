@@ -120,3 +120,20 @@ class PublicInquiry(Base):
     message = Column(Text, nullable=False)
     routed_to = Column(String(50), nullable=False)  # LOCAL_NAZIM or SUPER_ADMIN
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class WhatsAppMessage(Base):
+    __tablename__ = "whatsapp_messages"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid_str, index=True)
+    center_id = Column(String(36), ForeignKey("centers.id", ondelete="CASCADE"), nullable=True)
+    sender_phone = Column(String(50), nullable=False)
+    recipient_phone = Column(String(50), nullable=False)
+    direction = Column(String(20), nullable=False)  # INBOUND or OUTBOUND
+    message_text = Column(Text, nullable=False)
+    student_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    ustad_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    is_complaint = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    student = relationship("User", foreign_keys=[student_id])
+    ustad = relationship("User", foreign_keys=[ustad_id])

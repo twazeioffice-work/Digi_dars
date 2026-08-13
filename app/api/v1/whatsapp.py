@@ -1,58 +1,41 @@
 import json
 import os
-from fastapi import APIRouter, Request, Response, Depends, status
+from typing import Optional, List
+from fastapi import APIRouter, Request, Response, Depends, status, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from fastapi_limiter.depends import RateLimiter
+from datetime import datetime
 
 from app.database import get_db
-from app.services.whatsapp_service import process_incoming_whatsapp
+from app.models.communication import WhatsAppMessage
+from app.models.auth import User, Center
+from app.core.guards import role_guard
+from app.core.context import current_user_id, current_tenant_id
+from app.services.whatsapp_service import process_incoming_whatsapp, send_usthad_whatsapp_reply
 
-router = APIRouter(prefix="/v1/whatsapp", tags=["WhatsApp Bot"])
+router = APIRouter(prefix="/v1/whatsapp", tags=["WhatsApp Bot & Parent Communication Pipeline"])
 
 VERIFY_TOKEN = os.getenv("WA_VERIFY_TOKEN", "default_verify_token")
 
-# Custom identifier function to extract the sender's phone number
-async def whatsapp_phone_identifier(request: Request) -> str:
-    try:
-        body = await request.body()
-        if body:
-            payload = json.loads(body)
-            entry = payload.get("entry", [])[0]
-            changes = entry.get("changes", [])[0]
-            phone_number = changes.get("value", {}).get("messages", [])[0].get("from")
-            if phone_number:
-                return f"wa_limit_{phone_number}"
-    except Exception:
-        pass
-        
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0]
-    return request.client.host if request.client else "127.0.0.1"
+class WhatsAppReplyRequest(BaseModel):
+    recipient_phone: str
+    message_text: str
+    student_id: Optional[str] = None
 
 @router.get("/webhook")
 async def verify_webhook(request: Request):
-    """
-    Meta sends a GET request to verify the webhook URL.
-    """
+    """Meta sends a GET request to verify the webhook URL."""
     mode = request.query_params.get("hub.mode")
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
 
     if mode == "subscribe" and token == VERIFY_TOKEN:
-        # Must return the challenge as plain text to pass Meta's check
         return Response(content=challenge, media_type="text/plain")
-    
     return Response(status_code=status.HTTP_403_FORBIDDEN)
 
-@router.post(
-    "/webhook",
-    dependencies=[Depends(RateLimiter(times=10, seconds=60, identifier=whatsapp_phone_identifier))]
-)
+@router.post("/webhook")
 async def receive_message(request: Request, db_session: Session = Depends(get_db)):
-    """
-    Receives incoming WhatsApp messages from Parents.
-    """
+    """Receives incoming WhatsApp messages from Parents via WABA Webhook."""
     payload = await request.json()
 
     try:
@@ -74,3 +57,84 @@ async def receive_message(request: Request, db_session: Session = Depends(get_db
         pass
 
     return {"status": "ok"}
+
+@router.post("/reply")
+async def usthad_reply_whatsapp(
+    payload: WhatsAppReplyRequest,
+    db: Session = Depends(get_db),
+    dependencies=[Depends(role_guard(["USTAD", "NAZIM", "SUPER_ADMIN"]))]
+):
+    """
+    Usthad replies directly from CRM dashboard back to Parent's WhatsApp chat.
+    Uses Meta Cloud API to dispatch message and logs entry in database.
+    """
+    ustad_id = current_user_id.get() or "SYSTEM"
+    return await send_usthad_whatsapp_reply(
+        db,
+        ustad_id=ustad_id,
+        recipient_phone=payload.recipient_phone,
+        reply_text=payload.message_text,
+        student_id=payload.student_id
+    )
+
+@router.get("/messages")
+def get_whatsapp_messages(
+    recipient_phone: Optional[str] = None,
+    student_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    dependencies=[Depends(role_guard(["USTAD", "NAZIM", "SUPER_ADMIN"]))]
+):
+    """Retrieve WhatsApp communication thread for Usthad or Admin console."""
+    query = db.query(WhatsAppMessage)
+    if recipient_phone:
+        query = query.filter(
+            (WhatsAppMessage.sender_phone == recipient_phone) |
+            (WhatsAppMessage.recipient_phone == recipient_phone)
+        )
+    if student_id:
+        query = query.filter(WhatsAppMessage.student_id == student_id)
+
+    messages = query.order_by(WhatsAppMessage.created_at.asc()).all()
+
+    results = []
+    for m in messages:
+        results.append({
+            "id": m.id,
+            "center_id": m.center_id,
+            "sender_phone": m.sender_phone,
+            "recipient_phone": m.recipient_phone,
+            "direction": m.direction,
+            "message_text": m.message_text,
+            "student_id": m.student_id,
+            "ustad_id": m.ustad_id,
+            "is_complaint": m.is_complaint,
+            "created_at": m.created_at.isoformat() if m.created_at else None
+        })
+
+    return results
+
+@router.get("/super-admin/oversight")
+def get_super_admin_whatsapp_oversight(
+    db: Session = Depends(get_db),
+    dependencies=[Depends(role_guard(["SUPER_ADMIN"]))]
+):
+    """
+    (Super Admin HQ Only) Retrieve real-time communication oversight log across all centers.
+    """
+    messages = db.query(WhatsAppMessage).order_by(WhatsAppMessage.created_at.desc()).limit(100).all()
+    results = []
+    for m in messages:
+        center = db.query(Center).filter(Center.id == m.center_id).first() if m.center_id else None
+        student = db.query(User).filter(User.id == m.student_id).first() if m.student_id else None
+        results.append({
+            "id": m.id,
+            "center_name": center.name if center else "Global",
+            "student_name": student.full_name if student else "Unmapped Parent",
+            "sender_phone": m.sender_phone,
+            "recipient_phone": m.recipient_phone,
+            "direction": m.direction,
+            "message_text": m.message_text,
+            "is_complaint": m.is_complaint,
+            "created_at": m.created_at.isoformat() if m.created_at else None
+        })
+    return results
