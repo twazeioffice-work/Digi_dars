@@ -3,13 +3,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.auth import (
     CenterCreate, CenterUpdateStatus, CenterResponse,
-    UserRegister, UserLogin, TokenResponse, UserResponse,
+    UserCreate, UserRegister, UserLogin, TokenResponse, UserResponse,
     ParentStudentLinkCreate, ParentStudentLinkResponse
 )
 from app.services import auth_tenant
 from app.core.guards import role_guard
+from app.models.enums import UserRole
 
 router = APIRouter(prefix="/v1", tags=["Module 1: Auth & Multi-Tenancy"])
+users_router = APIRouter(prefix="/v1/users", tags=["Users"])
 
 @router.post(
     "/centers",
@@ -48,6 +50,22 @@ def register_user_endpoint(payload: UserRegister, db: Session = Depends(get_db))
 def login_endpoint(payload: UserLogin, db: Session = Depends(get_db)):
     """Log in with email and password to receive a JWT access token."""
     return auth_tenant.login(payload=payload, db=db)
+
+@users_router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "NAZIM", "CENTER_ADMIN"]))]
+)
+def register_user_by_admin(
+    payload: UserCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Register a new user (Ustad, Student, Parent, or Nazim).
+    The center_id is automatically inherited from the logged-in NAZIM's token.
+    """
+    return auth_tenant.register_user(db, payload)
 
 @router.post(
     "/parents/link-student",
