@@ -15,6 +15,7 @@ from app.api.v1.finance_ledger import router as finance_router
 from app.api.v1.academic_dars import router as academic_router
 from app.api.v1.communications import router as comms_router, plural_router as comms_plural_router
 from app.api.v1.rag_ai import router as ai_router
+from app.api.v1.whatsapp import router as whatsapp_router
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -61,6 +62,8 @@ app.include_router(academic_router)
 app.include_router(comms_router)
 app.include_router(comms_plural_router)
 app.include_router(ai_router)
+app.include_router(whatsapp_router, prefix="/api")
+app.include_router(whatsapp_router)
 
 # Root Health Check Endpoint
 @app.get("/", tags=["Health"])
