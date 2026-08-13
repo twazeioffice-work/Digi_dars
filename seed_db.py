@@ -100,36 +100,33 @@ def seed_initial_data():
         )
         db_session.add(ustad_user)
 
-        # 7. Create Sample Students
+        # 7. Create Sample Students (Kiosk PIN Access Only)
         student_1 = User(
             full_name="Ahmed Hassan",
-            email="student1@darscrm.com",
-            phone="+12345678904",
+            email="stu101@kiosk.local",
             student_card_id="STU-101",
             kiosk_pin="1234",
-            hashed_password=get_password_hash("StudentPassword123"),
+            hashed_password=get_password_hash("KioskOnlyAccess123!"),
             role=UserRole.STUDENT.value,
             center_id=first_center.id,
             is_active=True
         )
         student_2 = User(
             full_name="Fatima Zahra",
-            email="student2@darscrm.com",
-            phone="+12345678905",
+            email="stu102@kiosk.local",
             student_card_id="STU-102",
             kiosk_pin="5678",
-            hashed_password=get_password_hash("StudentPassword123"),
+            hashed_password=get_password_hash("KioskOnlyAccess123!"),
             role=UserRole.STUDENT.value,
             center_id=first_center.id,
             is_active=True
         )
         student_3 = User(
             full_name="Bilal Muhammad",
-            email="student3@darscrm.com",
-            phone="+12345678906",
+            email="stu103@kiosk.local",
             student_card_id="STU-103",
             kiosk_pin="9999",
-            hashed_password=get_password_hash("StudentPassword123"),
+            hashed_password=get_password_hash("KioskOnlyAccess123!"),
             role=UserRole.STUDENT.value,
             center_id=first_center.id,
             is_active=True
@@ -144,9 +141,9 @@ def seed_initial_data():
         print(f"Super Admin Email: {super_admin_email}")
         print("Nazim Email: admin@noor.org")
         print("Ustad Email: ustad@darscrm.com")
-        print("Student 1: Card ID STU-101 / Email student1@darscrm.com / PIN 1234")
-        print("Student 2: Card ID STU-102 / Email student2@darscrm.com / PIN 5678")
-        print("Student 3: Card ID STU-103 / Email student3@darscrm.com / PIN 9999")
+        print("Student 1: Card ID STU-101 (PIN: 1234) - Kiosk Only")
+        print("Student 2: Card ID STU-102 (PIN: 5678) - Kiosk Only")
+        print("Student 3: Card ID STU-103 (PIN: 9999) - Kiosk Only")
         print("==================================================")
 
 if __name__ == "__main__":
