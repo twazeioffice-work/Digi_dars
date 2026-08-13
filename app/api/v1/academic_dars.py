@@ -13,6 +13,22 @@ from app.core.guards import role_guard
 
 router = APIRouter(prefix="/v1/academic", tags=["Module 3: Academic & Tarbiyyah (Dars Operations)"])
 
+@router.get(
+    "/dashboard/nazim",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM"]))]
+)
+def get_nazim_dashboard_endpoint(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    (Nazim Only) Fetch operational dashboard statistics for current center.
+    Implicitly scoped by Nazim's center_id from JWT token context.
+    """
+    center_id = getattr(request.state, "center_id", None)
+    return academic_dars.get_nazim_dashboard_service(db, center_id)
+
 @router.post(
     "/halqas",
     response_model=HalqaResponse,
