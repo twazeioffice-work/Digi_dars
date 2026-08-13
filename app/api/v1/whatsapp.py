@@ -1,6 +1,8 @@
+import json
+import os
 from fastapi import APIRouter, Request, Response, Depends, status
 from sqlalchemy.orm import Session
-import os
+from fastapi_limiter.depends import RateLimiter
 
 from app.database import get_db
 from app.services.whatsapp_service import process_incoming_whatsapp
@@ -8,6 +10,25 @@ from app.services.whatsapp_service import process_incoming_whatsapp
 router = APIRouter(prefix="/v1/whatsapp", tags=["WhatsApp Bot"])
 
 VERIFY_TOKEN = os.getenv("WA_VERIFY_TOKEN", "default_verify_token")
+
+# Custom identifier function to extract the sender's phone number
+async def whatsapp_phone_identifier(request: Request) -> str:
+    try:
+        body = await request.body()
+        if body:
+            payload = json.loads(body)
+            entry = payload.get("entry", [])[0]
+            changes = entry.get("changes", [])[0]
+            phone_number = changes.get("value", {}).get("messages", [])[0].get("from")
+            if phone_number:
+                return f"wa_limit_{phone_number}"
+    except Exception:
+        pass
+        
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0]
+    return request.client.host if request.client else "127.0.0.1"
 
 @router.get("/webhook")
 async def verify_webhook(request: Request):
@@ -24,7 +45,10 @@ async def verify_webhook(request: Request):
     
     return Response(status_code=status.HTTP_403_FORBIDDEN)
 
-@router.post("/webhook")
+@router.post(
+    "/webhook",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, identifier=whatsapp_phone_identifier))]
+)
 async def receive_message(request: Request, db_session: Session = Depends(get_db)):
     """
     Receives incoming WhatsApp messages from Parents.
@@ -39,7 +63,6 @@ async def receive_message(request: Request, db_session: Session = Depends(get_db
 
         if messages:
             message = messages[0]
-            # Phone numbers come in without '+' (e.g., '919876543210')
             raw_from = str(message.get('from', ''))
             phone_number = raw_from if raw_from.startswith("+") else f"+{raw_from}"
             incoming_text = message.get("text", {}).get("body", "")
@@ -48,8 +71,6 @@ async def receive_message(request: Request, db_session: Session = Depends(get_db
                 await process_incoming_whatsapp(db_session, phone_number, incoming_text)
 
     except (IndexError, KeyError, TypeError):
-        # Ignore structural errors (e.g., status updates, read receipts)
         pass
 
-    # Always return a 200 OK immediately, or Meta will keep retrying
     return {"status": "ok"}

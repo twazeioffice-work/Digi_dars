@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
+from fastapi_limiter.depends import RateLimiter
 from app.database import get_db
 from app.schemas.auth import (
     CenterCreate, CenterUpdateStatus, CenterResponse,
@@ -46,7 +47,11 @@ def register_user_endpoint(payload: UserRegister, db: Session = Depends(get_db))
     """Register a new user (Ustad, Nazim, Parent, Student, etc.)."""
     return auth_tenant.register_user(db, payload)
 
-@router.post("/auth/login", response_model=TokenResponse)
+@router.post(
+    "/auth/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))]
+)
 def login_endpoint(payload: UserLogin, db: Session = Depends(get_db)):
     """Log in with email and password to receive a JWT access token."""
     return auth_tenant.login(payload=payload, db=db)
@@ -70,7 +75,8 @@ def register_user_by_admin(
 @users_router.post(
     "/login",
     response_model=TokenResponse,
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))]
 )
 def users_login_endpoint(
     payload: LoginRequest,
