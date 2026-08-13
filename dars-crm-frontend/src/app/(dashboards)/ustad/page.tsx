@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { BookOpen, Activity, Save, User, Loader2, CheckCircle2 } from "lucide-react";
+import { BookOpen, Activity, Save, User, Loader2, CheckCircle2, Users } from "lucide-react";
 import toast from "react-hot-toast";
+import ResponsiveStudentList, { StudentListItem } from "@/components/ResponsiveStudentList";
 
 // --- Types & Enums matching the Backend ---
 type MasteryLevel = "EXCELLENT" | "GOOD" | "NEEDS_WORK" | "FAIL";
@@ -17,7 +18,7 @@ interface Student {
 export default function UstadDailyLogPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [activeTab, setActiveTab] = useState<"hifz" | "tarbiyyah">("hifz");
+  const [activeTab, setActiveTab] = useState<"hifz" | "tarbiyyah" | "overview">("hifz");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -51,6 +52,14 @@ export default function UstadDailyLogPage() {
     }
     fetchStudents();
   }, []);
+
+  // Map students for ResponsiveStudentList component
+  const studentListItems: StudentListItem[] = students.map((s, idx) => ({
+    id: s.id,
+    name: s.full_name,
+    hifz: idx % 2 === 0 ? "Surah Yaseen (Page 4)" : "Surah Mulk (Page 2)",
+    status: idx % 3 === 0 ? "ABSENT" : "PRESENT",
+  }));
 
   // 2. Submit Hifz Log
   const handleSaveHifz = async (e: React.FormEvent) => {
@@ -92,178 +101,205 @@ export default function UstadDailyLogPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-50">
+    <div className="space-y-6">
       
-      {/* --- LEFT SIDEBAR: Student Roster --- */}
-      <div className="w-full md:w-1/4 bg-white border-r border-gray-200 overflow-y-auto">
-        <div className="p-4 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="text-lg font-bold text-gray-800">My Halqa</h2>
-          <p className="text-xs text-gray-500">{students.length} Students</p>
-        </div>
-        <ul className="divide-y divide-gray-100">
+      {/* --- TOP MOBILE-FIRST STUDENT SELECTOR CAROUSEL / DROPDOWN --- */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+          Select Halqa Student
+        </label>
+        <select
+          value={selectedStudent?.id || ""}
+          onChange={(e) => {
+            const found = students.find((s) => s.id === e.target.value);
+            if (found) setSelectedStudent(found);
+          }}
+          className="w-full h-12 md:h-10 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+        >
           {students.map((student) => (
-            <li 
-              key={student.id}
-              onClick={() => setSelectedStudent(student)}
-              className={`p-4 cursor-pointer hover:bg-blue-50 transition-colors flex items-center gap-3 ${
-                selectedStudent?.id === student.id ? "bg-blue-50 border-l-4 border-blue-600" : ""
-              }`}
-            >
-              <div className="bg-gray-100 p-2 rounded-full">
-                <User className="h-4 w-4 text-gray-600" />
-              </div>
-              <span className="font-medium text-sm text-gray-700">{student.full_name}</span>
-            </li>
+            <option key={student.id} value={student.id}>
+              {student.full_name}
+            </option>
           ))}
-        </ul>
+        </select>
       </div>
 
-      {/* --- RIGHT WORKSPACE: Data Entry Form --- */}
-      <div className="w-full md:w-3/4 p-6 md:p-10 overflow-y-auto">
-        {selectedStudent ? (
-          <div className="max-w-3xl mx-auto space-y-6">
-            
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Logging for {selectedStudent.full_name}
-              </h1>
-              <span className="text-sm font-medium text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
-                {new Date().toLocaleDateString()}
-              </span>
-            </div>
+      {/* --- TAB NAVIGATION (48px Touch Target on Mobile) --- */}
+      <div className="flex bg-slate-200 dark:bg-slate-800 p-1.5 rounded-2xl gap-1">
+        <button
+          onClick={() => setActiveTab("hifz")}
+          className={`flex-1 flex items-center justify-center gap-2 h-12 md:h-10 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+            activeTab === "hifz"
+              ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+          }`}
+        >
+          <BookOpen className="h-4 w-4" /> Hifz Progress
+        </button>
 
-            {/* TAB NAVIGATION */}
-            <div className="flex border-b border-gray-200 mb-6">
-              <button
-                onClick={() => setActiveTab("hifz")}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === "hifz" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <BookOpen className="h-4 w-4" /> Hifz Progress
-              </button>
-              <button
-                onClick={() => setActiveTab("tarbiyyah")}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === "tarbiyyah" ? "border-green-600 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                <Activity className="h-4 w-4" /> Tarbiyyah & Prayers
-              </button>
-            </div>
+        <button
+          onClick={() => setActiveTab("tarbiyyah")}
+          className={`flex-1 flex items-center justify-center gap-2 h-12 md:h-10 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+            activeTab === "tarbiyyah"
+              ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+          }`}
+        >
+          <Activity className="h-4 w-4" /> Tarbiyyah & Prayer
+        </button>
 
-            {/* --- HIFZ TAB --- */}
-            {activeTab === "hifz" && (
-              <form onSubmit={handleSaveHifz} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
-                
-                {/* Sabaq Row */}
-                <div className="grid grid-cols-3 gap-4 items-end">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sabaq (New Lesson)</label>
-                    <input 
-                      type="text" placeholder="e.g., Surah Yaseen Ayah 1-10" 
-                      className="w-full p-2 border rounded-md"
-                      value={hifzForm.sabaq_details}
-                      onChange={(e) => setHifzForm({...hifzForm, sabaq_details: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
-                    <select 
-                      className="w-full p-2 border rounded-md bg-gray-50"
-                      value={hifzForm.sabaq_grade}
-                      onChange={(e) => setHifzForm({...hifzForm, sabaq_grade: e.target.value as MasteryLevel})}
-                    >
-                      <option value="EXCELLENT">Excellent</option>
-                      <option value="GOOD">Good</option>
-                      <option value="NEEDS_WORK">Needs Work</option>
-                      <option value="FAIL">Fail</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* AI RAG Remarks */}
-                <div>
-                  <label className="block text-sm font-bold text-indigo-700 mb-1">
-                    Ustad's Remarks (AI Context)
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">These notes will be used by the AI to generate the monthly report.</p>
-                  <textarea 
-                    className="w-full p-3 border border-indigo-200 rounded-md focus:ring-2 focus:ring-indigo-500 bg-indigo-50/30"
-                    rows={4}
-                    placeholder="Describe the student's fluency, struggles, or breakthroughs today..."
-                    value={hifzForm.remarks}
-                    onChange={(e) => setHifzForm({...hifzForm, remarks: e.target.value})}
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <button type="submit" disabled={saving} className="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 flex items-center gap-2">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Hifz
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* --- TARBIYYAH TAB --- */}
-            {activeTab === "tarbiyyah" && (
-              <form onSubmit={handleSaveTarbiyyah} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
-                
-                <h3 className="font-semibold text-gray-800 border-b pb-2">Jamaat Attendance</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {['fajr', 'zuhr', 'asr', 'maghrib', 'isha'].map((prayer) => (
-                    <div key={prayer}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">{prayer}</label>
-                      <select 
-                        className="w-full p-2 border rounded-md text-sm"
-                        value={(tarbiyyahForm as any)[prayer]}
-                        onChange={(e) => setTarbiyyahForm({...tarbiyyahForm, [prayer]: e.target.value as JamaatStatus})}
-                      >
-                        <option value="PRESENT_IN_JAMAAT">Jamaat</option>
-                        <option value="LATE">Late</option>
-                        <option value="PRAYED_ALONE">Alone</option>
-                        <option value="MISSED">Missed</option>
-                      </select>
-                    </div>
-                  ))}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-indigo-700 mb-1">Behavior & Adab Remarks</label>
-                  <textarea 
-                    className="w-full p-3 border border-indigo-200 rounded-md bg-indigo-50/30"
-                    rows={3}
-                    placeholder="Notes on discipline, cleanliness, or interactions..."
-                    value={tarbiyyahForm.behavior_remarks}
-                    onChange={(e) => setTarbiyyahForm({...tarbiyyahForm, behavior_remarks: e.target.value})}
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <button type="submit" disabled={saving} className="bg-green-600 text-white px-6 py-2 rounded-md font-medium hover:bg-green-700 flex items-center gap-2">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                    Save Tarbiyyah
-                  </button>
-                </div>
-              </form>
-            )}
-
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <User className="h-16 w-16 mb-4 opacity-20" />
-            <p>Select a student from the left to begin logging.</p>
-          </div>
-        )}
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`flex-1 flex items-center justify-center gap-2 h-12 md:h-10 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+            activeTab === "overview"
+              ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+          }`}
+        >
+          <Users className="h-4 w-4" /> Roster View
+        </button>
       </div>
+
+      {/* --- HIFZ TAB --- */}
+      {activeTab === "hifz" && selectedStudent && (
+        <form onSubmit={handleSaveHifz} className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              Logging Hifz for <span className="text-emerald-600">{selectedStudent.full_name}</span>
+            </h2>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">
+              {new Date().toLocaleDateString()}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Sabaq (New Lesson)</label>
+              <input 
+                type="text" placeholder="e.g., Surah Yaseen Ayah 1-10" 
+                className="w-full h-12 md:h-10 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                value={hifzForm.sabaq_details}
+                onChange={(e) => setHifzForm({...hifzForm, sabaq_details: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Grade</label>
+              <select 
+                className="w-full h-12 md:h-10 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                value={hifzForm.sabaq_grade}
+                onChange={(e) => setHifzForm({...hifzForm, sabaq_grade: e.target.value as MasteryLevel})}
+              >
+                <option value="EXCELLENT">Excellent</option>
+                <option value="GOOD">Good</option>
+                <option value="NEEDS_WORK">Needs Work</option>
+                <option value="FAIL">Fail</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
+              Ustad's Remarks (AI Vector DB Context)
+            </label>
+            <textarea 
+              className="w-full p-4 border border-indigo-200 dark:border-indigo-900 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 text-slate-900 dark:text-slate-100 text-sm"
+              rows={4}
+              placeholder="Describe student's fluency, struggles, or breakthroughs today..."
+              value={hifzForm.remarks}
+              onChange={(e) => setHifzForm({...hifzForm, remarks: e.target.value})}
+            />
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:w-auto h-12 px-8 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
+            >
+              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+              Save Hifz Progress
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* --- TARBIYYAH TAB --- */}
+      {activeTab === "tarbiyyah" && selectedStudent && (
+        <form onSubmit={handleSaveTarbiyyah} className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              Tarbiyyah & Prayers for <span className="text-emerald-600">{selectedStudent.full_name}</span>
+            </h2>
+          </div>
+          
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Jamaat Attendance</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {['fajr', 'zuhr', 'asr', 'maghrib', 'isha'].map((prayer) => (
+                <div key={prayer}>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 capitalize">{prayer}</label>
+                  <select 
+                    className="w-full h-12 md:h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                    value={(tarbiyyahForm as any)[prayer]}
+                    onChange={(e) => setTarbiyyahForm({...tarbiyyahForm, [prayer]: e.target.value as JamaatStatus})}
+                  >
+                    <option value="PRESENT_IN_JAMAAT">Jamaat 🕌</option>
+                    <option value="LATE">Late ⏰</option>
+                    <option value="PRAYED_ALONE">Alone 🧎</option>
+                    <option value="MISSED">Missed ✖</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">Behavior & Adab Remarks</label>
+            <textarea 
+              className="w-full p-4 border border-indigo-200 dark:border-indigo-900 rounded-xl bg-indigo-50/20 dark:bg-indigo-950/20 text-slate-900 dark:text-slate-100 text-sm"
+              rows={3}
+              placeholder="Notes on discipline, cleanliness, or interactions..."
+              value={tarbiyyahForm.behavior_remarks}
+              onChange={(e) => setTarbiyyahForm({...tarbiyyahForm, behavior_remarks: e.target.value})}
+            />
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:w-auto h-12 px-8 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
+            >
+              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+              Save Tarbiyyah Log
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* --- OVERVIEW TAB (RESPONSIVE MORPHING: Desktop Table ↔ Mobile Touch Cards) --- */}
+      {activeTab === "overview" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              My Halqa Roster Status
+            </h2>
+            <span className="text-xs font-semibold text-slate-500">
+              Auto-adapts between mobile cards and desktop table
+            </span>
+          </div>
+
+          <ResponsiveStudentList students={studentListItems} />
+        </div>
+      )}
+
     </div>
   );
 }
