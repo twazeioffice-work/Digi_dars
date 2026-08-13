@@ -22,6 +22,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     { href: '/super-admin/nazims', label: '👤 Manage Nazims' },
     { href: '/super-admin/ustads', label: '👳‍♂️ Manage Ustads' },
     { href: '/super-admin/students', label: '🎓 Manage Students' },
+    { href: '/super-admin/leaderboard', label: '🏆 Center Rankings & Leaderboard' },
     { href: '/super-admin/finance', label: '💰 Global Zakat & AI' },
   ];
 
