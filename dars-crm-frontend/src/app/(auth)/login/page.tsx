@@ -33,7 +33,9 @@ export default function LoginPage() {
 
     } catch (error: any) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Invalid credentials');
+      const detail = error.response?.data?.detail || error.response?.data?.message || error.message;
+      const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail[0]?.msg : 'Invalid credentials');
+      toast.error(errorMsg || 'Invalid credentials');
     } finally {
       setIsLoading(false);
     }
