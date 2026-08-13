@@ -1,9 +1,13 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
+from typing import Union
+
+from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.context import current_tenant_id
 from app.models.auth import Center, User, StudentProfile, ParentStudentLink, CenterStatus, UserRole
-from app.schemas.auth import CenterCreate, UserRegister, UserLogin, ParentStudentLinkCreate
-from app.core.security import hash_password, verify_password, create_access_token
+from app.schemas.auth import CenterCreate, UserCreate, UserRegister, UserLogin, ParentStudentLinkCreate
 
 def create_center(db: Session, payload: CenterCreate) -> Center:
     existing = db.query(Center).filter(Center.code == payload.code).first()
@@ -51,26 +55,26 @@ def get_center_details(db: Session, center_id: str) -> Center:
         )
     return center
 
-def register_user(db: Session, payload: UserRegister) -> User:
-    role_upper = payload.role.upper()
-    if role_upper not in [r.value for r in UserRole]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid role '{payload.role}'"
-        )
+def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User:
+    role_str = payload.role.value if isinstance(payload.role, UserRole) else str(payload.role)
+    role_upper = role_str.upper()
     
-    if role_upper != UserRole.SUPER_ADMIN.value and payload.center_id is None:
+    # 1. Fetch tenant context from middleware or payload
+    tenant_id = current_tenant_id.get() or getattr(payload, "center_id", None)
+
+    # 2. Business Rule: Only SUPER_ADMINs can exist without a center_id
+    if not tenant_id and role_upper != UserRole.SUPER_ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Role '{payload.role}' requires a valid center_id"
+            detail="A center_id is required to register this role. Please ensure you are logged into a specific center."
         )
 
-    if payload.center_id:
-        center = db.query(Center).filter(Center.id == payload.center_id).first()
+    if tenant_id and role_upper != UserRole.SUPER_ADMIN.value:
+        center = db.query(Center).filter(Center.id == tenant_id).first()
         if not center:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Center with id '{payload.center_id}' not found"
+                detail=f"Center with id '{tenant_id}' not found"
             )
 
     existing_user = db.query(User).filter(User.email == payload.email).first()
@@ -80,24 +84,33 @@ def register_user(db: Session, payload: UserRegister) -> User:
             detail=f"User with email '{payload.email}' already exists"
         )
 
+    hashed_pwd = get_password_hash(payload.password)
     user = User(
         email=payload.email,
-        hashed_password=hash_password(payload.password),
+        hashed_password=hashed_pwd,
         full_name=payload.full_name,
         role=role_upper,
-        center_id=payload.center_id if role_upper != UserRole.SUPER_ADMIN.value else None,
+        center_id=tenant_id if role_upper != UserRole.SUPER_ADMIN.value else None,
         phone=payload.phone,
         is_active=True
     )
+    
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A user with this email or phone number already exists."
+        )
 
     # Automatically create StudentProfile if registering a STUDENT
     if role_upper == UserRole.STUDENT.value:
         profile = StudentProfile(
             user_id=user.id,
-            is_zakat_eligible=payload.is_zakat_eligible or False,
+            is_zakat_eligible=getattr(payload, "is_zakat_eligible", False) or False,
             enrollment_date=datetime.now(timezone.utc).date()
         )
         db.add(profile)
@@ -105,6 +118,9 @@ def register_user(db: Session, payload: UserRegister) -> User:
         db.refresh(user)
 
     return user
+
+# DDD Application Service alias
+register_user_service = register_user
 
 def login(db: Session, payload: UserLogin) -> dict:
     user = db.query(User).filter(User.email == payload.email).first()

@@ -2,17 +2,26 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Any, Dict
 import jwt
 import bcrypt
+from passlib.context import CryptContext
 from app.config import settings
 
-def hash_password(password: str) -> str:
-    pwd_bytes = password.encode('utf-8')
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    """Hashes a plain-text password using bcrypt directly to avoid passlib wrap-bug check on Python 3.14."""
+    pwd_bytes = password.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(pwd_bytes, salt)
-    return hashed.decode('utf-8')
+    return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+
+# Alias for backward compatibility
+hash_password = get_password_hash
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifies a plain-text password against the hashed version."""
     try:
-        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+        pwd_bytes = plain_password.encode('utf-8')[:72]
+        hash_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(pwd_bytes, hash_bytes)
     except Exception:
         return False
 

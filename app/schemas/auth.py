@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime, date
+from uuid import UUID
+from app.models.enums import UserRole
 
 class CenterCreate(BaseModel):
     name: str
@@ -15,7 +17,7 @@ class CenterResponse(BaseModel):
     id: str
     name: str
     code: str
-    address: Optional[str]
+    address: Optional[str] = None
     capacity: int
     status: str
     created_at: datetime
@@ -35,29 +37,32 @@ class StudentProfileResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class UserRegister(BaseModel):
-    email: EmailStr
-    password: str
+class UserCreate(BaseModel):
     full_name: str
-    role: str  # SUPER_ADMIN, CENTER_ADMIN, NAZIM, USTAD, PARENT, STUDENT
-    center_id: Optional[str] = None
+    email: EmailStr
     phone: Optional[str] = None
+    password: str
+    role: Union[UserRole, str]
+    center_id: Optional[str] = None
     is_zakat_eligible: Optional[bool] = False
+
+# Backward compatibility alias
+UserRegister = UserCreate
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
 class UserResponse(BaseModel):
-    id: str
+    id: Union[UUID, str]
     email: str
     full_name: str
-    role: str
-    center_id: Optional[str]
+    role: Union[UserRole, str]
+    center_id: Optional[Union[UUID, str]] = None
     phone: Optional[str] = None
     is_active: bool
     student_profile: Optional[StudentProfileResponse] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
