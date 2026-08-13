@@ -65,6 +65,7 @@ export default function NazimDashboard() {
     phone: "",
     emergency_contact: "",
     address: "",
+    gov_id_card_url: "",
     is_zakat_eligible: false,
   });
 
@@ -73,6 +74,9 @@ export default function NazimDashboard() {
     email: "",
     password: "",
     phone: "",
+    emergency_contact: "",
+    address: "",
+    gov_id_card_url: "",
   });
 
   const [halqaForm, setHalqaForm] = useState({
@@ -127,6 +131,7 @@ export default function NazimDashboard() {
         phone: studentForm.phone.trim() || undefined,
         emergency_contact: studentForm.emergency_contact.trim() || undefined,
         address: studentForm.address.trim() || undefined,
+        gov_id_card_url: studentForm.gov_id_card_url || undefined,
         is_zakat_eligible: studentForm.is_zakat_eligible,
         role: "STUDENT",
       });
@@ -139,6 +144,7 @@ export default function NazimDashboard() {
         phone: "",
         emergency_contact: "",
         address: "",
+        gov_id_card_url: "",
         is_zakat_eligible: false,
       });
       fetchDashboardData();
@@ -156,15 +162,29 @@ export default function NazimDashboard() {
     setSubmitting(true);
     try {
       await api.post("/auth/register", {
-        ...ustadForm,
+        full_name: ustadForm.full_name,
+        email: ustadForm.email,
+        password: ustadForm.password,
+        phone: ustadForm.phone.trim() || undefined,
+        emergency_contact: ustadForm.emergency_contact.trim() || undefined,
+        address: ustadForm.address.trim() || undefined,
+        gov_id_card_url: ustadForm.gov_id_card_url || undefined,
         role: "USTAD",
       });
       toast.success("Ustad registered successfully!");
       setShowUstadModal(false);
-      setUstadForm({ full_name: "", email: "", password: "", phone: "" });
+      setUstadForm({
+        full_name: "",
+        email: "",
+        password: "",
+        phone: "",
+        emergency_contact: "",
+        address: "",
+        gov_id_card_url: "",
+      });
       fetchUserLists();
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to register Ustad");
+      toast.error(getErrorMessage(err, "Failed to register Ustad"));
     } finally {
       setSubmitting(false);
     }
