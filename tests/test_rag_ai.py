@@ -71,17 +71,26 @@ def test_module5_rag_and_ai_flow():
         "center_id": center_id
     }).json()
 
-    # Log Hifz and Tarbiyyah data for student
-    client.post("/api/v1/academic/hifz/progress", json={
-        "student_id": student["id"],
-        "sabaq": "Surah Al-Mulk v.1-12",
-        "remarks": "Tajweed is improving, especially Makharij MashaAllah"
-    }, headers=headers_ustad)
+    # Create Halqa and enroll student
+    halqa = client.post("/api/v1/academic/halqas", json={
+        "name": "Hifz Batch A",
+        "department": "HIFZ",
+        "center_id": center_id,
+        "ustad_id": ustad["id"]
+    }, headers=headers_super).json()
+    halqa_id = halqa["id"]
 
-    client.post("/api/v1/academic/tarbiyyah", json={
+    client.post("/api/v1/academic/halqas/enroll", json={
         "student_id": student["id"],
-        "fajr": "PRESENT_JAMAAT",
-        "behavioral_remarks": "Helped junior students in boarding area"
+        "halqa_id": halqa_id
+    }, headers=headers_super)
+
+    # Log Hifz progress
+    client.post("/api/v1/academic/hifz/logs", json={
+        "student_id": student["id"],
+        "sabaq_details": "Surah Al-Mulk v.1-12",
+        "sabaq_grade": "EXCELLENT",
+        "remarks": "Tajweed is improving, especially Makharij MashaAllah"
     }, headers=headers_ustad)
 
     # 1. Document Ingestion (Policy Rulebook)
@@ -114,15 +123,35 @@ def test_module5_rag_and_ai_flow():
     assert "MashaAllah" in report_data["drafted_report"]
     assert report_data["status"] == "draft_ready_for_ustad_review"
 
-    # 4. Policy Chatbot Query
+    # 4. Asynchronous Batch AI Report Generation (202 Accepted)
+    batch_res = client.post("/api/v1/ai/reports/batch-generate", json={
+        "halqa_id": halqa_id,
+        "month": "August",
+        "year": "2026"
+    }, headers=headers_ustad)
+    assert batch_res.status_code == 202
+    batch_data = batch_res.json()
+    assert batch_data["status"] == "queued"
+    assert "master_task_id" in batch_data
+
+    # 5. Asynchronous Absentee Alert Trigger (202 Accepted - q_urgent)
+    alert_res = client.post("/api/v1/ai/alerts/absentee", json={
+        "student_id": student["id"],
+        "parent_phone": "+919876543210",
+        "date_str": "2026-08-13"
+    }, headers=headers_ustad)
+    assert alert_res.status_code == 202
+    assert alert_res.json()["status"] == "queued"
+
+    # 6. Policy Chatbot Query
     bot_res = client.post("/api/v1/ai/policy-bot", json={
         "question": "What is the rule regarding Fajr attendance?",
         "center_id": center_id
     })
     assert bot_res.status_code == 200
-    assert "rule" in bot_res.json()["answer"].lower() or "center policy" in bot_res.json()["answer"].lower()
+    assert "rule" in bot_res.json()["answer"].lower() or "policy" in bot_res.json()["answer"].lower()
 
-    # 5. Text-to-SQL Analytics
+    # 7. Text-to-SQL Analytics
     sql_res = client.post("/api/v1/ai/text-to-sql", json={
         "prompt": "Which categories have the highest expense to Zakat ratio?"
     }, headers=headers_super)

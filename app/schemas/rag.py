@@ -13,29 +13,29 @@ class DocumentIngestResponse(BaseModel):
     total_chunks: int
     created_at: datetime
 
+    model_config = ConfigDict(from_attributes=True)
+
 class SyncRemarksCreate(BaseModel):
     student_id: str
     month: Optional[str] = "August"
     year: Optional[str] = "2026"
-
-class SyncRemarksResponse(BaseModel):
-    student_id: str
-    chunks_synced: int
-    status: str = "success"
 
 class ProgressReportRequest(BaseModel):
     student_id: str
     month: Optional[str] = "August"
     year: Optional[str] = "2026"
 
-class ProgressReportResponse(BaseModel):
-    student_id: str
-    student_name: str
-    department: str
-    structured_metrics: Dict[str, Any]
-    unstructured_context: List[str]
-    drafted_report: str
-    status: str = "draft_ready_for_ustad_review"
+class BatchReportRequest(BaseModel):
+    halqa_id: str
+    month: Optional[str] = "August"
+    year: Optional[str] = "2026"
+
+class BatchReportResponse(BaseModel):
+    status: str = "queued"
+    halqa_id: str
+    total_students: int
+    master_task_id: str
+    message: str = "Batch AI report generation queued. The API returned 202 Accepted. Celery workers will process reports asynchronously."
 
 class PolicyBotQuery(BaseModel):
     question: str
@@ -54,3 +54,8 @@ class TextToSQLResponse(BaseModel):
     generated_sql: str
     query_results: List[Dict[str, Any]]
     analysis_summary: str
+
+class AbsenteeAlertCreate(BaseModel):
+    student_id: str
+    parent_phone: str
+    date_str: str

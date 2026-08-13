@@ -3,38 +3,59 @@ version: '3.8'
 services:
   web:
     build: .
-    container_name: digi_dars_web
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     environment:
-      - PROJECT_NAME=Digi Dars
-      - SECRET_KEY=digi-dars-production-secret-key-2026
-      - DATABASE_URL=postgresql://digiuser:digipassword@db:5432/digidars_db
+      - DATABASE_URL=postgresql://dars_user:dars_password@postgres:5432/dars_db
       - REDIS_URL=redis://redis:6379/0
+      - REDIS_BACKEND_URL=redis://redis:6379/1
+      - SECRET_KEY=production_secret_key_change_me_in_env
     depends_on:
-      - db
+      - postgres
       - redis
-    restart: always
 
-  db:
-    image: postgres:16-alpine
-    container_name: digi_dars_db
+  celery_worker:
+    build: .
+    command: celery -A app.core.celery_app.celery_app worker --loglevel=info -Q q_urgent,q_vector_sync,q_llm_batch
     environment:
-      - POSTGRES_USER=digiuser
-      - POSTGRES_PASSWORD=digipassword
-      - POSTGRES_DB=digidars_db
+      - DATABASE_URL=postgresql://dars_user:dars_password@postgres:5432/dars_db
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_BACKEND_URL=redis://redis:6379/1
+      - SECRET_KEY=production_secret_key_change_me_in_env
+    depends_on:
+      - postgres
+      - redis
+
+  celery_beat:
+    build: .
+    command: celery -A app.core.celery_app.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://dars_user:dars_password@postgres:5432/dars_db
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_BACKEND_URL=redis://redis:6379/1
+      - SECRET_KEY=production_secret_key_change_me_in_env
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: dars_postgres
+    environment:
+      - POSTGRES_USER=dars_user
+      - POSTGRES_PASSWORD=dars_password
+      - POSTGRES_DB=dars_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: always
 
   redis:
     image: redis:7-alpine
-    container_name: digi_dars_redis
+    container_name: dars_redis
     ports:
       - "6379:6379"
-    restart: always
 
 volumes:
   postgres_data:
