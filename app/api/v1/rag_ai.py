@@ -8,6 +8,7 @@ from app.schemas.rag import (
     BatchReportRequest, BatchReportResponse,
     PolicyBotQuery, PolicyBotResponse,
     TextToSQLRequest, TextToSQLResponse,
+    TextToSqlRequest, TextToSqlResponse,
     AbsenteeAlertCreate
 )
 from app.services import rag_ai
@@ -129,6 +130,22 @@ def query_policy_bot_endpoint(payload: PolicyBotQuery, request: Request, db: Ses
     """Query policy chatbot using vector context."""
     center_id = getattr(request.state, "center_id", None)
     return rag_ai.query_policy_bot(db, center_id, payload)
+
+@router.post(
+    "/ask-database",
+    response_model=TextToSqlResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN"]))]
+)
+def ask_database_natural_language(
+    payload: TextToSqlRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Super Admin Endpoint: Ask a natural language question about the global finances, 
+    and the AI will generate and run the SQL query to answer it.
+    """
+    return rag_ai.execute_text_to_sql_service(db, payload.question)
 
 @router.post(
     "/text-to-sql",

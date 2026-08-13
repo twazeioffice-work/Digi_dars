@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
@@ -52,6 +52,15 @@ class PolicyBotResponse(BaseModel):
     question: str
     retrieved_sources: List[str]
     answer: str
+
+class TextToSqlRequest(BaseModel):
+    question: str = Field(..., description="The natural language question from the Super Admin")
+
+class TextToSqlResponse(BaseModel):
+    question: str
+    generated_sql: str
+    raw_data: List[Dict[str, Any]]
+    ai_summary: str
 
 class TextToSQLRequest(BaseModel):
     prompt: str
