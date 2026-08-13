@@ -52,6 +52,8 @@ export default function NazimDashboard() {
     email: "",
     password: "",
     phone: "",
+    emergency_contact: "",
+    address: "",
     is_zakat_eligible: false,
   });
 
@@ -113,7 +115,15 @@ export default function NazimDashboard() {
       });
       toast.success("Student added successfully!");
       setShowStudentModal(false);
-      setStudentForm({ full_name: "", email: "", password: "", phone: "", is_zakat_eligible: false });
+      setStudentForm({
+        full_name: "",
+        email: "",
+        password: "",
+        phone: "",
+        emergency_contact: "",
+        address: "",
+        is_zakat_eligible: false,
+      });
       fetchDashboardData();
       fetchUserLists();
     } catch (err: any) {
@@ -386,14 +396,39 @@ export default function NazimDashboard() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Parent Phone Number</label>
+                  <input
+                    type="tel"
+                    placeholder="+91 9876543210"
+                    className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={studentForm.phone}
+                    onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 text-rose-600">
+                    Emergency Contact Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+91 9123456789"
+                    className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-500"
+                    value={studentForm.emergency_contact}
+                    onChange={(e) => setStudentForm({ ...studentForm, emergency_contact: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Parent Phone (Optional)</label>
-                <input
-                  type="tel"
-                  placeholder="+91 9876543210"
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Complete Residential Address</label>
+                <textarea
+                  rows={2}
+                  placeholder="House No., Street Name, Landmark, City, Pincode"
                   className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                  value={studentForm.phone}
-                  onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })}
+                  value={studentForm.address}
+                  onChange={(e) => setStudentForm({ ...studentForm, address: e.target.value })}
                 />
               </div>
 

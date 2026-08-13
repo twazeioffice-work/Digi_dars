@@ -26,12 +26,16 @@ class CenterResponse(BaseModel):
 
 class StudentProfileCreate(BaseModel):
     is_zakat_eligible: Optional[bool] = False
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
     enrollment_date: Optional[date] = None
     sponsor_id: Optional[str] = None
 
 class StudentProfileResponse(BaseModel):
     user_id: str
     is_zakat_eligible: bool
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
     enrollment_date: date
     sponsor_id: Optional[str] = None
 
@@ -45,6 +49,8 @@ class UserCreate(BaseModel):
     role: Union[UserRole, str]
     center_id: Optional[str] = None
     is_zakat_eligible: Optional[bool] = False
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
 
 # Backward compatibility alias
 UserRegister = UserCreate

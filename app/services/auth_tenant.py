@@ -111,6 +111,8 @@ def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User
         profile = StudentProfile(
             user_id=user.id,
             is_zakat_eligible=getattr(payload, "is_zakat_eligible", False) or False,
+            address=getattr(payload, "address", None),
+            emergency_contact=getattr(payload, "emergency_contact", None),
             enrollment_date=datetime.now(timezone.utc).date()
         )
         db.add(profile)

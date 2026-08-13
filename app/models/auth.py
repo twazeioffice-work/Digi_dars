@@ -62,6 +62,8 @@ class StudentProfile(Base):
 
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     is_zakat_eligible = Column(Boolean, default=False)
+    address = Column(String(500), nullable=True)
+    emergency_contact = Column(String(50), nullable=True)
     enrollment_date = Column(Date, nullable=False, server_default=func.current_date())
     sponsor_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

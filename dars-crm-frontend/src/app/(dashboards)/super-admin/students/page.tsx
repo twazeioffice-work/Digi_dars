@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { Users, UserPlus, Search, Loader2, Mail, Phone, HeartHandshake } from "lucide-react";
+import { Users, UserPlus, Search, Loader2, Mail, Phone, HeartHandshake, MapPin, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface StudentUser {
@@ -14,6 +14,8 @@ interface StudentUser {
   is_active: boolean;
   student_profile?: {
     is_zakat_eligible: boolean;
+    address?: string;
+    emergency_contact?: string;
   };
   created_at?: string;
 }
@@ -30,6 +32,8 @@ export default function SuperAdminManageStudentsPage() {
     email: "",
     password: "",
     phone: "",
+    emergency_contact: "",
+    address: "",
     is_zakat_eligible: false,
   });
 
@@ -58,7 +62,15 @@ export default function SuperAdminManageStudentsPage() {
       });
       toast.success("Student registered successfully!");
       setShowModal(false);
-      setForm({ full_name: "", email: "", password: "", phone: "", is_zakat_eligible: false });
+      setForm({
+        full_name: "",
+        email: "",
+        password: "",
+        phone: "",
+        emergency_contact: "",
+        address: "",
+        is_zakat_eligible: false,
+      });
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to register student");
@@ -69,7 +81,8 @@ export default function SuperAdminManageStudentsPage() {
 
   const filtered = students.filter(s =>
     s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase())
+    s.email.toLowerCase().includes(search.toLowerCase()) ||
+    (s.student_profile?.address && s.student_profile.address.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -79,7 +92,7 @@ export default function SuperAdminManageStudentsPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Global Enrolled Students</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Audit enrolled student profiles, Zakat eligibility statuses, and rosters.
+            Audit enrolled student profiles, emergency contacts, addresses, and Zakat eligibility.
           </p>
         </div>
         <button
@@ -95,7 +108,7 @@ export default function SuperAdminManageStudentsPage() {
         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
         <input
           type="text"
-          placeholder="Search student by name or email..."
+          placeholder="Search student by name, email, or address..."
           className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -120,14 +133,17 @@ export default function SuperAdminManageStudentsPage() {
               <tr>
                 <th className="px-6 py-4">Student Name</th>
                 <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Contact Numbers</th>
+                <th className="px-6 py-4">Residential Address</th>
                 <th className="px-6 py-4">Zakat Eligibility</th>
-                <th className="px-6 py-4">Parent Phone</th>
                 <th className="px-6 py-4">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map((student) => {
                 const isZakat = student.student_profile?.is_zakat_eligible;
+                const address = student.student_profile?.address;
+                const emergency = student.student_profile?.emergency_contact;
                 return (
                   <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
@@ -141,6 +157,26 @@ export default function SuperAdminManageStudentsPage() {
                         <Mail className="h-3.5 w-3.5 text-slate-400" /> {student.email}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-xs space-y-1">
+                      <div className="flex items-center gap-1 text-slate-700 font-medium">
+                        <Phone className="h-3.5 w-3.5 text-slate-400" /> Parent: {student.phone || "N/A"}
+                      </div>
+                      {emergency && (
+                        <div className="flex items-center gap-1 text-rose-600 font-semibold">
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-500" /> Emergency: {emergency}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-xs max-w-xs truncate text-slate-600">
+                      {address ? (
+                        <span className="flex items-start gap-1">
+                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="line-clamp-2">{address}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">No address recorded</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 font-medium">
                       {isZakat ? (
                         <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 font-bold px-2.5 py-1 rounded text-xs">
@@ -151,13 +187,6 @@ export default function SuperAdminManageStudentsPage() {
                           SELF-PAYING
                         </span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-500">
-                      {student.phone ? (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3.5 w-3.5 text-slate-400" /> {student.phone}
-                        </span>
-                      ) : "N/A"}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
@@ -175,7 +204,7 @@ export default function SuperAdminManageStudentsPage() {
       {/* --- MODAL: REGISTER STUDENT --- */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-slate-900">Add New Student</h2>
             <form onSubmit={handleRegisterStudent} className="space-y-4">
               <div>
@@ -214,26 +243,51 @@ export default function SuperAdminManageStudentsPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Parent Phone Number</label>
+                  <input
+                    type="tel"
+                    placeholder="+91 9876543210"
+                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 text-rose-600">
+                    Emergency Contact Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+91 9123456789"
+                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-500"
+                    value={form.emergency_contact}
+                    onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Parent Phone (Optional)</label>
-                <input
-                  type="tel"
-                  placeholder="+91 9876543210"
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Complete Residential Address</label>
+                <textarea
+                  rows={2}
+                  placeholder="House No., Street Name, Landmark, City, Pincode"
                   className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
                 />
               </div>
 
               <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                 <input
                   type="checkbox"
-                  id="zakat_check_modal"
+                  id="zakat_check_modal_super"
                   className="h-4 w-4 text-emerald-600 rounded"
                   checked={form.is_zakat_eligible}
                   onChange={(e) => setForm({ ...form, is_zakat_eligible: e.target.checked })}
                 />
-                <label htmlFor="zakat_check_modal" className="text-xs font-semibold text-emerald-900 cursor-pointer">
+                <label htmlFor="zakat_check_modal_super" className="text-xs font-semibold text-emerald-900 cursor-pointer">
                   Zakat Eligible (Entitled to financial aid / stipend)
                 </label>
               </div>
