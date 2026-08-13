@@ -11,7 +11,7 @@ from app.schemas.communication import (
     InternalTicketCreate, BroadcastCreate, AcademicMessageCreate,
     EscalationCreate, InquiryCreate, ApprovedReportRequest
 )
-from app.tasks.messaging import send_app_notification
+from app.tasks.messaging import send_app_notification, send_whatsapp_report_task
 
 # --- Flow 1: Internal Tickets ---
 def create_internal_ticket(db: Session, created_by: str, request_center_id: Optional[str], payload: InternalTicketCreate) -> dict:
@@ -148,6 +148,10 @@ def send_approved_report_service(db: Session, student_id: Union[str, Any], repor
             title="New Monthly Progress Report",
             preview_text="Assalamu Alaikum, your child's monthly Dars report is ready...",
             tenant_id=t_id
+        )
+        send_whatsapp_report_task.delay(
+            student_id=student_str,
+            report_text=report_data.final_text
         )
     except Exception:
         pass
