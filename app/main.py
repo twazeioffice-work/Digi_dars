@@ -66,6 +66,7 @@ from app.api.v1.stripe import router as stripe_router
 from app.api.v1.performance import router as performance_router
 from app.api.v1.complaints import router as complaints_router
 from app.api.v1.library import router as library_router
+from app.api.v1.kitchen import router as kitchen_router
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -124,6 +125,8 @@ app.include_router(complaints_router, prefix="/api")
 app.include_router(complaints_router)
 app.include_router(library_router, prefix="/api")
 app.include_router(library_router)
+app.include_router(kitchen_router, prefix="/api")
+app.include_router(kitchen_router)
 
 # Initialize Prometheus instrumentation if explicitly enabled
 if os.getenv("ENABLE_METRICS") == "true":
