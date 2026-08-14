@@ -142,12 +142,27 @@ def record_expense(db: Session, center_id: str, user_id: str, payload: Union[Exp
                     detail="Religious Compliance Violation: This recipient student is not marked as Zakat-eligible."
                 )
 
+    rec_name = getattr(payload, "recipient_name", None)
+    rec_phone = getattr(payload, "recipient_phone", None)
+
+    if payload.student_id:
+        st = db.query(User).filter(User.id == str(payload.student_id)).first()
+        if st:
+            if not rec_name:
+                rec_name = st.full_name
+            if not rec_phone:
+                rec_phone = st.phone
+
     transaction = FinanceTransaction(
         center_id=t_id,
         category_id=category.id,
         amount=payload.amount,
         type=TransactionType.DEBIT.value,
         student_id=str(payload.student_id) if payload.student_id else None,
+        donor_name=getattr(payload, "donor_name", None),
+        donor_phone=getattr(payload, "donor_phone", None),
+        recipient_name=rec_name,
+        recipient_phone=rec_phone,
         description=payload.description,
         receipt_url=payload.receipt_url,
         recorded_by=u_id or "SYSTEM"
@@ -197,6 +212,10 @@ def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_i
         amount=original_txn.amount,
         type=new_type,
         student_id=original_txn.student_id,
+        donor_name=original_txn.donor_name,
+        donor_phone=original_txn.donor_phone,
+        recipient_name=original_txn.recipient_name,
+        recipient_phone=original_txn.recipient_phone,
         description=f"[REVERSAL] {payload.reason} | Original Ref: {original_txn.id}",
         receipt_url=original_txn.receipt_url,
         recorded_by=u_id or "SYSTEM",
@@ -315,15 +334,31 @@ def get_ledger(
 
     data_list = []
     for t in transactions:
+        st_name = None
+        st_phone = None
+        if t.student_id:
+            st = db.query(User).filter(User.id == t.student_id).first()
+            if st:
+                st_name = st.full_name
+                st_phone = st.phone
+
+        rec_name = t.recipient_name or st_name
+        rec_phone = t.recipient_phone or st_phone
+
         data_list.append({
             "transaction_id": t.id,
             "date": t.created_at,
             "type": t.type,
             "category_name": t.category.name if t.category else "Uncategorized",
+            "fund_type": t.category.fund_type if t.category else "GENERAL",
             "amount": t.amount,
             "student_id": t.student_id,
+            "student_name": st_name,
+            "student_phone": st_phone,
             "donor_name": t.donor_name,
             "donor_phone": t.donor_phone,
+            "recipient_name": rec_name,
+            "recipient_phone": rec_phone,
             "description": t.description
         })
 

@@ -30,6 +30,8 @@ class ExpenseCreate(BaseModel):
     student_id: Optional[Union[UUID, str]] = None
     donor_name: Optional[str] = None
     donor_phone: Optional[str] = None
+    recipient_name: Optional[str] = None
+    recipient_phone: Optional[str] = None
 
 class ExpenseTransactionCreate(ExpenseCreate):
     pass
@@ -44,6 +46,8 @@ class IncomeTransactionCreate(BaseModel):
     student_id: Optional[Union[UUID, str]] = None
     donor_name: Optional[str] = None
     donor_phone: Optional[str] = None
+    recipient_name: Optional[str] = None
+    recipient_phone: Optional[str] = None
 
 class TransactionResponse(BaseModel):
     id: Union[UUID, str]
@@ -54,6 +58,8 @@ class TransactionResponse(BaseModel):
     student_id: Optional[Union[UUID, str]] = None
     donor_name: Optional[str] = None
     donor_phone: Optional[str] = None
+    recipient_name: Optional[str] = None
+    recipient_phone: Optional[str] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -67,6 +73,8 @@ class TransactionDataResponse(BaseModel):
     student_id: Optional[str] = None
     donor_name: Optional[str] = None
     donor_phone: Optional[str] = None
+    recipient_name: Optional[str] = None
+    recipient_phone: Optional[str] = None
     recorded_by: Optional[str] = None
     created_at: datetime
 

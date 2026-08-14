@@ -40,6 +40,8 @@ class FinanceTransaction(TenantBase):
     student_id = Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     donor_name = Column(String(255), nullable=True)
     donor_phone = Column(String(50), nullable=True)
+    recipient_name = Column(String(255), nullable=True)
+    recipient_phone = Column(String(50), nullable=True)
     description = Column(String(1000), nullable=False)
     receipt_url = Column(String(512), nullable=True)
     recorded_by = Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { 
-  DollarSign, ArrowUpRight, ArrowDownRight, ShieldCheck, Loader2, RefreshCw 
+  DollarSign, ArrowUpRight, ArrowDownRight, ShieldCheck, Loader2, RefreshCw, UserCheck, Phone, User
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -12,11 +12,15 @@ interface Transaction {
   type: "CREDIT" | "DEBIT";
   amount: number;
   description: string;
-  fund_type: "ZAKAT" | "SADAQAH" | "GENERAL";
+  fund_type: string;
   category_name?: string;
+  student_id?: string;
   student_name?: string;
+  student_phone?: string;
   donor_name?: string;
   donor_phone?: string;
+  recipient_name?: string;
+  recipient_phone?: string;
   created_at: string;
 }
 
@@ -24,6 +28,7 @@ interface StudentOption {
   id: string;
   full_name: string;
   email: string;
+  phone?: string;
 }
 
 const getErrorMessage = (err: any, fallback: string) => {
@@ -59,6 +64,8 @@ export default function ZakatFinancePage() {
     student_id: "",
     donor_name: "",
     donor_phone: "",
+    recipient_name: "",
+    recipient_phone: "",
   });
 
   const fetchLedger = async () => {
@@ -99,6 +106,22 @@ export default function ZakatFinancePage() {
     fetchStudents();
   }, []);
 
+  const handleStudentSelect = (studentId: string) => {
+    if (!studentId) {
+      setForm((prev) => ({ ...prev, student_id: "", recipient_name: "", recipient_phone: "" }));
+      return;
+    }
+    const st = students.find((s) => s.id === studentId);
+    if (st) {
+      setForm((prev) => ({
+        ...prev,
+        student_id: studentId,
+        recipient_name: st.full_name,
+        recipient_phone: st.phone || "",
+      }));
+    }
+  };
+
   const handleRecordTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(form.amount);
@@ -106,6 +129,7 @@ export default function ZakatFinancePage() {
       toast.error("Please enter a valid positive amount");
       return;
     }
+
     setSubmitting(true);
     try {
       if (txType === "INCOME") {
@@ -117,7 +141,7 @@ export default function ZakatFinancePage() {
           donor_name: form.donor_name.trim() || undefined,
           donor_phone: form.donor_phone.trim() || undefined,
         });
-        toast.success("Income recorded into ledger!");
+        toast.success("Income collection recorded!");
       } else {
         await api.post("/finance/transactions/expense", {
           amount: parsedAmount,
@@ -125,12 +149,24 @@ export default function ZakatFinancePage() {
           category_name: form.category_name || "STIPEND",
           description: form.description.trim() || "Expense disbursement",
           student_id: form.student_id ? form.student_id : undefined,
+          recipient_name: form.recipient_name.trim() || undefined,
+          recipient_phone: form.recipient_phone.trim() || undefined,
         });
-        toast.success("Disbursement recorded into ledger!");
+        toast.success("Expense disbursement recorded!");
       }
 
       setShowModal(false);
-      setForm({ amount: "", fund_type: "ZAKAT", category_name: "STIPEND", description: "", student_id: "", donor_name: "", donor_phone: "" });
+      setForm({
+        amount: "",
+        fund_type: "ZAKAT",
+        category_name: "STIPEND",
+        description: "",
+        student_id: "",
+        donor_name: "",
+        donor_phone: "",
+        recipient_name: "",
+        recipient_phone: "",
+      });
       fetchLedger();
     } catch (err: any) {
       toast.error(getErrorMessage(err, "Transaction failed"));
@@ -146,7 +182,7 @@ export default function ZakatFinancePage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Zakat & Finance Ledger</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Strict religious compliance ledger for Zakat collections & student disbursements
+            Audit-ready financial ledger with complete Giver & Recipient records for Zakat & general funds
           </p>
         </div>
 
@@ -154,6 +190,17 @@ export default function ZakatFinancePage() {
           <button
             onClick={() => {
               setTxType("INCOME");
+              setForm({
+                amount: "",
+                fund_type: "ZAKAT",
+                category_name: "DONATION",
+                description: "",
+                student_id: "",
+                donor_name: "",
+                donor_phone: "",
+                recipient_name: "",
+                recipient_phone: "",
+              });
               setShowModal(true);
             }}
             className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition"
@@ -163,6 +210,17 @@ export default function ZakatFinancePage() {
           <button
             onClick={() => {
               setTxType("EXPENSE");
+              setForm({
+                amount: "",
+                fund_type: "ZAKAT",
+                category_name: "STIPEND",
+                description: "",
+                student_id: "",
+                donor_name: "",
+                donor_phone: "",
+                recipient_name: "",
+                recipient_phone: "",
+              });
               setShowModal(true);
             }}
             className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition"
@@ -172,11 +230,11 @@ export default function ZakatFinancePage() {
         </div>
       </div>
 
-      {/* --- COMPLIANCE GAURD BANNER --- */}
+      {/* --- COMPLIANCE GUARD BANNER --- */}
       <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs rounded-xl font-medium flex items-center gap-2">
         <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
         <span>
-          <strong>Zakat Compliance Guard Active:</strong> All Zakat debits verify that the student profile is marked <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono">is_zakat_eligible == True</code> prior to disbursement.
+          <strong>Zakat Compliance Active:</strong> Every transaction logs verified <strong>Giver (Donor)</strong> contact details for collections, and verified <strong>Receiver (Beneficiary Student/Recipient)</strong> details for disbursements.
         </span>
       </div>
 
@@ -184,7 +242,7 @@ export default function ZakatFinancePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Zakat / Funds Collected</p>
+            <p className="text-sm font-medium text-gray-500">Total Funds Collected</p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">
               ₹{totalCollected.toLocaleString()}
             </p>
@@ -245,51 +303,81 @@ export default function ZakatFinancePage() {
                 <tr>
                   <th className="px-6 py-4">Type</th>
                   <th className="px-6 py-4">Fund Category</th>
-                  <th className="px-6 py-4">Donor / Recipient</th>
+                  <th className="px-6 py-4">Giver Details (Donor)</th>
+                  <th className="px-6 py-4">Receiver Details (Beneficiary)</th>
                   <th className="px-6 py-4">Amount</th>
                   <th className="px-6 py-4">Description</th>
                   <th className="px-6 py-4">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {transactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold">
-                      <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full ${
-                        t.type === "CREDIT" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                      }`}>
-                        {t.type === "CREDIT" ? "INCOME (CREDIT)" : "EXPENSE (DEBIT)"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-semibold text-gray-900">{t.fund_type || "ZAKAT"}</span>
-                      {t.category_name && <span className="text-xs text-gray-400 block">{t.category_name}</span>}
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-700">
-                      {t.type === "CREDIT" ? (
-                        t.donor_name || t.donor_phone ? (
-                          <div>
-                            <span className="font-semibold text-slate-900">{t.donor_name || "Anonymous Donor"}</span>
-                            {t.donor_phone && <span className="text-slate-400 block font-mono text-[11px]">{t.donor_phone}</span>}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic">General Donor</span>
-                        )
-                      ) : (
-                        <span className="text-slate-600">{t.student_name || "Center Expense"}</span>
-                      )}
-                    </td>
-                    <td className={`px-6 py-4 font-bold text-base ${t.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"}`}>
-                      {t.type === "CREDIT" ? "+" : "-"}₹{(Number(t.amount) || 0).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-600 max-w-xs truncate">
-                      {t.description || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-400 font-mono">
-                      {new Date(t.created_at || Date.now()).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
+                {transactions.map((t) => {
+                  const isCredit = t.type === "CREDIT";
+
+                  // Giver Person
+                  const giverName = isCredit
+                    ? (t.donor_name || "General Donor")
+                    : "Center Zakat Fund";
+                  const giverPhone = isCredit ? t.donor_phone : undefined;
+
+                  // Receiver Person
+                  const receiverName = !isCredit
+                    ? (t.recipient_name || t.student_name || "Center Operational Expense")
+                    : "Masjid Center Account";
+                  const receiverPhone = !isCredit ? (t.recipient_phone || t.student_phone) : undefined;
+
+                  return (
+                    <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-bold">
+                        <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full ${
+                          isCredit ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}>
+                          {isCredit ? "INCOME (CREDIT)" : "EXPENSE (DEBIT)"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-gray-900">{t.fund_type || "ZAKAT"}</span>
+                        {t.category_name && <span className="text-xs text-gray-400 block">{t.category_name}</span>}
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-700">
+                        <div>
+                          <span className="font-bold text-slate-900 block">{giverName}</span>
+                          {giverPhone ? (
+                            <span className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
+                              <Phone className="h-3 w-3 text-slate-400" /> {giverPhone}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] italic">No phone logged</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-700">
+                        <div>
+                          <span className="font-bold text-emerald-800 block flex items-center gap-1">
+                            {t.student_name && <UserCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
+                            {receiverName}
+                          </span>
+                          {receiverPhone ? (
+                            <span className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
+                              <Phone className="h-3 w-3 text-slate-400" /> {receiverPhone}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] italic">No phone logged</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className={`px-6 py-4 font-bold text-base ${isCredit ? "text-emerald-600" : "text-rose-600"}`}>
+                        {isCredit ? "+" : "-"}₹{(Number(t.amount) || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-600 max-w-xs truncate">
+                        {t.description || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-400 font-mono">
+                        {new Date(t.created_at || Date.now()).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -299,11 +387,18 @@ export default function ZakatFinancePage() {
       {/* --- MODAL: RECORD TRANSACTION --- */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
-                {txType === "INCOME" ? "Record Income Collection" : "Record Expense / Student Disbursement"}
-              </h2>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {txType === "INCOME" ? "Record Income Collection" : "Record Expense / Aid Disbursement"}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  {txType === "INCOME"
+                    ? "Enter incoming fund details including Giver (Donor) Name & Phone"
+                    : "Enter disbursement details including Receiver Name & Phone"}
+                </p>
+              </div>
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                 txType === "INCOME" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
               }`}>
@@ -312,81 +407,125 @@ export default function ZakatFinancePage() {
             </div>
 
             <form onSubmit={handleRecordTransaction} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Fund Type</label>
-                <select
-                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
-                  value={form.fund_type}
-                  onChange={(e) => setForm({ ...form, fund_type: e.target.value })}
-                >
-                  <option value="ZAKAT">Zakat Fund</option>
-                  <option value="SADAQAH">Sadaqah / General Charity</option>
-                  <option value="GENERAL">General Operational Fund</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Amount (₹)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  placeholder="e.g. 5000"
-                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                  value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                />
-              </div>
-
-              {txType === "INCOME" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Donor Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Hassan Ahmed"
-                      className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                      value={form.donor_name}
-                      onChange={(e) => setForm({ ...form, donor_name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Donor Phone Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 9876543210"
-                      className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                      value={form.donor_phone}
-                      onChange={(e) => setForm({ ...form, donor_phone: e.target.value })}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {txType === "EXPENSE" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Recipient Student (Optional)</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Fund Type *</label>
                   <select
                     className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
-                    value={form.student_id}
-                    onChange={(e) => setForm({ ...form, student_id: e.target.value })}
+                    value={form.fund_type}
+                    onChange={(e) => setForm({ ...form, fund_type: e.target.value })}
                   >
-                    <option value="">Select a Student (If applicable)...</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.full_name || "Student"} ({s.email || "N/A"})
-                      </option>
-                    ))}
+                    <option value="ZAKAT">Zakat Fund</option>
+                    <option value="SADAQAH">Sadaqah / General Charity</option>
+                    <option value="GENERAL">General Operational Fund</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Amount (₹) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="e.g. 5000"
+                    className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={form.amount}
+                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* --- GIVER (DONOR) FIELDS FOR INCOME --- */}
+              {txType === "INCOME" && (
+                <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200/60 space-y-3">
+                  <p className="text-xs font-bold text-emerald-900 flex items-center gap-1">
+                    <User className="h-4 w-4 text-emerald-700" /> Giver (Donor) Contact Information
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Giver Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Muhammad Hassan"
+                        className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={form.donor_name}
+                        onChange={(e) => setForm({ ...form, donor_name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Giver Phone Number *</label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="e.g. +91 9876543210"
+                        className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={form.donor_phone}
+                        onChange={(e) => setForm({ ...form, donor_phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* --- RECEIVER FIELDS FOR EXPENSE --- */}
+              {txType === "EXPENSE" && (
+                <div className="bg-rose-50/60 p-3.5 rounded-xl border border-rose-200/60 space-y-3">
+                  <p className="text-xs font-bold text-rose-900 flex items-center gap-1">
+                    <UserCheck className="h-4 w-4 text-rose-700" /> Receiver (Beneficiary) Information
+                  </p>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Select Recipient Student (Auto-links ID & Phone)
+                    </label>
+                    <select
+                      className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={form.student_id}
+                      onChange={(e) => handleStudentSelect(e.target.value)}
+                    >
+                      <option value="">-- External / Non-Student Beneficiary --</option>
+                      {students.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.full_name || "Student"} ({s.phone || s.email || "No phone"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Receiver Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Fatima Bi / Student Name"
+                        className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={form.recipient_name}
+                        onChange={(e) => setForm({ ...form, recipient_name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Receiver Phone Number *</label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="e.g. +91 9123456789"
+                        className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={form.recipient_phone}
+                        onChange={(e) => setForm({ ...form, recipient_phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Description / Remarks</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Description / Remarks *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Monthly Zakat contribution from donor"
+                  placeholder="e.g. Monthly Zakat contribution / Medical Aid support"
                   className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
