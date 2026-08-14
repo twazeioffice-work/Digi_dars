@@ -58,6 +58,9 @@ class UserCreate(BaseModel):
 # Backward compatibility alias
 UserRegister = UserCreate
 
+class UserUpdateStatus(BaseModel):
+    is_active: bool
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

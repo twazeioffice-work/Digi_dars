@@ -53,11 +53,14 @@ const getMediaUrl = (url?: string) => {
   return cleanPath;
 };
 
+import UserProfileModal from "@/components/UserProfileModal";
+
 export default function NazimStudentsPage() {
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [halqas, setHalqas] = useState<HalqaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -265,15 +268,18 @@ export default function NazimStudentsPage() {
                 return (
                   <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-emerald-50 text-emerald-700 rounded-full font-black text-xs">
+                      <button
+                        onClick={() => setSelectedProfileUserId(student.id)}
+                        className="flex items-center gap-2 text-left hover:text-emerald-600 group transition"
+                      >
+                        <div className="p-2 bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white rounded-full font-black text-xs transition">
                           {initial}
                         </div>
                         <div>
-                          <span>{student.full_name || "Unnamed Student"}</span>
+                          <span className="group-hover:underline">{student.full_name || "Unnamed Student"}</span>
                           <span className="text-xs text-slate-400 block font-normal">{student.email}</span>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-xs font-semibold">
                       {student.halqa_name ? (
@@ -520,6 +526,14 @@ export default function NazimStudentsPage() {
             </form>
           </div>
         </div>
+      )}
+      {/* --- PROFILE MODAL --- */}
+      {selectedProfileUserId && (
+        <UserProfileModal
+          userId={selectedProfileUserId}
+          onClose={() => setSelectedProfileUserId(null)}
+          onUpdate={fetchData}
+        />
       )}
     </div>
   );

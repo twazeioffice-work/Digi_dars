@@ -534,3 +534,6 @@ def approve_leave_request(db: Session, request_id: str, reviewer_id: str, status
     db.commit()
     db.refresh(leave)
     return leave
+
+def get_user_leave_requests(db: Session, user_id: str) -> List[LeaveRequest]:
+    return db.query(LeaveRequest).filter(LeaveRequest.student_id == user_id).order_by(LeaveRequest.start_date.desc()).all()

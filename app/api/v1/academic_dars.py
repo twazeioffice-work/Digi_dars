@@ -180,3 +180,12 @@ def approve_leave_request_endpoint(
     """(Nazim / Ustad Only) Approve or reject a leave request."""
     reviewer_id = request.state.user_id
     return academic_dars.approve_leave_request(db, request_id, reviewer_id, payload.status)
+
+@router.get(
+    "/leave-requests/user/{user_id}",
+    response_model=List[LeaveRequestResponse],
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD", "PARENT", "STUDENT"]))]
+)
+def get_user_leave_requests_endpoint(user_id: str, db: Session = Depends(get_db)):
+    """Retrieve all leave requests submitted for a specific user."""
+    return academic_dars.get_user_leave_requests(db, user_id)

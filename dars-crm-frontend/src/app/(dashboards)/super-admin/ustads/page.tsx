@@ -5,6 +5,8 @@ import api from "@/lib/api";
 import { GraduationCap, UserPlus, Search, Loader2, Mail, Phone, Building2, MapPin, AlertCircle, Image as ImageIcon } from "lucide-react";
 import toast from "react-hot-toast";
 
+import UserProfileModal from "@/components/UserProfileModal";
+
 interface UstadUser {
   id: string;
   full_name: string;
@@ -50,6 +52,7 @@ export default function ManageUstadsPage() {
   const [centers, setCenters] = useState<Center[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -218,15 +221,18 @@ export default function ManageUstadsPage() {
                 return (
                   <tr key={ustad.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-indigo-50 text-indigo-700 rounded-full font-black text-xs">
+                      <button
+                        onClick={() => setSelectedProfileUserId(ustad.id)}
+                        className="flex items-center gap-2 text-left hover:text-indigo-600 group transition"
+                      >
+                        <div className="p-2 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white rounded-full font-black text-xs transition">
                           {initial}
                         </div>
                         <div>
-                          <span>{ustad.full_name || "Unnamed Ustad"}</span>
+                          <span className="group-hover:underline">{ustad.full_name || "Unnamed Ustad"}</span>
                           <span className="text-xs text-slate-400 block font-normal">{ustad.email}</span>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-xs">
                       <span className="flex items-center gap-1 text-slate-700 font-medium">
@@ -412,6 +418,14 @@ export default function ManageUstadsPage() {
             </form>
           </div>
         </div>
+      )}
+      {/* --- PROFILE MODAL --- */}
+      {selectedProfileUserId && (
+        <UserProfileModal
+          userId={selectedProfileUserId}
+          onClose={() => setSelectedProfileUserId(null)}
+          onUpdate={fetchData}
+        />
       )}
     </div>
   );

@@ -5,7 +5,7 @@ from fastapi_limiter.depends import RateLimiter
 from app.database import get_db
 from app.schemas.auth import (
     CenterCreate, CenterUpdateStatus, CenterResponse,
-    UserCreate, UserRegister, UserLogin, LoginRequest, TokenResponse, UserResponse,
+    UserCreate, UserRegister, UserLogin, LoginRequest, TokenResponse, UserResponse, UserUpdateStatus,
     ParentStudentLinkCreate, ParentStudentLinkResponse
 )
 from app.services import auth_tenant
@@ -62,6 +62,21 @@ def get_ustads_endpoint(db: Session = Depends(get_db)):
 def get_students_endpoint(db: Session = Depends(get_db)):
     """Retrieve all Students."""
     return auth_tenant.get_users_by_role(db, "STUDENT")
+
+@users_router.get("/{user_id}", response_model=UserResponse)
+def get_user_by_id_endpoint(user_id: str, db: Session = Depends(get_db)):
+    """Retrieve details for a single user."""
+    return auth_tenant.get_user_by_id(db, user_id)
+
+@users_router.patch("/{user_id}/status", response_model=UserResponse)
+def update_user_status_endpoint(user_id: str, payload: UserUpdateStatus, db: Session = Depends(get_db)):
+    """Suspend or activate a user account."""
+    return auth_tenant.update_user_status(db, user_id, payload.is_active)
+
+@users_router.delete("/{user_id}")
+def dismiss_user_endpoint(user_id: str, db: Session = Depends(get_db)):
+    """Dismiss / deactivate a user account."""
+    return auth_tenant.dismiss_user(db, user_id)
 
 import os
 import shutil

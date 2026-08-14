@@ -218,3 +218,26 @@ def get_users_by_role(db: Session, role_val: str, center_id: Optional[str] = Non
     if center_id:
         query = query.filter(User.center_id == center_id)
     return query.all()
+
+def get_user_by_id(db: Session, user_id: str) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User with id '{user_id}' not found")
+    return user
+
+def update_user_status(db: Session, user_id: str, is_active: bool) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User with id '{user_id}' not found")
+    user.is_active = is_active
+    db.commit()
+    db.refresh(user)
+    return user
+
+def dismiss_user(db: Session, user_id: str) -> dict:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User with id '{user_id}' not found")
+    user.is_active = False
+    db.commit()
+    return {"status": "success", "message": f"User '{user.full_name}' has been dismissed/deactivated."}
