@@ -133,6 +133,7 @@ class WhatsAppMessage(Base):
     student_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     ustad_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     is_complaint = Column(Boolean, default=False)
+    is_unrecognized_sender = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     student = relationship("User", foreign_keys=[student_id])
