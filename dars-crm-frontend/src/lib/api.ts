@@ -1,16 +1,30 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
+    return `${protocol}//${host}:8001/api/v1`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+};
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api/v1',
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// 1. Request Interceptor: Attach the JWT token
+// 1. Request Interceptor: Attach JWT token and enforce dynamic hostname:8001 API target
 api.interceptors.request.use(
   (config) => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      const protocol = window.location.protocol;
+      config.baseURL = `${protocol}//${host}:8001/api/v1`;
+    }
     const token = Cookies.get('dars_auth_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;

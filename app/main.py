@@ -68,8 +68,16 @@ from app.api.v1.complaints import router as complaints_router
 from app.api.v1.library import router as library_router
 from app.api.v1.kitchen import router as kitchen_router
 
-# Create database tables on startup
+from app.seed import seed_database_if_empty
+from app.database import SessionLocal
+
+# Create database tables and seed initial data on startup
 Base.metadata.create_all(bind=engine)
+try:
+    with SessionLocal() as seed_db:
+        seed_database_if_empty(seed_db)
+except Exception as e:
+    print(f"Startup Seed Error: {e}")
 
 app = FastAPI(
     title="Dars SaaS CRM API",
