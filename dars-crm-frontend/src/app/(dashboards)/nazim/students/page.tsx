@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { GraduationCap, UserPlus, Search, Loader2, Mail, Phone, MapPin, AlertCircle, HeartHandshake, Image as ImageIcon } from "lucide-react";
+import { GraduationCap, UserPlus, Search, Loader2, Mail, Phone, MapPin, AlertCircle, HeartHandshake, Image as ImageIcon, BookOpen, Layers } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface StudentUser {
@@ -20,7 +20,16 @@ interface StudentUser {
     emergency_contact?: string;
     gov_id_card_url?: string;
   };
+  halqa_name?: string;
   created_at?: string;
+}
+
+interface HalqaItem {
+  id: string;
+  name: string;
+  department: string;
+  ustad_name: string;
+  student_count: number;
 }
 
 const getErrorMessage = (err: any, fallback: string) => {
@@ -36,10 +45,15 @@ const getErrorMessage = (err: any, fallback: string) => {
 
 export default function NazimStudentsPage() {
   const [students, setStudents] = useState<StudentUser[]>([]);
+  const [halqas, setHalqas] = useState<HalqaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   const [showModal, setShowModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<StudentUser | null>(null);
+  const [selectedHalqaId, setSelectedHalqaId] = useState("");
+  
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
 
@@ -52,12 +66,17 @@ export default function NazimStudentsPage() {
     address: "",
     gov_id_card_url: "",
     is_zakat_eligible: false,
+    halqa_id: "",
   });
 
   const fetchData = async () => {
     try {
-      const res = await api.get("/users/students");
-      setStudents(Array.isArray(res.data) ? res.data : []);
+      const [stRes, hRes] = await Promise.all([
+        api.get("/users/students"),
+        api.get("/academic/halqas").catch(() => ({ data: [] }))
+      ]);
+      setStudents(Array.isArray(stRes.data) ? stRes.data : []);
+      setHalqas(Array.isArray(hRes.data) ? hRes.data : []);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to load Students list"));
     } finally {
@@ -94,7 +113,7 @@ export default function NazimStudentsPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post("/auth/register", {
+      const res = await api.post("/auth/register", {
         full_name: form.full_name,
         email: form.email,
         password: form.password,
@@ -105,7 +124,24 @@ export default function NazimStudentsPage() {
         is_zakat_eligible: form.is_zakat_eligible,
         role: "STUDENT",
       });
-      toast.success("Student registered successfully!");
+
+      const newStudentId = res.data?.id;
+
+      // If Nazim selected a batch/halqa during registration, enroll student
+      if (form.halqa_id && newStudentId) {
+        try {
+          await api.post("/academic/halqas/enroll", {
+            student_id: newStudentId,
+            halqa_id: form.halqa_id,
+          });
+          toast.success("Student registered and assigned to batch!");
+        } catch (e) {
+          toast.success("Student registered successfully! (Batch assignment pending)");
+        }
+      } else {
+        toast.success("Student registered successfully!");
+      }
+
       setShowModal(false);
       setForm({
         full_name: "",
@@ -116,10 +152,32 @@ export default function NazimStudentsPage() {
         address: "",
         gov_id_card_url: "",
         is_zakat_eligible: false,
+        halqa_id: "",
       });
       fetchData();
     } catch (err: any) {
       toast.error(getErrorMessage(err, "Failed to register Student"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAssignBatchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudent || !selectedHalqaId) return;
+    setSubmitting(true);
+    try {
+      await api.post("/academic/halqas/enroll", {
+        student_id: selectedStudent.id,
+        halqa_id: selectedHalqaId,
+      });
+      toast.success(`Assigned ${selectedStudent.full_name} to batch!`);
+      setShowAssignModal(false);
+      setSelectedStudent(null);
+      setSelectedHalqaId("");
+      fetchData();
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to assign student to batch"));
     } finally {
       setSubmitting(false);
     }
@@ -140,7 +198,7 @@ export default function NazimStudentsPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Center Students Directory</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Enrolled students in your center with address, emergency contacts & Gov ID proof.
+            Assign students to batches (Halqas), view address, emergency contacts & ID proofs.
           </p>
         </div>
         <button
@@ -180,11 +238,11 @@ export default function NazimStudentsPage() {
             <thead className="bg-slate-50 text-slate-700 uppercase text-xs font-semibold">
               <tr>
                 <th className="px-6 py-4">Student Name</th>
+                <th className="px-6 py-4">Assigned Batch / Halqa</th>
                 <th className="px-6 py-4">Parent Contact</th>
                 <th className="px-6 py-4">Emergency Contact</th>
-                <th className="px-6 py-4">Address</th>
                 <th className="px-6 py-4">Zakat Eligible</th>
-                <th className="px-6 py-4">Govt ID Proof</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -192,7 +250,6 @@ export default function NazimStudentsPage() {
                 const initial = (student.full_name || "S").charAt(0).toUpperCase();
                 const isZakat = student.student_profile?.is_zakat_eligible;
                 const emergency = student.emergency_contact || student.student_profile?.emergency_contact;
-                const address = student.address || student.student_profile?.address;
                 const idCard = student.gov_id_card_url || student.student_profile?.gov_id_card_url;
 
                 return (
@@ -208,6 +265,17 @@ export default function NazimStudentsPage() {
                         </div>
                       </div>
                     </td>
+                    <td className="px-6 py-4 text-xs font-semibold">
+                      {student.halqa_name ? (
+                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100">
+                          <BookOpen className="h-3.5 w-3.5" /> {student.halqa_name}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+                          Unassigned
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-xs">
                       <span className="flex items-center gap-1 text-slate-700 font-medium">
                         <Phone className="h-3.5 w-3.5 text-slate-400" /> {student.phone || "No parent phone"}
@@ -222,15 +290,6 @@ export default function NazimStudentsPage() {
                         <span className="text-slate-400 font-normal">N/A</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-600 max-w-xs truncate">
-                      {address ? (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {address}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">N/A</span>
-                      )}
-                    </td>
                     <td className="px-6 py-4">
                       {isZakat ? (
                         <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
@@ -240,25 +299,74 @@ export default function NazimStudentsPage() {
                         <span className="text-xs text-slate-400">Standard</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs">
-                      {idCard ? (
-                        <a
-                          href={idCard}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold px-2.5 py-1 rounded transition"
-                        >
-                          <ImageIcon className="h-3.5 w-3.5" /> View ID Card
-                        </a>
-                      ) : (
-                        <span className="text-slate-400 italic">Not Uploaded</span>
-                      )}
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => {
+                          setSelectedStudent(student);
+                          setShowAssignModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition"
+                      >
+                        <Layers className="h-3.5 w-3.5" /> Assign Batch
+                      </button>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* --- MODAL: ASSIGN / SWITCH BATCH --- */}
+      {showAssignModal && selectedStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <h2 className="text-lg font-bold text-slate-900">
+              Assign Batch for <span className="text-emerald-700">{selectedStudent.full_name}</span>
+            </h2>
+            <p className="text-xs text-slate-500">
+              Select which Batch (Halqa) and Ustad this student should join:
+            </p>
+            <form onSubmit={handleAssignBatchSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Select Batch / Halqa *</label>
+                <select
+                  required
+                  className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={selectedHalqaId}
+                  onChange={(e) => setSelectedHalqaId(e.target.value)}
+                >
+                  <option value="">-- Choose Batch --</option>
+                  {halqas.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name} ({h.department} - Ustad: {h.ustad_name || "Unassigned"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAssignModal(false);
+                    setSelectedStudent(null);
+                  }}
+                  className="flex-1 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs flex items-center justify-center"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Assignment"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -302,6 +410,22 @@ export default function NazimStudentsPage() {
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Assign to Batch / Halqa (Optional)</label>
+                <select
+                  className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={form.halqa_id}
+                  onChange={(e) => setForm({ ...form, halqa_id: e.target.value })}
+                >
+                  <option value="">-- Assign Later --</option>
+                  {halqas.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name} ({h.department} - Ustad: {h.ustad_name || "Unassigned"})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -352,11 +476,6 @@ export default function NazimStudentsPage() {
                   />
                   {uploadingFile && <Loader2 className="h-4 w-4 animate-spin text-emerald-600 shrink-0" />}
                 </div>
-                {form.gov_id_card_url && (
-                  <p className="text-xs text-emerald-600 mt-1 font-semibold flex items-center gap-1">
-                    ✓ ID Card Uploaded: <a href={form.gov_id_card_url} target="_blank" rel="noreferrer" className="underline">{form.gov_id_card_url}</a>
-                  </p>
-                )}
               </div>
 
               <div className="flex items-center gap-2 pt-1">

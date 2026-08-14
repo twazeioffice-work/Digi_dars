@@ -58,6 +58,16 @@ def create_halqa_endpoint(payload: HalqaCreate, request: Request, db: Session = 
     center_id = request.state.center_id
     return academic_dars.create_halqa(db, center_id, payload)
 
+@router.get(
+    "/halqas",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD", "STUDENT"]))]
+)
+def get_halqas_endpoint(request: Request, db: Session = Depends(get_db)):
+    """Retrieve all active Halqas/Batches for the center."""
+    center_id = getattr(request.state, "center_id", None)
+    return academic_dars.get_halqas_service(db, center_id)
+
 @router.post(
     "/halqas/enroll",
     response_model=HalqaEnrollmentResponse,

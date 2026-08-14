@@ -176,6 +176,32 @@ def create_halqa(db: Session, request_center_id: Optional[str], payload: HalqaCr
     db.refresh(halqa)
     return halqa
 
+def get_halqas_service(db: Session, center_id: Optional[str]) -> List[dict]:
+    t_id = center_id or current_tenant_id.get()
+    query = db.query(Halqa).filter(Halqa.is_active == True)
+    if t_id:
+        query = query.filter(Halqa.center_id == t_id)
+    halqas = query.all()
+    
+    result = []
+    for h in halqas:
+        ustad = db.query(User).filter(User.id == h.ustad_id).first() if h.ustad_id else None
+        student_count = db.query(HalqaEnrollment).filter(
+            HalqaEnrollment.halqa_id == h.id,
+            HalqaEnrollment.status == "ACTIVE"
+        ).count()
+        result.append({
+            "id": h.id,
+            "name": h.name,
+            "department": h.department,
+            "center_id": h.center_id,
+            "ustad_id": h.ustad_id,
+            "ustad_name": ustad.full_name if ustad else "Unassigned",
+            "student_count": student_count,
+            "is_active": h.is_active
+        })
+    return result
+
 def enroll_student_in_halqa(db: Session, payload: HalqaEnrollmentCreate) -> HalqaEnrollment:
     halqa = db.query(Halqa).filter(Halqa.id == payload.halqa_id).first()
     if not halqa:
