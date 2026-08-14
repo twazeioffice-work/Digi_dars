@@ -65,6 +65,7 @@ from app.api.v1.whatsapp import router as whatsapp_router
 from app.api.v1.stripe import router as stripe_router
 from app.api.v1.performance import router as performance_router
 from app.api.v1.complaints import router as complaints_router
+from app.api.v1.library import router as library_router
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -121,6 +122,8 @@ app.include_router(performance_router, prefix="/api")
 app.include_router(performance_router)
 app.include_router(complaints_router, prefix="/api")
 app.include_router(complaints_router)
+app.include_router(library_router, prefix="/api")
+app.include_router(library_router)
 
 # Initialize Prometheus instrumentation if explicitly enabled
 if os.getenv("ENABLE_METRICS") == "true":
