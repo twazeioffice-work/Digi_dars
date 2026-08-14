@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { BookOpen, Activity, Save, User, Loader2, CheckCircle2, Users } from "lucide-react";
+import { BookOpen, Activity, Save, User, Loader2, CheckCircle2, Users, PhoneCall, Calendar, X, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import ResponsiveStudentList, { StudentListItem } from "@/components/ResponsiveStudentList";
 
@@ -13,6 +13,8 @@ type JamaatStatus = "PRESENT_IN_JAMAAT" | "LATE" | "PRAYED_ALONE" | "MISSED" | "
 interface Student {
   id: string;
   full_name: string;
+  status?: string;
+  hifz?: string;
 }
 
 export default function UstadDailyLogPage() {
@@ -21,6 +23,14 @@ export default function UstadDailyLogPage() {
   const [activeTab, setActiveTab] = useState<"hifz" | "tarbiyyah" | "overview">("hifz");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Emergency Leave Modal State
+  const [emergencyModalStudent, setEmergencyModalStudent] = useState<StudentListItem | null>(null);
+  const [emergencyLeaveForm, setEmergencyLeaveForm] = useState({
+    start_date: new Date().toISOString().split("T")[0],
+    end_date: new Date().toISOString().split("T")[0],
+    reason: "Parent verbally communicated emergency leave with Ustad",
+  });
 
   // Form States
   const [hifzForm, setHifzForm] = useState({
@@ -38,28 +48,73 @@ export default function UstadDailyLogPage() {
   });
 
   // 1. Fetch Students in the Ustad's Halqa on load
-  useEffect(() => {
-    async function fetchStudents() {
-      try {
-        const res = await api.get("/academic/halqa/students");
-        setStudents(res.data);
-        if (res.data.length > 0) setSelectedStudent(res.data[0]);
-      } catch (err) {
-        toast.error("Failed to load students.");
-      } finally {
-        setLoading(false);
-      }
+  const fetchStudents = async () => {
+    try {
+      const res = await api.get("/academic/halqa/students");
+      setStudents(res.data);
+      if (res.data.length > 0 && !selectedStudent) setSelectedStudent(res.data[0]);
+    } catch (err) {
+      toast.error("Failed to load students.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchStudents();
   }, []);
 
   // Map students for ResponsiveStudentList component
-  const studentListItems: StudentListItem[] = students.map((s, idx) => ({
+  const studentListItems: StudentListItem[] = students.map((s) => ({
     id: s.id,
     name: s.full_name,
-    hifz: idx % 2 === 0 ? "Surah Yaseen (Page 4)" : "Surah Mulk (Page 2)",
-    status: idx % 3 === 0 ? "ABSENT" : "PRESENT",
+    hifz: s.hifz || "Surah Yaseen (Page 4)",
+    status: s.status || "UNMARKED",
   }));
+
+  // Quick Attendance Marker (Present / Absent)
+  const handleMarkAttendance = async (studentId: string, status: "PRESENT" | "ABSENT") => {
+    const prayerVal = status === "PRESENT" ? "PRESENT_IN_JAMAAT" : "MISSED";
+    try {
+      await api.post("/academic/tarbiyyah", {
+        student_id: studentId,
+        is_on_leave: false,
+        fajr: prayerVal,
+        zuhr: prayerVal,
+        asr: prayerVal,
+        maghrib: prayerVal,
+        isha: prayerVal,
+      });
+      toast.success(`Marked ${status}!`);
+      fetchStudents();
+    } catch (err) {
+      toast.error("Failed to update attendance.");
+    }
+  };
+
+  // Save Emergency Leave
+  const handleSaveEmergencyLeave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emergencyModalStudent) return;
+    setSaving(true);
+    try {
+      await api.post("/academic/leave-requests", {
+        student_id: emergencyModalStudent.id,
+        start_date: emergencyLeaveForm.start_date,
+        end_date: emergencyLeaveForm.end_date,
+        reason: `[Emergency Leave - Parent Verified by Ustad] ${emergencyLeaveForm.reason}`,
+        is_emergency: true,
+        status: "APPROVED"
+      });
+      toast.success(`Emergency leave recorded for ${emergencyModalStudent.name}!`);
+      setEmergencyModalStudent(null);
+      fetchStudents();
+    } catch (err) {
+      toast.error("Failed to submit emergency leave.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // 2. Submit Hifz Log
   const handleSaveHifz = async (e: React.FormEvent) => {
@@ -296,10 +351,106 @@ export default function UstadDailyLogPage() {
             </span>
           </div>
 
-          <ResponsiveStudentList students={studentListItems} />
+          <ResponsiveStudentList 
+            students={studentListItems} 
+            onMarkAttendance={handleMarkAttendance}
+            onOpenLeaveModal={(st) => {
+              setEmergencyModalStudent(st);
+              setEmergencyLeaveForm({
+                start_date: new Date().toISOString().split("T")[0],
+                end_date: new Date().toISOString().split("T")[0],
+                reason: "Parent verbally communicated emergency leave with Ustad",
+              });
+            }}
+          />
         </div>
       )}
 
+      {/* --- EMERGENCY LEAVE MODAL FOR USTAD --- */}
+      {emergencyModalStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 rounded-xl">
+                  <PhoneCall className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Record Emergency Leave</h3>
+                  <p className="text-xs text-slate-500">Parent Verbal Communication Verification</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEmergencyModalStudent(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-900 dark:text-amber-300 space-y-1">
+              <p className="font-bold flex items-center gap-1">
+                <AlertCircle className="h-4 w-4 text-amber-600" /> Student: {emergencyModalStudent.name}
+              </p>
+              <p>Emergency leaves (&lt; 5 days) are recorded directly by Ustad after verifying verbal consent with parents over phone call.</p>
+            </div>
+
+            <form onSubmit={handleSaveEmergencyLeave} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                    value={emergencyLeaveForm.start_date}
+                    onChange={(e) => setEmergencyLeaveForm({ ...emergencyLeaveForm, start_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                    value={emergencyLeaveForm.end_date}
+                    onChange={(e) => setEmergencyLeaveForm({ ...emergencyLeaveForm, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Parent Communication & Reason</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="e.g. Spoke with father on call. Urgent family event / medical issue..."
+                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                  value={emergencyLeaveForm.reason}
+                  onChange={(e) => setEmergencyLeaveForm({ ...emergencyLeaveForm, reason: e.target.value })}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEmergencyModalStudent(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-600/20"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Emergency Leave"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

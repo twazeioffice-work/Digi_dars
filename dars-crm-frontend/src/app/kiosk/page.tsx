@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import { 
   KeyRound, ShieldCheck, Lock, LogOut, Award, BookOpen, HeartHandshake, 
-  MessageSquare, Send, CheckCircle2, AlertCircle, Clock, Sparkles, UserCheck 
+  MessageSquare, Send, CheckCircle2, AlertCircle, Clock, Sparkles, UserCheck, Calendar 
 } from "lucide-react";
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
@@ -39,11 +39,17 @@ const getErrorMessage = (err: any, fallback: string) => {
   return fallback;
 };
 
+const getFiveDaysAheadDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 5);
+  return d.toISOString().split("T")[0];
+};
+
 export default function StudentKioskPage() {
   // Session State
   const [token, setToken] = useState<string | null>(null);
   const [student, setStudent] = useState<StudentUser | null>(null);
-  const [activeTab, setActiveTab] = useState<"progress" | "messages" | "complaint">("progress");
+  const [activeTab, setActiveTab] = useState<"progress" | "messages" | "complaint" | "leave">("progress");
 
   // PIN Login Form
   const [studentIdentifier, setStudentIdentifier] = useState("");
@@ -59,6 +65,12 @@ export default function StudentKioskPage() {
   const [description, setDescription] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
+
+  // Kiosk Advance Leave Form (5-Day Rule)
+  const [leaveStartDate, setLeaveStartDate] = useState(getFiveDaysAheadDate());
+  const [leaveEndDate, setLeaveEndDate] = useState(getFiveDaysAheadDate());
+  const [leaveReason, setLeaveReason] = useState("");
+  const [submittingLeave, setSubmittingLeave] = useState(false);
 
   // 5-Minute Auto-Inactivity Timeout Timer (300 Seconds Max)
   const [secondsRemaining, setSecondsRemaining] = useState(300);
@@ -183,6 +195,48 @@ export default function StudentKioskPage() {
       toast.error(getErrorMessage(err, "Failed to submit complaint"));
     } finally {
       setSubmittingComplaint(false);
+    }
+  };
+
+  const getDaysFromToday = (dateStr: string) => {
+    if (!dateStr) return 0;
+    const target = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffMs = target.getTime() - today.getTime();
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  const handleSubmitKioskLeave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!student) return;
+    const daysDiff = getDaysFromToday(leaveStartDate);
+    if (daysDiff < 5) {
+      toast.error("Kiosk leaves must be applied at least 5 days in advance! For emergency leaves (< 5 days), please inform your Ustad directly.");
+      return;
+    }
+    if (!leaveReason.trim()) {
+      toast.error("Please enter a reason for your leave request.");
+      return;
+    }
+
+    setSubmittingLeave(true);
+    try {
+      await api.post("/academic/leave-requests", {
+        student_id: student.id,
+        start_date: leaveStartDate,
+        end_date: leaveEndDate,
+        reason: leaveReason,
+        is_kiosk: true,
+      });
+
+      toast.success("Advance leave application submitted successfully!");
+      setLeaveReason("");
+      setActiveTab("progress");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to submit leave application"));
+    } finally {
+      setSubmittingLeave(false);
     }
   };
 
@@ -369,6 +423,15 @@ export default function StudentKioskPage() {
           >
             <ShieldCheck className="h-5 w-5" /> 🔒 Secure Complaint Box
           </button>
+
+          <button
+            onClick={() => setActiveTab("leave")}
+            className={`flex-1 py-3 font-extrabold text-sm rounded-xl transition flex items-center justify-center gap-2 ${
+              activeTab === "leave" ? "bg-amber-600 text-white shadow-lg shadow-amber-900/40" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Calendar className="h-5 w-5" /> 📅 Apply Leave (Chutti)
+          </button>
         </div>
 
         {/* --- TAB 1: MY PROGRESS --- */}
@@ -509,6 +572,88 @@ export default function StudentKioskPage() {
                 className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-2xl text-base shadow-lg shadow-rose-900/40 flex items-center justify-center gap-2 transition"
               >
                 <Send className="h-5 w-5" /> Submit Secure Complaint Directly to HQ
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* --- TAB 4: KIOSK ADVANCE LEAVE (5-DAY RULE) --- */}
+        {activeTab === "leave" && (
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+              <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30">
+                <Calendar className="h-7 w-7" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black text-white">Student Advance Leave Application (Chutti)</h2>
+                <p className="text-xs text-slate-400">
+                  Submit advance planned leave requests for Nazim & Ustad approval.
+                </p>
+              </div>
+            </div>
+
+            {/* 5-DAY ADVANCE RULE NOTICE */}
+            {getDaysFromToday(leaveStartDate) < 5 ? (
+              <div className="p-4 bg-amber-950/80 border border-amber-500/50 rounded-2xl space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
+                  <AlertCircle className="h-5 w-5 text-amber-400 shrink-0" />
+                  <span>5-Day Advance Rule Restriction</span>
+                </div>
+                <p className="text-xs text-amber-200/90 leading-relaxed">
+                  Leaves via Kiosk terminal must be applied <strong>at least 5 days in advance</strong>. For emergency leaves (&lt; 5 days), please verbally inform your Ustad so they can communicate with your parents and record an Emergency Leave from the Ustad Portal.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-2xl text-xs text-emerald-300 font-bold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span>Valid Advance Request ({getDaysFromToday(leaveStartDate)} days in advance)</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitKioskLeave} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Leave Start Date *</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full p-3.5 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-amber-500"
+                    value={leaveStartDate}
+                    onChange={(e) => setLeaveStartDate(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Leave End Date *</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full p-3.5 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-amber-500"
+                    value={leaveEndDate}
+                    onChange={(e) => setLeaveEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase mb-1.5">Reason for Leave *</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Explain the reason for your planned absence..."
+                  className="w-full p-3.5 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500"
+                  value={leaveReason}
+                  onChange={(e) => setLeaveReason(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingLeave || getDaysFromToday(leaveStartDate) < 5}
+                className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-extrabold rounded-2xl text-base shadow-lg shadow-amber-900/40 flex items-center justify-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {submittingLeave ? <Clock className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                Submit Advance Leave Application
               </button>
             </form>
           </div>

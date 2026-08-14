@@ -128,6 +128,9 @@ class LeaveRequestCreate(BaseModel):
     end_date: date
     reason: str
     center_id: Optional[str] = None
+    status: Optional[str] = "PENDING"
+    is_emergency: Optional[bool] = False
+    is_kiosk: Optional[bool] = False
 
 class LeaveRequestResponse(BaseModel):
     id: str

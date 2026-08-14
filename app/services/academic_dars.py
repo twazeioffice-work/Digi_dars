@@ -14,11 +14,45 @@ from app.schemas.academic import (
 )
 from app.services.rag_ai import sync_student_remarks
 
+def get_student_today_info(db: Session, student_id: str) -> dict:
+    today_date = date.today()
+    active_leave = db.query(LeaveRequest).filter(
+        LeaveRequest.student_id == student_id,
+        LeaveRequest.start_date <= today_date,
+        LeaveRequest.end_date >= today_date,
+        LeaveRequest.status == "APPROVED"
+    ).first()
+    
+    if active_leave:
+        today_status = "LEAVE"
+    else:
+        t_log = db.query(TarbiyyahLog).filter(
+            TarbiyyahLog.student_id == student_id,
+            TarbiyyahLog.log_date == today_date
+        ).first()
+        if t_log:
+            if t_log.is_on_leave:
+                today_status = "LEAVE"
+            elif any(p == "MISSED" for p in [t_log.fajr, t_log.zuhr, t_log.asr, t_log.maghrib, t_log.isha]):
+                today_status = "ABSENT"
+            else:
+                today_status = "PRESENT"
+        else:
+            today_status = "UNMARKED"
+            
+    h_log = db.query(HifzLog).filter(HifzLog.student_id == student_id).order_by(HifzLog.log_date.desc()).first()
+    hifz_text = h_log.sabaq_details if h_log and h_log.sabaq_details else "Surah Yaseen (Page 4)"
+    
+    return {
+        "status": today_status,
+        "hifz": hifz_text
+    }
+
 def get_ustad_halqa_students_service(db: Session, ustad_id: Optional[str], center_id: Optional[str]) -> List[dict]:
     tenant_id = center_id or current_tenant_id.get()
     user_id = ustad_id or current_user_id.get()
 
-    students = []
+    raw_students = []
     if user_id:
         halqas = db.query(Halqa).filter(Halqa.ustad_id == user_id, Halqa.is_active == True).all()
         for h in halqas:
@@ -28,21 +62,32 @@ def get_ustad_halqa_students_service(db: Session, ustad_id: Optional[str], cente
             ).all()
             for e in enrollments:
                 st = db.query(User).filter(User.id == e.student_id, User.is_active == True).first()
-                if st:
-                    students.append({"id": st.id, "full_name": st.full_name})
+                if st and st not in raw_students:
+                    raw_students.append(st)
 
-    if not students and tenant_id:
+    if not raw_students and tenant_id:
         st_users = db.query(User).filter(User.center_id == tenant_id, User.role == "STUDENT", User.is_active == True).all()
         for st in st_users:
-            students.append({"id": st.id, "full_name": st.full_name})
+            if st not in raw_students:
+                raw_students.append(st)
 
-    if not students:
-        # Fallback to any active student in DB if no center filter match
+    if not raw_students:
         st_users = db.query(User).filter(User.role == "STUDENT", User.is_active == True).all()
         for st in st_users:
-            students.append({"id": st.id, "full_name": st.full_name})
+            if st not in raw_students:
+                raw_students.append(st)
 
-    return students
+    result = []
+    for st in raw_students:
+        info = get_student_today_info(db, st.id)
+        result.append({
+            "id": st.id,
+            "full_name": st.full_name,
+            "status": info["status"],
+            "hifz": info["hifz"]
+        })
+
+    return result
 
 def get_nazim_dashboard_service(db: Session, center_id: Optional[str]) -> dict:
     target_center_id = center_id or current_tenant_id.get()
@@ -495,6 +540,14 @@ def get_student_academic_history(
     }
 
 def submit_leave_request(db: Session, request_center_id: Optional[str], payload: LeaveRequestCreate) -> LeaveRequest:
+    if payload.is_kiosk:
+        min_date = date.today() + timedelta(days=5)
+        if payload.start_date < min_date:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Kiosk advance leaves must be submitted at least 5 days in advance. For emergency leaves (< 5 days), please verbally inform your Ustad so they can verify with your parents and record an Emergency Leave."
+            )
+
     target_center_id = payload.center_id or request_center_id
     if not target_center_id:
         student = db.query(User).filter(User.id == payload.student_id).first()
@@ -507,17 +560,39 @@ def submit_leave_request(db: Session, request_center_id: Optional[str], payload:
             detail="A valid center_id must be provided or linked to student"
         )
 
+    initial_status = payload.status or ("APPROVED" if payload.is_emergency else "PENDING")
+
     leave = LeaveRequest(
         student_id=payload.student_id,
         center_id=target_center_id,
         start_date=payload.start_date,
         end_date=payload.end_date,
         reason=payload.reason,
-        status=LeaveStatus.PENDING.value
+        status=initial_status
     )
     db.add(leave)
     db.commit()
     db.refresh(leave)
+
+    today_date = date.today()
+    if initial_status == "APPROVED" and payload.start_date <= today_date <= payload.end_date:
+        t_log = db.query(TarbiyyahLog).filter(
+            TarbiyyahLog.student_id == payload.student_id,
+            TarbiyyahLog.log_date == today_date
+        ).first()
+        if t_log:
+            t_log.is_on_leave = True
+        else:
+            t_log = TarbiyyahLog(
+                center_id=target_center_id,
+                student_id=payload.student_id,
+                log_date=today_date,
+                is_on_leave=True,
+                recorded_by="EMERGENCY_LEAVE"
+            )
+            db.add(t_log)
+        db.commit()
+
     return leave
 
 def approve_leave_request(db: Session, request_id: str, reviewer_id: str, status_val: str) -> LeaveRequest:
@@ -533,6 +608,26 @@ def approve_leave_request(db: Session, request_id: str, reviewer_id: str, status
     leave.reviewed_by = reviewer_id
     db.commit()
     db.refresh(leave)
+
+    today_date = date.today()
+    if status_upper == "APPROVED" and leave.start_date <= today_date <= leave.end_date:
+        t_log = db.query(TarbiyyahLog).filter(
+            TarbiyyahLog.student_id == leave.student_id,
+            TarbiyyahLog.log_date == today_date
+        ).first()
+        if t_log:
+            t_log.is_on_leave = True
+        else:
+            t_log = TarbiyyahLog(
+                center_id=leave.center_id,
+                student_id=leave.student_id,
+                log_date=today_date,
+                is_on_leave=True,
+                recorded_by=reviewer_id
+            )
+            db.add(t_log)
+        db.commit()
+
     return leave
 
 def get_user_leave_requests(db: Session, user_id: str) -> List[LeaveRequest]:
