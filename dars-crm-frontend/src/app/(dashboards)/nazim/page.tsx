@@ -358,33 +358,42 @@ export default function NazimDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data?.halqas.map((halqa) => (
-                  <tr key={halqa.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{halqa.name}</td>
-                    <td className="px-6 py-4">{halqa.ustad_name}</td>
-                    <td className="px-6 py-4">{halqa.student_count}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        halqa.avg_attendance >= 90 ? 'bg-green-100 text-green-800' :
-                        halqa.avg_attendance >= 75 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {halqa.avg_attendance}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
-                            style={{ width: `${halqa.sabaq_completion_rate}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs">{halqa.sabaq_completion_rate}%</span>
-                      </div>
+                {(!data?.halqas || data.halqas.length === 0) ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                      <p className="font-semibold text-base text-gray-700 mb-1">No Halqas Created Yet</p>
+                      <p className="text-xs text-gray-400">Click &quot;+ New Halqa&quot; or &quot;+ Create Halqa&quot; above to add your first batch and assign a registered Ustad.</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  data.halqas.map((halqa) => (
+                    <tr key={halqa.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-medium text-gray-900">{halqa.name}</td>
+                      <td className="px-6 py-4">{halqa.ustad_name}</td>
+                      <td className="px-6 py-4">{halqa.student_count}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          halqa.avg_attendance >= 90 ? 'bg-green-100 text-green-800' :
+                          halqa.avg_attendance >= 75 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {halqa.avg_attendance}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${halqa.sabaq_completion_rate}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs">{halqa.sabaq_completion_rate}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

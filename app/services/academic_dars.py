@@ -27,43 +27,47 @@ def get_ustad_halqa_students_service(db: Session, ustad_id: Optional[str], cente
                 HalqaEnrollment.status == "ACTIVE"
             ).all()
             for e in enrollments:
-                st = db.query(User).filter(User.id == e.student_id).first()
+                st = db.query(User).filter(User.id == e.student_id, User.is_active == True).first()
                 if st:
                     students.append({"id": st.id, "full_name": st.full_name})
 
     if not students and tenant_id:
-        st_users = db.query(User).filter(User.center_id == tenant_id, User.role == "STUDENT").limit(10).all()
+        st_users = db.query(User).filter(User.center_id == tenant_id, User.role == "STUDENT", User.is_active == True).all()
         for st in st_users:
             students.append({"id": st.id, "full_name": st.full_name})
 
     if not students:
-        students = [
-            {"id": "c1f7b0a8-23e4-4d89-9a00-111122223333", "full_name": "Hamza Ahmad"},
-            {"id": "d2f7b0a8-23e4-4d89-9a00-444455556666", "full_name": "Yusuf Farooq"},
-            {"id": "e3f7b0a8-23e4-4d89-9a00-777788889999", "full_name": "Zaid Al-Hassan"}
-        ]
+        # Fallback to any active student in DB if no center filter match
+        st_users = db.query(User).filter(User.role == "STUDENT", User.is_active == True).all()
+        for st in st_users:
+            students.append({"id": st.id, "full_name": st.full_name})
 
     return students
 
 def get_nazim_dashboard_service(db: Session, center_id: Optional[str]) -> dict:
     target_center_id = center_id or current_tenant_id.get()
-    
+    if not target_center_id:
+        u_id = current_user_id.get()
+        if u_id:
+            u = db.query(User).filter(User.id == u_id).first()
+            if u and u.center_id:
+                target_center_id = u.center_id
+
     center = db.query(Center).filter(Center.id == target_center_id).first() if target_center_id else None
     center_name = center.name if center else "Masjid Omar Center"
 
     total_students_count = db.query(User).filter(
-        User.center_id == target_center_id,
-        User.role == "STUDENT"
-    ).count() if target_center_id else db.query(User).filter(User.role == "STUDENT").count()
-    if total_students_count == 0:
-        total_students_count = 42
+        User.role == "STUDENT",
+        User.is_active == True,
+        (User.center_id == target_center_id) if target_center_id else True
+    ).count()
 
-    zakat_eligible = db.query(StudentProfile).join(User).filter(
-        User.center_id == target_center_id,
-        StudentProfile.is_zakat_eligible == True
-    ).count() if target_center_id else db.query(StudentProfile).filter(StudentProfile.is_zakat_eligible == True).count()
-    if zakat_eligible == 0:
-        zakat_eligible = 14
+    zakat_eligible = db.query(StudentProfile).join(User, StudentProfile.user_id == User.id).filter(
+        User.role == "STUDENT",
+        User.is_active == True,
+        StudentProfile.is_zakat_eligible == True,
+        (User.center_id == target_center_id) if target_center_id else True
+    ).count()
 
     halqas_query = db.query(Halqa).filter(Halqa.is_active == True)
     if target_center_id:
@@ -71,61 +75,81 @@ def get_nazim_dashboard_service(db: Session, center_id: Optional[str]) -> dict:
     halqas_list = halqas_query.all()
 
     halqas_data = []
+    total_att_sum = 0.0
+    total_att_count = 0
+
     for h in halqas_list:
         ustad = db.query(User).filter(User.id == h.ustad_id).first() if h.ustad_id else None
-        u_name = ustad.full_name if ustad else "Ustad Ahmad"
+        u_name = ustad.full_name if ustad else "Unassigned Ustad"
         
         enroll_count = db.query(HalqaEnrollment).filter(
             HalqaEnrollment.halqa_id == h.id,
             HalqaEnrollment.status == "ACTIVE"
         ).count()
 
+        enrolled_student_ids = [e.student_id for e in db.query(HalqaEnrollment).filter(
+            HalqaEnrollment.halqa_id == h.id,
+            HalqaEnrollment.status == "ACTIVE"
+        ).all()]
+
+        avg_att = 0.0
+        if enrolled_student_ids:
+            logs = db.query(TarbiyyahLog).filter(TarbiyyahLog.student_id.in_(enrolled_student_ids)).all()
+            if logs:
+                present_cnt = 0
+                total_cnt = len(logs) * 5
+                for l in logs:
+                    for p in [l.fajr, l.zuhr, l.asr, l.maghrib, l.isha]:
+                        if p in ["PRESENT_IN_JAMAAT", "PRESENT", "PRAYED_ALONE"]:
+                            present_cnt += 1
+                avg_att = round((present_cnt / total_cnt) * 100.0, 1) if total_cnt > 0 else 0.0
+
+        sabaq_rate = 0.0
+        if enrolled_student_ids:
+            h_logs = db.query(HifzLog).filter(HifzLog.student_id.in_(enrolled_student_ids)).all()
+            if h_logs:
+                good_grades = sum(1 for hl in h_logs if hl.mastery_level in ["EXCELLENT", "GOOD"])
+                sabaq_rate = round((good_grades / len(h_logs)) * 100.0, 1)
+
         halqas_data.append({
             "id": h.id,
             "name": h.name,
             "ustad_name": u_name,
-            "student_count": enroll_count if enroll_count > 0 else 15,
-            "avg_attendance": 92.5,
-            "sabaq_completion_rate": 88.0
+            "student_count": enroll_count,
+            "avg_attendance": avg_att,
+            "sabaq_completion_rate": sabaq_rate
         })
-
-    if not halqas_data:
-        halqas_data = [
-            {
-                "id": "halqa-1",
-                "name": "Halqa Hifz A",
-                "ustad_name": "Ustad Bilal Qari",
-                "student_count": 18,
-                "avg_attendance": 94.0,
-                "sabaq_completion_rate": 92.0
-            },
-            {
-                "id": "halqa-2",
-                "name": "Halqa Nazira B",
-                "ustad_name": "Ustad Tariq",
-                "student_count": 14,
-                "avg_attendance": 88.5,
-                "sabaq_completion_rate": 84.0
-            },
-            {
-                "id": "halqa-3",
-                "name": "Halqa Aalim C",
-                "ustad_name": "Maulana Hamza",
-                "student_count": 10,
-                "avg_attendance": 78.0,
-                "sabaq_completion_rate": 76.0
-            }
-        ]
+        if avg_att > 0:
+            total_att_sum += avg_att
+            total_att_count += 1
 
     active_halqas_count = len(halqas_data)
-    overall_att = round(sum(h["avg_attendance"] for h in halqas_data) / len(halqas_data), 1) if halqas_data else 91.5
+    overall_att = round(total_att_sum / total_att_count, 1) if total_att_count > 0 else 0.0
 
     today_date = date.today()
     trend = []
-    for i in range(14, -1, -2):
-        d_str = (today_date - timedelta(days=i)).strftime("%b %d")
-        val = 85 + (i * 7 % 12)
-        trend.append({"date": d_str, "percent": val})
+    # 30-Day Attendance Trend starting from 0% when no attendance logs exist
+    for i in range(28, -1, -4):
+        d = today_date - timedelta(days=i)
+        d_str = d.strftime("%b %d")
+        
+        day_logs = db.query(TarbiyyahLog).filter(
+            TarbiyyahLog.log_date == d,
+            (TarbiyyahLog.center_id == target_center_id) if target_center_id else True
+        ).all()
+
+        if day_logs:
+            p_cnt = 0
+            t_cnt = len(day_logs) * 5
+            for l in day_logs:
+                for p in [l.fajr, l.zuhr, l.asr, l.maghrib, l.isha]:
+                    if p in ["PRESENT_IN_JAMAAT", "PRESENT", "PRAYED_ALONE"]:
+                        p_cnt += 1
+            day_percent = round((p_cnt / t_cnt) * 100.0, 1) if t_cnt > 0 else 0.0
+        else:
+            day_percent = 0.0
+
+        trend.append({"date": d_str, "percent": day_percent})
 
     return {
         "center_name": center_name,
