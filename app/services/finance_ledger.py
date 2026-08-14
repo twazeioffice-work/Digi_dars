@@ -100,6 +100,8 @@ def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTran
         amount=payload.amount,
         type=TransactionType.CREDIT.value,
         student_id=str(payload.student_id) if payload.student_id else None,
+        donor_name=getattr(payload, "donor_name", None),
+        donor_phone=getattr(payload, "donor_phone", None),
         description=payload.description,
         receipt_url=payload.receipt_url,
         recorded_by=u_id or "SYSTEM"
@@ -116,6 +118,8 @@ def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTran
             "amount": transaction.amount,
             "category_name": category.name,
             "description": transaction.description,
+            "donor_name": transaction.donor_name,
+            "donor_phone": transaction.donor_phone,
             "recorded_by": transaction.recorded_by,
             "created_at": transaction.created_at
         }
@@ -318,6 +322,8 @@ def get_ledger(
             "category_name": t.category.name if t.category else "Uncategorized",
             "amount": t.amount,
             "student_id": t.student_id,
+            "donor_name": t.donor_name,
+            "donor_phone": t.donor_phone,
             "description": t.description
         })
 

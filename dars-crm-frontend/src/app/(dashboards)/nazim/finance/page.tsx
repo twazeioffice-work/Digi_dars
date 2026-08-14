@@ -15,6 +15,8 @@ interface Transaction {
   fund_type: "ZAKAT" | "SADAQAH" | "GENERAL";
   category_name?: string;
   student_name?: string;
+  donor_name?: string;
+  donor_phone?: string;
   created_at: string;
 }
 
@@ -55,6 +57,8 @@ export default function ZakatFinancePage() {
     category_name: "STIPEND",
     description: "",
     student_id: "",
+    donor_name: "",
+    donor_phone: "",
   });
 
   const fetchLedger = async () => {
@@ -110,6 +114,8 @@ export default function ZakatFinancePage() {
           fund_type: form.fund_type,
           category_name: form.category_name || "DONATION",
           description: form.description.trim() || "Income collection",
+          donor_name: form.donor_name.trim() || undefined,
+          donor_phone: form.donor_phone.trim() || undefined,
         });
         toast.success("Income recorded into ledger!");
       } else {
@@ -124,7 +130,7 @@ export default function ZakatFinancePage() {
       }
 
       setShowModal(false);
-      setForm({ amount: "", fund_type: "ZAKAT", category_name: "STIPEND", description: "", student_id: "" });
+      setForm({ amount: "", fund_type: "ZAKAT", category_name: "STIPEND", description: "", student_id: "", donor_name: "", donor_phone: "" });
       fetchLedger();
     } catch (err: any) {
       toast.error(getErrorMessage(err, "Transaction failed"));
@@ -239,6 +245,7 @@ export default function ZakatFinancePage() {
                 <tr>
                   <th className="px-6 py-4">Type</th>
                   <th className="px-6 py-4">Fund Category</th>
+                  <th className="px-6 py-4">Donor / Recipient</th>
                   <th className="px-6 py-4">Amount</th>
                   <th className="px-6 py-4">Description</th>
                   <th className="px-6 py-4">Date</th>
@@ -257,6 +264,20 @@ export default function ZakatFinancePage() {
                     <td className="px-6 py-4">
                       <span className="font-semibold text-gray-900">{t.fund_type || "ZAKAT"}</span>
                       {t.category_name && <span className="text-xs text-gray-400 block">{t.category_name}</span>}
+                    </td>
+                    <td className="px-6 py-4 text-xs font-medium text-slate-700">
+                      {t.type === "CREDIT" ? (
+                        t.donor_name || t.donor_phone ? (
+                          <div>
+                            <span className="font-semibold text-slate-900">{t.donor_name || "Anonymous Donor"}</span>
+                            {t.donor_phone && <span className="text-slate-400 block font-mono text-[11px]">{t.donor_phone}</span>}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">General Donor</span>
+                        )
+                      ) : (
+                        <span className="text-slate-600">{t.student_name || "Center Expense"}</span>
+                      )}
                     </td>
                     <td className={`px-6 py-4 font-bold text-base ${t.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"}`}>
                       {t.type === "CREDIT" ? "+" : "-"}₹{(Number(t.amount) || 0).toLocaleString()}
@@ -316,6 +337,31 @@ export default function ZakatFinancePage() {
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 />
               </div>
+
+              {txType === "INCOME" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Donor Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Hassan Ahmed"
+                      className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={form.donor_name}
+                      onChange={(e) => setForm({ ...form, donor_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Donor Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 9876543210"
+                      className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={form.donor_phone}
+                      onChange={(e) => setForm({ ...form, donor_phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
 
               {txType === "EXPENSE" && (
                 <div>

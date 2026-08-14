@@ -28,6 +28,8 @@ class ExpenseCreate(BaseModel):
     description: str
     receipt_url: Optional[str] = None
     student_id: Optional[Union[UUID, str]] = None
+    donor_name: Optional[str] = None
+    donor_phone: Optional[str] = None
 
 class ExpenseTransactionCreate(ExpenseCreate):
     pass
@@ -40,6 +42,8 @@ class IncomeTransactionCreate(BaseModel):
     description: str
     receipt_url: Optional[str] = None
     student_id: Optional[Union[UUID, str]] = None
+    donor_name: Optional[str] = None
+    donor_phone: Optional[str] = None
 
 class TransactionResponse(BaseModel):
     id: Union[UUID, str]
@@ -48,6 +52,8 @@ class TransactionResponse(BaseModel):
     type: str
     description: str
     student_id: Optional[Union[UUID, str]] = None
+    donor_name: Optional[str] = None
+    donor_phone: Optional[str] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -59,6 +65,8 @@ class TransactionDataResponse(BaseModel):
     category_name: str
     description: Optional[str] = None
     student_id: Optional[str] = None
+    donor_name: Optional[str] = None
+    donor_phone: Optional[str] = None
     recorded_by: Optional[str] = None
     created_at: datetime
 
