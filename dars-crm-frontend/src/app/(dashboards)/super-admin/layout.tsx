@@ -26,6 +26,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     { href: '/super-admin/complaints', label: '🔒 Kiosk Complaints Inbox' },
     { href: '/super-admin/leave-management', label: '📝 Leaves & Performance Tracking' },
     { href: '/super-admin/whatsapp', label: '💬 Global WhatsApp Oversight' },
+    { href: '/super-admin/test-bench', label: '🧪 Master Test Bench' },
     { href: '/super-admin/finance', label: '💰 Global Zakat & AI' },
   ];
 
