@@ -10,6 +10,45 @@ import {
 } from 'lucide-react';
 
 // =============================================================================
+// TYPES & INTERFACES
+// =============================================================================
+
+export interface StarRecord {
+  id: string;
+  date: string;
+  category: string;
+  usthad: string;
+  explanation: string;
+}
+
+export interface WarningRecord {
+  id: string;
+  date: string;
+  category: string;
+  usthad: string;
+  severity: string;
+  explanation: string;
+}
+
+export interface StudentRecord {
+  id: string;
+  name: string;
+  code: string;
+  centerId: string;
+  batchName: string;
+  parentPhone: string;
+  pin: string;
+  curriculum: {
+    hifzJuz: string;
+    progress: number;
+    sabakScore: string;
+    attendance: string;
+  };
+  stars: StarRecord[];
+  warnings: WarningRecord[];
+}
+
+// =============================================================================
 // 1. COMPREHENSIVE SEEDED INITIAL STATES
 // =============================================================================
 
@@ -24,7 +63,7 @@ const INITIAL_USERS = [
   { id: "ust_2", name: "Usthad Abdul Rahman", role: "usthad", centerId: "ctr_1", email: "arahman@alnoor.com" }
 ];
 
-const INITIAL_STUDENTS = [
+const INITIAL_STUDENTS: StudentRecord[] = [
   { 
     id: "stud_1", 
     name: "Zaid Ibrahim", 
@@ -213,7 +252,7 @@ export default function UnifiedMasterTestBench() {
   
   // Master State Pools representing database collections
   const [centers, setCenters] = useState(INITIAL_CENTERS);
-  const [students, setStudents] = useState(INITIAL_STUDENTS);
+  const [students, setStudents] = useState<StudentRecord[]>(INITIAL_STUDENTS);
   const [whatsappThreads, setWhatsappThreads] = useState(INITIAL_WHATSAPP_THREADS);
   const [complaints, setComplaints] = useState(INITIAL_COMPLAINTS);
   const [leaves, setLeaves] = useState(INITIAL_LEAVES);
