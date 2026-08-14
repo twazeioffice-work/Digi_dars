@@ -3,7 +3,7 @@ import structlog
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from app.core.middleware import current_tenant_id, current_user_id
+from app.core.context import current_tenant_id, current_user_id
 from app.models.finance import FinanceCategory, FinanceTransaction, TransactionType, FundCategory
 
 logger = structlog.get_logger(__name__)

@@ -26,7 +26,7 @@ RUN pip install --upgrade pip && \
 COPY . .
 
 # Expose the FastAPI port
-EXPOSE 8000
+EXPOSE 8001
 
 # The default command (can be overridden in docker-compose.yml)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

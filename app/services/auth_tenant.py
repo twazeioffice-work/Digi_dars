@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Union, Optional, List
 
 from app.core.security import get_password_hash, verify_password, create_access_token
-from app.core.context import current_tenant_id
+from app.core.context import current_tenant_id, current_user_id, current_user_role
 from app.models.auth import Center, User, StudentProfile, ParentStudentLink, CenterStatus, UserRole
 from app.schemas.auth import CenterCreate, UserCreate, UserRegister, UserLogin, LoginRequest, TokenResponse, ParentStudentLinkCreate
 
