@@ -28,6 +28,16 @@ const getErrorMessage = (err: any, fallback: string) => {
   return fallback;
 };
 
+const getMediaUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  if (cleanPath.startsWith('/uploads/')) {
+    return `/api/v1${cleanPath}`;
+  }
+  return cleanPath;
+};
+
 export default function NazimManageUstadsPage() {
   const [ustads, setUstads] = useState<UstadUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,7 +229,7 @@ export default function NazimManageUstadsPage() {
                     <td className="px-6 py-4 text-xs">
                       {ustad.gov_id_card_url ? (
                         <a
-                          href={ustad.gov_id_card_url}
+                          href={getMediaUrl(ustad.gov_id_card_url)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold px-2.5 py-1 rounded transition"

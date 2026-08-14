@@ -4,10 +4,17 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig = {
   output: 'standalone', // Crucial for lightweight Docker deployments
   async rewrites() {
+    const raw = process.env.BACKEND_API_URL || 'http://172.17.0.1:8001';
+    const backendBase = raw.split('/api')[0].replace(/\/+$/, '');
+
     return [
       {
         source: '/api/v1/:path*',
-        destination: process.env.BACKEND_API_URL || 'http://172.17.0.1:8001/api/v1/:path*',
+        destination: `${backendBase}/api/v1/:path*`,
+      },
+      {
+        source: '/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
       },
     ];
   },

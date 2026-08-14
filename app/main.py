@@ -96,6 +96,8 @@ app.add_middleware(TenantContextMiddleware)
 os.makedirs("uploads/id_cards", exist_ok=True)
 from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/api/v1/uploads", StaticFiles(directory="uploads"), name="api_uploads")
+
 
 # Mount API Routers (both with and without /api prefix for Next.js proxy safety)
 app.include_router(api_router)

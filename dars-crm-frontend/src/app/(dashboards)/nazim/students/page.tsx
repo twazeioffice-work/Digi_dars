@@ -43,6 +43,16 @@ const getErrorMessage = (err: any, fallback: string) => {
   return fallback;
 };
 
+const getMediaUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  if (cleanPath.startsWith('/uploads/')) {
+    return `/api/v1${cleanPath}`;
+  }
+  return cleanPath;
+};
+
 export default function NazimStudentsPage() {
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [halqas, setHalqas] = useState<HalqaItem[]>([]);

@@ -35,6 +35,16 @@ const getErrorMessage = (err: any, fallback: string) => {
   return fallback;
 };
 
+const getMediaUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  if (cleanPath.startsWith('/uploads/')) {
+    return `/api/v1${cleanPath}`;
+  }
+  return cleanPath;
+};
+
 export default function ManageNazimsPage() {
   const [nazims, setNazims] = useState<NazimUser[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
@@ -253,10 +263,10 @@ export default function ManageNazimsPage() {
                     <td className="px-6 py-4 text-xs">
                       {nazim.gov_id_card_url ? (
                         <a
-                          href={nazim.gov_id_card_url}
+                          href={getMediaUrl(nazim.gov_id_card_url)}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold px-2.5 py-1 rounded transition"
+                          className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold px-2.5 py-1 rounded transition"
                         >
                           <ImageIcon className="h-3.5 w-3.5" /> View ID Card
                         </a>

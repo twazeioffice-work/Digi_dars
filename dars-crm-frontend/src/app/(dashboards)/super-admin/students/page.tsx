@@ -41,6 +41,16 @@ const getErrorMessage = (err: any, fallback: string) => {
   return fallback;
 };
 
+const getMediaUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  if (cleanPath.startsWith('/uploads/')) {
+    return `/api/v1${cleanPath}`;
+  }
+  return cleanPath;
+};
+
 export default function SuperAdminStudentsPage() {
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
@@ -273,7 +283,7 @@ export default function SuperAdminStudentsPage() {
                     <td className="px-6 py-4 text-xs">
                       {idCard ? (
                         <a
-                          href={idCard}
+                          href={getMediaUrl(idCard)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold px-2.5 py-1 rounded transition"
