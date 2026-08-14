@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { 
-  Building2, DollarSign, Plus, UserPlus, Search, Loader2, 
-  Sparkles, Send, ArrowDownRight, CheckCircle2, XCircle, RefreshCw 
+  Building2, DollarSign, Loader2, Sparkles, Send, ArrowDownRight, 
+  CheckCircle2, XCircle, RefreshCw 
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend 
@@ -43,32 +43,10 @@ interface SqlResponse {
   ai_summary: string;
 }
 
-const getErrorMessage = (err: any, fallback: string) => {
-  const detail = err?.response?.data?.detail;
-  if (!detail) return fallback;
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) {
-    return detail.map((d: any) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
-  }
-  if (typeof detail === "object") return JSON.stringify(detail);
-  return fallback;
-};
-
 export default function SuperAdminPage() {
   const [centers, setCenters] = useState<Center[]>([]);
   const [zakatStats, setZakatStats] = useState<GlobalZakatStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-
-  // Modals
-  const [showCenterModal, setShowCenterModal] = useState(false);
-  const [showNazimModal, setShowNazimModal] = useState(false);
-  const [selectedCenterId, setSelectedCenterId] = useState<string>("");
-
-  // Forms
-  const [centerForm, setCenterForm] = useState({ name: "", code: "", address: "", capacity: 100 });
-  const [nazimForm, setNazimForm] = useState({ full_name: "", email: "", password: "", phone: "", center_id: "" });
-  const [submitting, setSubmitting] = useState(false);
 
   // AI Assistant State
   const [aiQuestion, setAiQuestion] = useState("");
@@ -95,44 +73,7 @@ export default function SuperAdminPage() {
     fetchAllData();
   }, []);
 
-  // 1. Create Center
-  const handleCreateCenter = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await api.post("/centers", centerForm);
-      toast.success("Center registered successfully!");
-      setShowCenterModal(false);
-      setCenterForm({ name: "", code: "", address: "", capacity: 100 });
-      fetchAllData();
-    } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to create center"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // 2. Create Nazim User
-  const handleCreateNazim = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await api.post("/auth/register", {
-        ...nazimForm,
-        role: "NAZIM",
-        center_id: nazimForm.center_id || selectedCenterId,
-      });
-      toast.success("Nazim registered and assigned to center!");
-      setShowNazimModal(false);
-      setNazimForm({ full_name: "", email: "", password: "", phone: "", center_id: "" });
-    } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to register Nazim"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // 3. Toggle Center Status (Activate / Suspend)
+  // Toggle Center Status (Activate / Suspend)
   const handleToggleStatus = async (centerId: string, currentStatus: string) => {
     const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     try {
@@ -144,7 +85,7 @@ export default function SuperAdminPage() {
     }
   };
 
-  // 4. Text-to-SQL AI Engine Query
+  // Text-to-SQL AI Engine Query
   const handleAskAI = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiQuestion.trim()) return;
@@ -161,17 +102,11 @@ export default function SuperAdminPage() {
     }
   };
 
-  const filteredCenters = centers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.code.toLowerCase().includes(search.toLowerCase())
-  );
-
   const totalZakatCollected = zakatStats?.global_collected ?? 0;
   const activeCentersCount = centers.filter((c) => c.status === "ACTIVE").length;
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 bg-slate-50 min-h-screen">
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -191,7 +126,7 @@ export default function SuperAdminPage() {
         </button>
       </div>
 
-      {/* --- GLOBAL SUMMARY METRICS (2-COLUMN GRID - RLS CARD REMOVED AS REQUESTED) --- */}
+      {/* --- GLOBAL SUMMARY METRICS (2-COLUMN GRID) --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
@@ -217,39 +152,12 @@ export default function SuperAdminPage() {
       </div>
 
       {/* ========================================================= */}
-      {/* SECTION 1: MANAGE MASJIDS, CENTERS & NAZIMS               */}
+      {/* SECTION 1: CENTERS LIST TABLE                             */}
       {/* ========================================================= */}
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="relative max-w-md w-full">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search center by name or code..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => setShowCenterModal(true)}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition"
-            >
-              <Plus className="h-4 w-4" /> Register New Center
-            </button>
-            <button
-              onClick={() => {
-                if (centers.length > 0) setNazimForm((prev) => ({ ...prev, center_id: centers[0].id }));
-                setShowNazimModal(true);
-              }}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition"
-            >
-              <UserPlus className="h-4 w-4" /> Register Nazim
-            </button>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-emerald-600" /> Registered Dars Centers &amp; Statuses
+        </h2>
 
         {/* CENTERS TABLE */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -257,9 +165,9 @@ export default function SuperAdminPage() {
             <div className="flex h-48 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
             </div>
-          ) : filteredCenters.length === 0 ? (
+          ) : centers.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">
-              No centers found matching your query.
+              No centers registered in the system yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -275,7 +183,7 @@ export default function SuperAdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {filteredCenters.map((center) => (
+                  {centers.map((center) => (
                     <tr key={center.id} className="hover:bg-slate-50 transition">
                       <td className="py-4 px-6 font-bold text-slate-900 flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-emerald-600" />
@@ -295,17 +203,7 @@ export default function SuperAdminPage() {
                           </span>
                         )}
                       </td>
-                      <td className="py-4 px-6 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedCenterId(center.id);
-                            setNazimForm((prev) => ({ ...prev, center_id: center.id }));
-                            setShowNazimModal(true);
-                          }}
-                          className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md font-semibold transition"
-                        >
-                          + Assign Nazim
-                        </button>
+                      <td className="py-4 px-6 text-right">
                         <button
                           onClick={() => handleToggleStatus(center.id, center.status)}
                           className={`text-xs px-3 py-1.5 rounded-md font-semibold transition ${
@@ -330,7 +228,7 @@ export default function SuperAdminPage() {
       {/* SECTION 2: GLOBAL ZAKAT LEDGER & AI ASSISTANT             */}
       {/* ========================================================= */}
       <div className="space-y-8 pt-4 border-t border-slate-200">
-        {/* ZAKAT AUDIT METRICS (2 CARDS: DISBURSED & RESERVE BALANCE, DUPLICATE TOTAL COLLECTED REMOVED AS REQUESTED) */}
+        {/* ZAKAT AUDIT METRICS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between">
@@ -421,174 +319,6 @@ export default function SuperAdminPage() {
           )}
         </div>
       </div>
-
-      {/* ========================================================= */}
-      {/* MODAL 1: REGISTER NEW CENTER                              */}
-      {/* ========================================================= */}
-      {showCenterModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-100">
-            <h3 className="text-xl font-bold text-slate-900">Register New Dars Center</h3>
-            <form onSubmit={handleCreateCenter} className="space-y-3 text-sm">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Center Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Masjid Umar - Main Branch"
-                  value={centerForm.name}
-                  onChange={(e) => setCenterForm({ ...centerForm, name: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Center Code</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. UMAR-001"
-                  value={centerForm.code}
-                  onChange={(e) => setCenterForm({ ...centerForm, code: e.target.value.toUpperCase() })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Address / Location</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Downtown District"
-                  value={centerForm.address}
-                  onChange={(e) => setCenterForm({ ...centerForm, address: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Student Capacity</label>
-                <input
-                  type="number"
-                  required
-                  value={centerForm.capacity}
-                  onChange={(e) => setCenterForm({ ...centerForm, capacity: parseInt(e.target.value, 10) || 100 })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCenterModal(false)}
-                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm"
-                >
-                  {submitting ? "Saving..." : "Create Center"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* MODAL 2: REGISTER NAZIM USER                              */}
-      {/* ========================================================= */}
-      {showNazimModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-100">
-            <h3 className="text-xl font-bold text-slate-900">Register & Assign Nazim</h3>
-            <form onSubmit={handleCreateNazim} className="space-y-3 text-sm">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Select Dars Center</label>
-                <select
-                  required
-                  value={nazimForm.center_id}
-                  onChange={(e) => setNazimForm({ ...nazimForm, center_id: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="">-- Choose Center --</option>
-                  {centers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Nazim Full Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Maulana Tariq"
-                  value={nazimForm.full_name}
-                  onChange={(e) => setNazimForm({ ...nazimForm, full_name: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="e.g. nazim.tariq@dars.local"
-                  value={nazimForm.email}
-                  onChange={(e) => setNazimForm({ ...nazimForm, email: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={nazimForm.password}
-                  onChange={(e) => setNazimForm({ ...nazimForm, password: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  placeholder="+91 9876543210"
-                  value={nazimForm.phone}
-                  onChange={(e) => setNazimForm({ ...nazimForm, phone: e.target.value })}
-                  className="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowNazimModal(false)}
-                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg shadow-sm"
-                >
-                  {submitting ? "Registering..." : "Register Nazim"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

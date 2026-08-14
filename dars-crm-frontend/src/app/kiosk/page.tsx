@@ -202,25 +202,25 @@ export default function StudentKioskPage() {
   // --- KIOSK PIN LOGIN SCREEN ---
   if (!token || !student) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col justify-between p-6 select-none">
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-between p-4 sm:p-6 select-none space-y-6">
         {/* KIOSK HEADER */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-emerald-500 rounded-xl flex items-center justify-center text-slate-950 font-black text-xl">
+            <div className="h-10 w-10 bg-emerald-500 rounded-xl flex items-center justify-center text-slate-950 font-black text-xl flex-shrink-0">
               D
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-white">Digi Dars Kiosk Terminal</h1>
+              <h1 className="text-lg sm:text-xl font-extrabold text-white">Digi Dars Kiosk Terminal</h1>
               <p className="text-xs text-slate-400">Masjid Umar Dars • Shared Touchscreen Terminal</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1.5 rounded-full font-bold">
-            <ShieldCheck className="h-4 w-4" /> Confidential Direct Pipeline Active
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1.5 rounded-full font-bold">
+            <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" /> Confidential Direct Pipeline Active
           </div>
         </div>
 
         {/* KIOSK PIN LOGIN BODY */}
-        <div className="max-w-md w-full mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
+        <div className="max-w-md w-full mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-6">
           <div className="text-center space-y-1">
             <div className="h-14 w-14 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-indigo-500/30">
               <Lock className="h-7 w-7" />
