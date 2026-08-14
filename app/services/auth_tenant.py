@@ -127,6 +127,12 @@ def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User
         db.commit()
         db.refresh(user)
 
+    try:
+        from app.services.performance import run_full_monthly_performance_aggregation
+        run_full_monthly_performance_aggregation(db)
+    except Exception as e:
+        print(f"Auto aggregation warning: {e}")
+
     return user
 
 # DDD Application Service alias

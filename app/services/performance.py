@@ -29,9 +29,11 @@ def calculate_monthly_student_cards(db: Session, month_date: date) -> int:
 
     students = db.query(User).filter(User.role == UserRole.STUDENT.value, User.is_active == True).all()
     updated_count = 0
+    first_center = db.query(Center).first()
 
     for student in students:
-        if not student.center_id:
+        center_id = student.center_id or (first_center.id if first_center else None)
+        if not center_id:
             continue
 
         # Fetch Tarbiyyah logs for month
@@ -81,17 +83,46 @@ def calculate_monthly_student_cards(db: Session, month_date: date) -> int:
 
         # 4. Chores / Discipline Score
         chores_score = 0.0
-        if t_logs:
-            non_leave_days = [l for l in t_logs if not l.is_on_leave]
-            if non_leave_days:
-                chores_score = round((len(non_leave_days) / len(t_logs)) * 100.0, 2)
-
-        if t_logs or h_logs:
-            overall_score = round((namaz_score + hygiene_score + study_score + chores_score) / 4.0, 2)
-        else:
+        if not t_logs and not h_logs:
+            namaz_score = 0.0
+            hygiene_score = 0.0
+            study_score = 0.0
+            chores_score = 0.0
             overall_score = 0.0
+        else:
+            namaz_score = 100.0
+            hygiene_score = 100.0
+            study_score = 100.0
+            chores_score = 100.0
 
-        # Upsert card
+            if t_logs:
+                total_prayers = len(t_logs) * 5
+                attended_prayers = sum(
+                    1 for log in t_logs for p in [log.fajr, log.zuhr, log.asr, log.maghrib, log.isha]
+                    if p in [JamaatStatus.PRESENT_IN_JAMAAT.value, JamaatStatus.PRAYED_ALONE.value]
+                )
+                namaz_score = round((attended_prayers / total_prayers) * 100.0, 2) if total_prayers > 0 else 0.0
+
+                adab_avg = sum(log.adab_score for log in t_logs if log.adab_score is not None) / len(t_logs) if t_logs else 0.0
+                hygiene_score = round((adab_avg / 5.0) * 100.0, 2)
+
+            if h_logs:
+                mastery_weights = {
+                    MasteryLevel.EXCELLENT.value: 100.0,
+                    MasteryLevel.GOOD.value: 80.0,
+                    MasteryLevel.NEEDS_WORK.value: 50.0,
+                    MasteryLevel.FAIL.value: 0.0
+                }
+                study_score = round(sum(mastery_weights.get(log.sabaq_grade, 70.0) for log in h_logs) / len(h_logs), 2)
+
+            overall_score = round(
+                (0.35 * namaz_score) +
+                (0.25 * hygiene_score) +
+                (0.25 * study_score) +
+                (0.15 * chores_score),
+                2
+            )
+
         card = db.query(StudentProgressCard).filter(
             StudentProgressCard.student_id == student.id,
             StudentProgressCard.log_month == first_day
@@ -100,7 +131,7 @@ def calculate_monthly_student_cards(db: Session, month_date: date) -> int:
         if not card:
             card = StudentProgressCard(
                 student_id=student.id,
-                center_id=student.center_id,
+                center_id=center_id,
                 log_month=first_day,
                 namaz_score=namaz_score,
                 hygiene_score=hygiene_score,
@@ -128,9 +159,11 @@ def calculate_monthly_usthad_cards(db: Session, month_date: date) -> int:
     first_day = get_first_day_of_month(month_date)
     ustads = db.query(User).filter(User.role == UserRole.USTAD.value, User.is_active == True).all()
     updated_count = 0
+    first_center = db.query(Center).first()
 
     for ustad in ustads:
-        if not ustad.center_id:
+        center_id = ustad.center_id or (first_center.id if first_center else None)
+        if not center_id:
             continue
 
         # Get all halqas taught by this Ustad
@@ -178,7 +211,7 @@ def calculate_monthly_usthad_cards(db: Session, month_date: date) -> int:
         if not card:
             card = StaffProgressCard(
                 user_id=ustad.id,
-                center_id=ustad.center_id,
+                center_id=center_id,
                 role="USTAD",
                 log_month=first_day,
                 performance_score=performance_score,
@@ -205,13 +238,15 @@ def calculate_monthly_nazim_cards(db: Session, month_date: date) -> int:
 
     nazims = db.query(User).filter(User.role == UserRole.NAZIM.value, User.is_active == True).all()
     updated_count = 0
+    first_center = db.query(Center).first()
 
     for nazim in nazims:
-        if not nazim.center_id:
+        center_id = nazim.center_id or (first_center.id if first_center else None)
+        if not center_id:
             continue
 
         duties = db.query(NazimDuty).filter(
-            NazimDuty.center_id == nazim.center_id,
+            NazimDuty.center_id == center_id,
             NazimDuty.due_date >= first_day,
             NazimDuty.due_date <= last_day
         ).all()
@@ -235,7 +270,7 @@ def calculate_monthly_nazim_cards(db: Session, month_date: date) -> int:
         if not card:
             card = StaffProgressCard(
                 user_id=nazim.id,
-                center_id=nazim.center_id,
+                center_id=center_id,
                 role="NAZIM",
                 log_month=first_day,
                 performance_score=rating,
@@ -417,7 +452,11 @@ def get_usthad_rankings(db: Session, target_date: Optional[date] = None) -> List
     today = target_date or date.today()
     first_day = get_first_day_of_month(today)
     
+    # Auto-compile cards so newly registered Usthad accounts immediately get cards
+    calculate_monthly_usthad_cards(db, first_day)
+    
     cards = db.query(StaffProgressCard).filter(
+        StaffProgressCard.log_month == first_day,
         StaffProgressCard.role == "USTAD"
     ).order_by(StaffProgressCard.final_rating.desc()).all()
     
@@ -430,7 +469,7 @@ def get_usthad_rankings(db: Session, target_date: Optional[date] = None) -> List
             "user_id": card.user_id,
             "name": user.full_name if user else "Usthad",
             "email": user.email if user else "",
-            "center_name": center.name if center else "Main Center",
+            "center_name": center.name if center else "Main Branch",
             "performance_score": card.performance_score,
             "penalty_points": card.penalty_points,
             "final_rating": card.final_rating,
@@ -442,7 +481,11 @@ def get_nazim_rankings(db: Session, target_date: Optional[date] = None) -> List[
     today = target_date or date.today()
     first_day = get_first_day_of_month(today)
     
+    # Auto-compile cards so newly registered Nazim accounts immediately get cards
+    calculate_monthly_nazim_cards(db, first_day)
+    
     cards = db.query(StaffProgressCard).filter(
+        StaffProgressCard.log_month == first_day,
         StaffProgressCard.role == "NAZIM"
     ).order_by(StaffProgressCard.final_rating.desc()).all()
     
@@ -455,7 +498,7 @@ def get_nazim_rankings(db: Session, target_date: Optional[date] = None) -> List[
             "user_id": card.user_id,
             "name": user.full_name if user else "Nazim",
             "email": user.email if user else "",
-            "center_name": center.name if center else "Main Center",
+            "center_name": center.name if center else "Main Branch",
             "duty_compliance_score": card.final_rating,
             "penalty_points": card.penalty_points,
             "final_rating": card.final_rating,
@@ -464,7 +507,16 @@ def get_nazim_rankings(db: Session, target_date: Optional[date] = None) -> List[
     return results
 
 def get_student_rankings(db: Session, target_date: Optional[date] = None) -> List[dict]:
-    cards = db.query(StudentProgressCard).order_by(StudentProgressCard.overall_score.desc()).all()
+    today = target_date or date.today()
+    first_day = get_first_day_of_month(today)
+    
+    # Auto-compile cards so newly registered Student accounts immediately get cards
+    calculate_monthly_student_cards(db, first_day)
+    
+    cards = db.query(StudentProgressCard).filter(
+        StudentProgressCard.log_month == first_day
+    ).order_by(StudentProgressCard.overall_score.desc()).all()
+    
     results = []
     for idx, card in enumerate(cards, start=1):
         user = db.query(User).filter(User.id == card.student_id).first()
@@ -474,7 +526,7 @@ def get_student_rankings(db: Session, target_date: Optional[date] = None) -> Lis
             "student_id": card.student_id,
             "name": user.full_name if user else f"Student #{card.student_id[:6]}",
             "card_id": getattr(user, "student_card_id", "STU-101") if user else "STU-101",
-            "center_name": center.name if center else "Main Center",
+            "center_name": center.name if center else "Main Branch",
             "namaz_score": card.namaz_score,
             "hygiene_score": card.hygiene_score,
             "study_score": card.study_score,
