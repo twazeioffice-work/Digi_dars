@@ -60,12 +60,11 @@ export default function StudentKioskPage() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
 
-  // 1-Minute Auto-Inactivity Timeout Timer
-  const [secondsRemaining, setSecondsRemaining] = useState(60);
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // 5-Minute Auto-Inactivity Timeout Timer (300 Seconds Max)
+  const [secondsRemaining, setSecondsRemaining] = useState(300);
 
   const resetInactivityTimer = () => {
-    setSecondsRemaining(60);
+    setSecondsRemaining(300);
   };
 
   useEffect(() => {
@@ -83,8 +82,8 @@ export default function StudentKioskPage() {
       setSecondsRemaining((prev) => {
         if (prev <= 1) {
           handleLogout();
-          toast("Kiosk Session timed out for security.", { icon: "🔒" });
-          return 60;
+          toast("Kiosk Session timed out for security after 5 minutes.", { icon: "🔒" });
+          return 300;
         }
         return prev - 1;
       });
@@ -97,6 +96,12 @@ export default function StudentKioskPage() {
       clearInterval(interval);
     };
   }, [token]);
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  };
 
   const handleKioskLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,7 +304,7 @@ export default function StudentKioskPage() {
 
         {/* KIOSK FOOTER */}
         <div className="text-center text-xs text-slate-500 font-mono">
-          Digi Dars Kiosk v2.0 • Automatic 60s Session Timeout Security
+          Digi Dars Kiosk v2.0
         </div>
       </div>
     );
@@ -308,7 +313,7 @@ export default function StudentKioskPage() {
   // --- KIOSK LOGGED-IN SHELL INTERFACE ---
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-6 select-none">
-      {/* HEADER BAR WITH TIMEOUT INDICATOR */}
+      {/* HEADER BAR */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl">
@@ -323,7 +328,7 @@ export default function StudentKioskPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-amber-950/60 border border-amber-500/40 text-amber-300 text-xs px-3.5 py-2 rounded-xl font-bold font-mono">
             <Clock className="h-4 w-4 animate-pulse text-amber-400" />
-            <span>Session Timeout: {secondsRemaining}s</span>
+            <span>Session Timeout: {formatTime(secondsRemaining)}</span>
           </div>
 
           <button
@@ -512,7 +517,7 @@ export default function StudentKioskPage() {
 
       {/* KIOSK FOOTER */}
       <div className="text-center text-xs text-slate-500 font-mono">
-        Digi Dars Kiosk • Auto-Session Reset Active
+        Digi Dars Kiosk Terminal
       </div>
     </div>
   );
