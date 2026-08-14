@@ -281,16 +281,34 @@ def get_nazim_assigned_complaints(
     dependencies=[Depends(role_guard(["NAZIM", "CENTER_ADMIN"]))]
 ):
     """
-    (Nazim Only) Retrieve ONLY complaints assigned to the Nazim.
+    (Nazim Only) Retrieve ONLY complaints assigned/routed to the Nazim.
     CONFIDENTIALITY GUARANTEE: Complaints with status PENDING_SUPER_ADMIN are strictly excluded!
     """
     user_id = current_user_id.get()
     center_id = current_tenant_id.get()
 
-    complaints = db.query(Complaint).filter(
-        Complaint.status.in_([ComplaintStatus.ASSIGNED_TO_NAZIM.value, ComplaintStatus.RESOLVED_BY_NAZIM.value]),
-        (Complaint.assigned_to_nazim_id == user_id) | (Complaint.center_id == center_id)
-    ).order_by(Complaint.created_at.desc()).all()
+    if user_id and not center_id:
+        user_obj = db.query(User).filter(User.id == user_id).first()
+        if user_obj and user_obj.center_id:
+            center_id = user_obj.center_id
+
+    query = db.query(Complaint).filter(
+        Complaint.status.in_([ComplaintStatus.ASSIGNED_TO_NAZIM.value, ComplaintStatus.RESOLVED_BY_NAZIM.value])
+    )
+
+    if center_id:
+        query = query.filter(
+            (Complaint.center_id == center_id) | 
+            (Complaint.assigned_to_nazim_id == user_id) |
+            (Complaint.center_id.is_(None))
+        )
+    elif user_id:
+        query = query.filter(
+            (Complaint.assigned_to_nazim_id == user_id) |
+            (Complaint.assigned_to_nazim_id.isnot(None))
+        )
+
+    complaints = query.order_by(Complaint.created_at.desc()).all()
 
     results = []
     for c in complaints:
