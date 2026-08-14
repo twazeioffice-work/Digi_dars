@@ -55,7 +55,7 @@ export default function SuperAdminPage() {
 
   // Interactive Center Profile Modal State
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
-  const [modalInitialTab, setModalInitialTab] = useState<"nazims" | "ustads" | "students">("students");
+  const [modalInitialTab, setModalInitialTab] = useState<"nazims" | "ustads" | "students" | "cook">("students");
 
   // AI Assistant State
   const [aiQuestion, setAiQuestion] = useState("");

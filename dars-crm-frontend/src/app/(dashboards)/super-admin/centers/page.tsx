@@ -35,7 +35,7 @@ export default function ManageCentersPage() {
 
   // Interactive Center Profile Modal State
   const [viewProfileCenterId, setViewProfileCenterId] = useState<string | null>(null);
-  const [viewProfileInitialTab, setViewProfileInitialTab] = useState<"nazims" | "ustads" | "students">("students");
+  const [viewProfileInitialTab, setViewProfileInitialTab] = useState<"nazims" | "ustads" | "students" | "cook">("students");
 
   // Center Form State
   const [centerForm, setCenterForm] = useState({
