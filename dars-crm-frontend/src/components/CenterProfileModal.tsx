@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { 
   X, Building2, User, Award, CheckCircle2, XCircle, Loader2, 
-  Users, Star, AlertTriangle, Calendar, ChevronRight, ShieldCheck, Mail, Phone 
+  Users, Star, AlertTriangle, Calendar, ChevronRight, ShieldCheck, Mail, Phone, Utensils, Send, MessageSquare 
 } from "lucide-react";
 import toast from "react-hot-toast";
 import UserProfileModal from "./UserProfileModal";
 
 interface CenterProfileModalProps {
   centerId: string;
-  initialTab?: "nazims" | "ustads" | "students";
+  initialTab?: "nazims" | "ustads" | "students" | "cook";
   onClose: () => void;
   onUpdate?: () => void;
 }
@@ -26,6 +26,16 @@ interface CenterDetails {
   nazim_count?: number;
   ustad_count?: number;
   student_count?: number;
+  has_cook?: boolean;
+  cook_name?: string;
+  cook_phone?: string;
+}
+
+interface CookInfo {
+  id?: string;
+  name: string;
+  phone_number: string;
+  is_active: boolean;
 }
 
 interface StudentDossier {
@@ -63,13 +73,14 @@ export default function CenterProfileModal({
   onUpdate,
 }: CenterProfileModalProps) {
   const [center, setCenter] = useState<CenterDetails | null>(null);
-  const [activeTab, setActiveTab] = useState<"nazims" | "ustads" | "students">(initialTab);
+  const [activeTab, setActiveTab] = useState<"nazims" | "ustads" | "students" | "cook">(initialTab);
   const [loading, setLoading] = useState(true);
 
   // Grouped rosters
   const [students, setStudents] = useState<StudentDossier[]>([]);
   const [nazims, setNazims] = useState<StaffDossier[]>([]);
   const [ustads, setUstads] = useState<StaffDossier[]>([]);
+  const [cookInfo, setCookInfo] = useState<CookInfo | null>(null);
 
   // User Profile Modal overlay
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -77,13 +88,18 @@ export default function CenterProfileModal({
   const fetchCenterData = async () => {
     try {
       setLoading(true);
-      const [cRes, overviewRes] = await Promise.all([
+      const [cRes, overviewRes, cookRes] = await Promise.all([
         api.get(`/centers/${centerId}`).catch(() => ({ data: null })),
         api.get(`/academic/super-admin/leave-performance-overview`).catch(() => ({ data: [] })),
+        api.get(`/cooks/config/${centerId}`).catch(() => ({ data: null }))
       ]);
 
       if (cRes.data) {
         setCenter(cRes.data);
+      }
+
+      if (cookRes.data && cookRes.data.cook) {
+        setCookInfo(cookRes.data.cook);
       }
 
       // Find center group from overview
@@ -98,10 +114,11 @@ export default function CenterProfileModal({
       } else {
         // Fallback fetch users directly
         const [uNazims, uUstads, uStudents] = await Promise.all([
-          api.get(`/users/nazims`).catch(() => ({ data: [] })),
-          api.get(`/users/ustads`).catch(() => ({ data: [] })),
-          api.get(`/users/students`).catch(() => ({ data: [] })),
+          api.get(`/users?role=NAZIM`).catch(() => ({ data: [] })),
+          api.get(`/users?role=USTAD`).catch(() => ({ data: [] })),
+          api.get(`/users?role=STUDENT`).catch(() => ({ data: [] })),
         ]);
+
         setNazims(
           (uNazims.data || [])
             .filter((u: any) => u.center_id === centerId)
@@ -113,8 +130,8 @@ export default function CenterProfileModal({
               email: u.email,
               phone: u.phone,
               performance_grade: "A+",
-              completed_duties: 4,
-              total_duties: 4,
+              completed_duties: 5,
+              total_duties: 5,
               duty_compliance_ratio: "100%",
               leave_requests: [],
             }))
@@ -154,7 +171,7 @@ export default function CenterProfileModal({
             }))
         );
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to load center details dossier.");
     } finally {
       setLoading(false);
@@ -175,7 +192,7 @@ export default function CenterProfileModal({
       toast.success(`Center ${newStatus.toLowerCase()} successfully!`);
       setCenter({ ...center, status: newStatus });
       if (onUpdate) onUpdate();
-    } catch (err) {
+    } catch {
       toast.error("Failed to update center status");
     }
   };
@@ -185,7 +202,7 @@ export default function CenterProfileModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white rounded-2xl p-8 flex items-center gap-3 shadow-2xl">
           <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-          <span className="text-sm font-semibold text-slate-700">Loading center details & dossiers...</span>
+          <span className="text-sm font-semibold text-slate-700">Loading center details &amp; dossiers...</span>
         </div>
       </div>
     );
@@ -247,7 +264,7 @@ export default function CenterProfileModal({
           </div>
 
           {/* --- INTERACTIVE ROSTER COUNT STAT CARDS --- */}
-          <div className="p-6 bg-slate-50 border-b border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-6 bg-slate-50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* NAZIMS CARD */}
             <div
               onClick={() => setActiveTab("nazims")}
@@ -258,9 +275,9 @@ export default function CenterProfileModal({
               }`}
             >
               <div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Nazims Assigned</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Nazims</span>
                 <span className="text-2xl font-black text-blue-700">{nazims.length}</span>
-                <span className="text-[11px] text-blue-600 block mt-0.5">Click to view Nazim roster</span>
+                <span className="text-[11px] text-blue-600 block mt-0.5">Assigned Nazim</span>
               </div>
               <div className="p-3 bg-blue-100 text-blue-700 rounded-xl">
                 <ShieldCheck className="h-6 w-6" />
@@ -277,9 +294,9 @@ export default function CenterProfileModal({
               }`}
             >
               <div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Usthads Faculty</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Usthads</span>
                 <span className="text-2xl font-black text-indigo-700">{ustads.length}</span>
-                <span className="text-[11px] text-indigo-600 block mt-0.5">Click to view Usthad roster</span>
+                <span className="text-[11px] text-indigo-600 block mt-0.5">Faculty Staff</span>
               </div>
               <div className="p-3 bg-indigo-100 text-indigo-700 rounded-xl">
                 <User className="h-6 w-6" />
@@ -296,196 +313,225 @@ export default function CenterProfileModal({
               }`}
             >
               <div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Students Enrolled</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Students</span>
                 <span className="text-2xl font-black text-emerald-700">{students.length}</span>
-                <span className="text-[11px] text-emerald-600 block mt-0.5">Click to view Student roster</span>
+                <span className="text-[11px] text-emerald-600 block mt-0.5">Enrolled Roster</span>
               </div>
               <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
-                <Award className="h-6 w-6" />
+                <Users className="h-6 w-6" />
+              </div>
+            </div>
+
+            {/* COOK CARD */}
+            <div
+              onClick={() => setActiveTab("cook")}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between shadow-sm ${
+                activeTab === "cook"
+                  ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20"
+                  : "bg-white border-slate-200 hover:border-amber-300"
+              }`}
+            >
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Kitchen Cook</span>
+                <span className="text-sm font-black text-amber-900 block truncate max-w-[120px]">
+                  {cookInfo ? cookInfo.phone_number : "No Cook"}
+                </span>
+                <span className="text-[11px] text-amber-700 block mt-0.5 truncate">
+                  {cookInfo ? cookInfo.name : "Unassigned"}
+                </span>
+              </div>
+              <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
+                <Utensils className="h-6 w-6" />
               </div>
             </div>
           </div>
 
-          {/* --- SUBMENU TAB NAVIGATION --- */}
-          <div className="flex border-b border-slate-200 bg-white px-6 gap-2 pt-2">
-            <button
-              onClick={() => setActiveTab("students")}
-              className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-1.5 ${
-                activeTab === "students"
-                  ? "border-emerald-600 text-emerald-700"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <Award className="h-4 w-4" /> 🎓 Students Roster ({students.length})
-            </button>
-
-            <button
-              onClick={() => setActiveTab("ustads")}
-              className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-1.5 ${
-                activeTab === "ustads"
-                  ? "border-indigo-600 text-indigo-700"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <User className="h-4 w-4" /> 👳‍♂️ Usthads Roster ({ustads.length})
-            </button>
-
-            <button
-              onClick={() => setActiveTab("nazims")}
-              className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-1.5 ${
-                activeTab === "nazims"
-                  ? "border-blue-600 text-blue-700"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <ShieldCheck className="h-4 w-4" /> 👤 Nazims Roster ({nazims.length})
-            </button>
-          </div>
-
-          {/* --- MAIN ROSTER CONTAINER --- */}
-          <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50">
-            {/* 1. NAZIMS TAB */}
-            {activeTab === "nazims" && (
-              <div>
-                {nazims.length === 0 ? (
-                  <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs font-semibold">
-                    No Nazims currently assigned to this center.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {nazims.map((nz) => (
-                      <div
-                        key={nz.id}
-                        onClick={() => setSelectedUserId(nz.id)}
-                        className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer space-y-3"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md">
-                              NAZIM
-                            </span>
-                            <h4 className="font-bold text-slate-900 text-base mt-1">{nz.full_name}</h4>
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                              <Mail className="h-3.5 w-3.5 text-slate-400" /> {nz.email}
-                            </p>
-                          </div>
-                          <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Compliance: {nz.duty_compliance_ratio}
-                          </span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-blue-600 font-bold">
-                          <span>Click to open Nazim Profile Dossier</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 2. USTHADS TAB */}
-            {activeTab === "ustads" && (
-              <div>
-                {ustads.length === 0 ? (
-                  <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs font-semibold">
-                    No Usthads currently assigned to this center.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {ustads.map((us) => (
-                      <div
-                        key={us.id}
-                        onClick={() => setSelectedUserId(us.id)}
-                        className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer space-y-3"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">
-                              USTHAD FACULTY
-                            </span>
-                            <h4 className="font-bold text-slate-900 text-base mt-1">{us.full_name}</h4>
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                              <Mail className="h-3.5 w-3.5 text-slate-400" /> {us.email}
-                            </p>
-                          </div>
-                          <span className="px-2.5 py-1 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            Grade {us.performance_grade}
-                          </span>
-                        </div>
-                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
-                          <span className="text-slate-500">Duty Compliance:</span>
-                          <span className="font-bold text-slate-900">{us.completed_duties}/{us.total_duties} ({us.duty_compliance_ratio})</span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-indigo-600 font-bold">
-                          <span>Click to open Usthad Profile Dossier</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 3. STUDENTS TAB */}
+          {/* --- TAB CONTENT AREA --- */}
+          <div className="p-6 overflow-y-auto flex-1 space-y-4">
+            {/* STUDENTS TAB */}
             {activeTab === "students" && (
-              <div>
+              <div className="space-y-3">
+                <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                  Enrolled Students Roster ({students.length})
+                </h3>
+
                 {students.length === 0 ? (
-                  <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-xs font-semibold">
-                    No Students currently enrolled in this center.
-                  </div>
+                  <p className="text-sm text-slate-500 py-6 text-center">No students currently enrolled in this center.</p>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {students.map((st) => (
                       <div
                         key={st.id}
                         onClick={() => setSelectedUserId(st.id)}
-                        className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer space-y-3"
+                        className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-emerald-500 transition cursor-pointer flex items-center justify-between group"
                       >
-                        <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-black text-sm flex items-center justify-center">
+                            {st.full_name.charAt(0)}
+                          </div>
                           <div>
-                            <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
-                              {st.code}
-                            </span>
-                            <h4 className="font-bold text-slate-900 text-base mt-1">{st.full_name}</h4>
-                            <p className="text-xs text-slate-500">{st.parent_name}</p>
-                          </div>
-                          <span className="px-2 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {st.attendance_percentage}% Att.
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                          <div className="p-1.5 bg-amber-50 rounded-lg border border-amber-200">
-                            <span className="block font-bold text-amber-600">⭐ {st.stars ? st.stars.length : 0}</span>
-                            <span className="text-[9px] text-slate-500 uppercase">Stars</span>
-                          </div>
-                          <div className="p-1.5 bg-rose-50 rounded-lg border border-rose-200">
-                            <span className="block font-bold text-rose-600">⚠️ {st.warnings ? st.warnings.length : 0}</span>
-                            <span className="text-[9px] text-slate-500 uppercase">Warns</span>
-                          </div>
-                          <div className="p-1.5 bg-blue-50 rounded-lg border border-blue-200">
-                            <span className="block font-bold text-blue-600">📅 {st.leave_requests ? st.leave_requests.length : 0}</span>
-                            <span className="text-[9px] text-slate-500 uppercase">Leaves</span>
+                            <h4 className="font-bold text-slate-900 text-sm group-hover:text-emerald-700 transition">
+                              {st.full_name}
+                            </h4>
+                            <p className="text-xs text-slate-500 font-mono">{st.code} • {st.email}</p>
                           </div>
                         </div>
-
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-emerald-600 font-bold">
-                          <span>Click to open Student Dossier</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition" />
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             )}
+
+            {/* NAZIMS TAB */}
+            {activeTab === "nazims" && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                  Assigned Nazims ({nazims.length})
+                </h3>
+
+                {nazims.length === 0 ? (
+                  <p className="text-sm text-slate-500 py-6 text-center">No Nazims assigned to this center.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {nazims.map((nz) => (
+                      <div
+                        key={nz.id}
+                        onClick={() => setSelectedUserId(nz.id)}
+                        className="p-4 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-500 transition cursor-pointer flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-800 font-black text-base flex items-center justify-center">
+                            {nz.full_name.charAt(0)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-sm group-hover:text-blue-700 transition">
+                              {nz.full_name}
+                            </h4>
+                            <p className="text-xs text-slate-500">{nz.email} • {nz.phone || "+91 9876543210"}</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-600 transition" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* USTHADS TAB */}
+            {activeTab === "ustads" && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                  Faculty Usthads ({ustads.length})
+                </h3>
+
+                {ustads.length === 0 ? (
+                  <p className="text-sm text-slate-500 py-6 text-center">No Usthads assigned to this center.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {ustads.map((us) => (
+                      <div
+                        key={us.id}
+                        onClick={() => setSelectedUserId(us.id)}
+                        className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-indigo-500 transition cursor-pointer flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-800 font-black text-sm flex items-center justify-center">
+                            {us.full_name.charAt(0)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-sm group-hover:text-indigo-700 transition">
+                              {us.full_name}
+                            </h4>
+                            <p className="text-xs text-slate-500">{us.email}</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* COOK TAB */}
+            {activeTab === "cook" && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                  Kitchen Cook Profile &amp; Dining Contact
+                </h3>
+
+                {cookInfo ? (
+                  <div className="p-6 bg-amber-50/60 border border-amber-200 rounded-2xl space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-4 bg-amber-500 text-white rounded-2xl shadow-md">
+                          <Utensils className="h-8 w-8" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black text-slate-900">{cookInfo.name}</h4>
+                          <p className="text-sm font-mono font-bold text-amber-800 flex items-center gap-1.5 mt-0.5">
+                            <Phone className="h-4 w-4 text-amber-600" /> {cookInfo.phone_number}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-xs font-extrabold">
+                        ✓ Active Receiver
+                      </span>
+                    </div>
+
+                    <div className="pt-3 border-t border-amber-200/80 flex flex-wrap items-center gap-3">
+                      <a
+                        href={`https://wa.me/${cookInfo.phone_number.replace(/[^0-9]/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl transition flex items-center gap-2 shadow-sm"
+                      >
+                        <MessageSquare className="h-4 w-4" /> Open WhatsApp Chat
+                      </a>
+
+                      <a
+                        href="/super-admin/kitchen"
+                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold rounded-xl transition flex items-center gap-2 shadow-sm"
+                      >
+                        <Send className="h-4 w-4" /> Open Dining Headcounts Console
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl space-y-3">
+                    <Utensils className="h-10 w-10 text-slate-400 mx-auto" />
+                    <h4 className="font-extrabold text-slate-800 text-base">No Kitchen Cook Registered</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      This center does not currently have an active cook registered for receiving automated daily dining headcount reports.
+                    </p>
+                    <a
+                      href="/super-admin/kitchen"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition mt-2 shadow-sm"
+                    >
+                      Register Cook for {center.name}
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* --- BOTTOM FOOTER --- */}
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition"
+            >
+              Close Dossier
+            </button>
           </div>
         </div>
       </div>
 
-      {/* --- OVERLAY: USER PROFILE DOSSIER MODAL --- */}
+      {/* --- NESTED USER PROFILE MODAL OVERLAY --- */}
       {selectedUserId && (
         <UserProfileModal
           userId={selectedUserId}

@@ -18,6 +18,9 @@ interface Center {
   nazim_count?: number;
   ustad_count?: number;
   student_count?: number;
+  has_cook?: boolean;
+  cook_name?: string;
+  cook_phone?: string;
 }
 
 export default function ManageCentersPage() {
@@ -228,14 +231,14 @@ export default function ManageCentersPage() {
                   </span>
                 </div>
 
-                {/* ROSTER COUNT BADGES */}
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-1 text-xs font-bold">
+                {/* ROSTER & COOK COUNT BADGES */}
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-1.5 text-xs font-bold">
                   <button
                     onClick={() => {
                       setViewProfileCenterId(center.id);
                       setViewProfileInitialTab("nazims");
                     }}
-                    className="flex-1 py-1.5 px-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition text-center"
+                    className="flex-1 min-w-[70px] py-1.5 px-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition text-center"
                   >
                     👤 {center.nazim_count ?? 1} Nazim
                   </button>
@@ -244,7 +247,7 @@ export default function ManageCentersPage() {
                       setViewProfileCenterId(center.id);
                       setViewProfileInitialTab("ustads");
                     }}
-                    className="flex-1 py-1.5 px-2 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition text-center"
+                    className="flex-1 min-w-[70px] py-1.5 px-2 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition text-center"
                   >
                     👳‍♂️ {center.ustad_count ?? 3} Usthad
                   </button>
@@ -253,9 +256,25 @@ export default function ManageCentersPage() {
                       setViewProfileCenterId(center.id);
                       setViewProfileInitialTab("students");
                     }}
-                    className="flex-1 py-1.5 px-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition text-center"
+                    className="flex-1 min-w-[70px] py-1.5 px-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition text-center"
                   >
                     🎓 {center.student_count ?? 45} Student
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewProfileCenterId(center.id);
+                      setViewProfileInitialTab("cook");
+                    }}
+                    className={`flex-1 min-w-[120px] py-1.5 px-2 rounded-lg border transition text-center truncate ${
+                      center.has_cook || center.cook_phone
+                        ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+                        : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                    }`}
+                    title={center.has_cook || center.cook_phone ? `Cook: ${center.cook_name || ""} (${center.cook_phone || ""})` : "No Cook Registered"}
+                  >
+                    {center.has_cook || center.cook_phone
+                      ? `🍳 Cook: ${center.cook_phone || center.cook_name}`
+                      : "🍳 No Cook"}
                   </button>
                 </div>
 

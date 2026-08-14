@@ -24,6 +24,9 @@ class CenterResponse(BaseModel):
     nazim_count: Optional[int] = 0
     ustad_count: Optional[int] = 0
     student_count: Optional[int] = 0
+    has_cook: Optional[bool] = False
+    cook_name: Optional[str] = None
+    cook_phone: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

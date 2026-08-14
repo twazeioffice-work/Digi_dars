@@ -247,6 +247,22 @@ export default function SuperAdminPage() {
                           >
                             🎓 {center.student_count ?? 45} Student
                           </button>
+                          <button
+                            onClick={() => {
+                              setSelectedCenterId(center.id);
+                              setModalInitialTab("cook");
+                            }}
+                            className={`px-2 py-0.5 rounded border transition ${
+                              center.has_cook || center.cook_phone
+                                ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+                                : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                            }`}
+                            title={center.has_cook || center.cook_phone ? `Cook: ${center.cook_name || ""} (${center.cook_phone || ""})` : "No Cook Registered"}
+                          >
+                            {center.has_cook || center.cook_phone
+                              ? `🍳 Cook: ${center.cook_phone || center.cook_name}`
+                              : "🍳 No Cook"}
+                          </button>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-slate-500">{center.address || "Main Branch"}</td>

@@ -7,6 +7,7 @@ from typing import Union, Optional, List
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.context import current_tenant_id, current_user_id, current_user_role
 from app.models.auth import Center, User, StudentProfile, ParentStudentLink, CenterStatus, UserRole
+from app.models.kitchen import CookProfile
 from app.schemas.auth import CenterCreate, UserCreate, UserRegister, UserLogin, LoginRequest, TokenResponse, ParentStudentLinkCreate
 
 def create_center(db: Session, payload: CenterCreate) -> Center:
@@ -219,6 +220,16 @@ def get_all_centers(db: Session) -> list[Center]:
         c.nazim_count = db.query(User).filter(User.center_id == c.id, User.role == "NAZIM").count()
         c.ustad_count = db.query(User).filter(User.center_id == c.id, User.role == "USTAD").count()
         c.student_count = db.query(User).filter(User.center_id == c.id, User.role == "STUDENT").count()
+        
+        cook = db.query(CookProfile).filter(CookProfile.center_id == c.id, CookProfile.is_active == True).first()
+        if cook:
+            c.has_cook = True
+            c.cook_name = cook.name
+            c.cook_phone = cook.phone_number
+        else:
+            c.has_cook = False
+            c.cook_name = None
+            c.cook_phone = None
     return centers
 
 def get_users_by_role(db: Session, role_val: str, center_id: Optional[str] = None) -> list[User]:
