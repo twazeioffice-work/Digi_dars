@@ -24,6 +24,9 @@ interface Center {
   nazim_count?: number;
   ustad_count?: number;
   student_count?: number;
+  has_cook?: boolean;
+  cook_name?: string;
+  cook_phone?: string;
 }
 
 interface CenterBreakdown {
