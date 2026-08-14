@@ -49,7 +49,7 @@ def calculate_monthly_student_cards(db: Session, month_date: date) -> int:
         ).all()
 
         # 1. Namaz Score
-        namaz_score = 100.0
+        namaz_score = 0.0
         if t_logs:
             total_prayers = 0
             prayed_count = 0
@@ -63,7 +63,7 @@ def calculate_monthly_student_cards(db: Session, month_date: date) -> int:
                 namaz_score = round((prayed_count / total_prayers) * 100.0, 2)
 
         # 2. Hygiene / Adab Score
-        hygiene_score = 100.0
+        hygiene_score = 0.0
         if t_logs:
             adab_scores = [l.adab_score for l in t_logs if l.adab_score is not None]
             if adab_scores:
@@ -72,7 +72,7 @@ def calculate_monthly_student_cards(db: Session, month_date: date) -> int:
                 hygiene_score = round((avg_adab / 5.0) * 100.0, 2)
 
         # 3. Study Score
-        study_score = 100.0
+        study_score = 0.0
         if h_logs:
             grade_map = {"EXCELLENT": 100.0, "GOOD": 80.0, "NEEDS_WORK": 50.0, "FAIL": 20.0}
             grades = [grade_map.get(l.sabaq_grade, 80.0) for l in h_logs if l.sabaq_grade]
@@ -80,13 +80,16 @@ def calculate_monthly_student_cards(db: Session, month_date: date) -> int:
                 study_score = round(sum(grades) / len(grades), 2)
 
         # 4. Chores / Discipline Score
-        chores_score = 100.0
+        chores_score = 0.0
         if t_logs:
             non_leave_days = [l for l in t_logs if not l.is_on_leave]
             if non_leave_days:
                 chores_score = round((len(non_leave_days) / len(t_logs)) * 100.0, 2)
 
-        overall_score = round((namaz_score + hygiene_score + study_score + chores_score) / 4.0, 2)
+        if t_logs or h_logs:
+            overall_score = round((namaz_score + hygiene_score + study_score + chores_score) / 4.0, 2)
+        else:
+            overall_score = 0.0
 
         # Upsert card
         card = db.query(StudentProgressCard).filter(
@@ -153,15 +156,18 @@ def calculate_monthly_usthad_cards(db: Session, month_date: date) -> int:
             ).count()
             underperforming_count = underperforming
 
-        batch_failure_rate = (underperforming_count / total_students) if total_students > 0 else 0.0
-
-        if batch_failure_rate <= 0.30:
+        if total_students == 0:
+            performance_score = 0.0
             penalty = 0.0
+            final_rating = 0.0
         else:
-            penalty = (batch_failure_rate - 0.30) * 100.0 * 1.5
-
-        final_rating = round(max(0.0, 100.0 - penalty), 2)
-        performance_score = 100.0
+            batch_failure_rate = (underperforming_count / total_students)
+            if batch_failure_rate <= 0.30:
+                penalty = 0.0
+            else:
+                penalty = (batch_failure_rate - 0.30) * 100.0 * 1.5
+            performance_score = 100.0
+            final_rating = round(max(0.0, 100.0 - penalty), 2)
 
         card = db.query(StaffProgressCard).filter(
             StaffProgressCard.user_id == ustad.id,
@@ -181,6 +187,7 @@ def calculate_monthly_usthad_cards(db: Session, month_date: date) -> int:
             )
             db.add(card)
         else:
+            card.performance_score = performance_score
             card.penalty_points = round(penalty, 2)
             card.final_rating = final_rating
 
@@ -214,10 +221,10 @@ def calculate_monthly_nazim_cards(db: Session, month_date: date) -> int:
 
         if total_duties > 0:
             rating = round((on_time_completed / total_duties) * 100.0, 2)
+            penalty = round(100.0 - rating, 2)
         else:
-            rating = 100.0
-
-        penalty = round(100.0 - rating, 2)
+            rating = 0.0
+            penalty = 0.0
 
         card = db.query(StaffProgressCard).filter(
             StaffProgressCard.user_id == nazim.id,
@@ -231,12 +238,13 @@ def calculate_monthly_nazim_cards(db: Session, month_date: date) -> int:
                 center_id=nazim.center_id,
                 role="NAZIM",
                 log_month=first_day,
-                performance_score=100.0,
+                performance_score=rating,
                 penalty_points=penalty,
                 final_rating=rating
             )
             db.add(card)
         else:
+            card.performance_score = rating
             card.penalty_points = penalty
             card.final_rating = rating
 
@@ -257,27 +265,30 @@ def calculate_institution_rankings(db: Session, month_date: date) -> int:
         avg_student = db.query(func.avg(StudentProgressCard.overall_score)).filter(
             StudentProgressCard.center_id == center.id,
             StudentProgressCard.log_month == first_day
-        ).scalar() or 90.0
+        ).scalar()
+        avg_student_val = float(avg_student) if avg_student is not None else 0.0
 
         # Avg Usthad Score for Center
         avg_usthad = db.query(func.avg(StaffProgressCard.final_rating)).filter(
             StaffProgressCard.center_id == center.id,
             StaffProgressCard.role == "USTAD",
             StaffProgressCard.log_month == first_day
-        ).scalar() or 95.0
+        ).scalar()
+        avg_usthad_val = float(avg_usthad) if avg_usthad is not None else 0.0
 
         # Nazim Duty Score for Center
         avg_nazim = db.query(func.avg(StaffProgressCard.final_rating)).filter(
             StaffProgressCard.center_id == center.id,
             StaffProgressCard.role == "NAZIM",
             StaffProgressCard.log_month == first_day
-        ).scalar() or 100.0
+        ).scalar()
+        avg_nazim_val = float(avg_nazim) if avg_nazim is not None else 0.0
 
         # Weighted Institution Score: 40% Student + 35% Usthad + 25% Nazim
         total_score = round(
-            (0.40 * float(avg_student)) +
-            (0.35 * float(avg_usthad)) +
-            (0.25 * float(avg_nazim)),
+            (0.40 * avg_student_val) +
+            (0.35 * avg_usthad_val) +
+            (0.25 * avg_nazim_val),
             2
         )
 
@@ -290,17 +301,17 @@ def calculate_institution_rankings(db: Session, month_date: date) -> int:
             perf = InstitutionPerformance(
                 center_id=center.id,
                 log_month=first_day,
-                avg_student_score=round(float(avg_student), 2),
-                avg_usthad_score=round(float(avg_usthad), 2),
-                nazim_duty_score=round(float(avg_nazim), 2),
+                avg_student_score=round(avg_student_val, 2),
+                avg_usthad_score=round(avg_usthad_val, 2),
+                nazim_duty_score=round(avg_nazim_val, 2),
                 total_institution_score=total_score,
                 global_rank=1
             )
             db.add(perf)
         else:
-            perf.avg_student_score = round(float(avg_student), 2)
-            perf.avg_usthad_score = round(float(avg_usthad), 2)
-            perf.nazim_duty_score = round(float(avg_nazim), 2)
+            perf.avg_student_score = round(avg_student_val, 2)
+            perf.avg_usthad_score = round(avg_usthad_val, 2)
+            perf.nazim_duty_score = round(avg_nazim_val, 2)
             perf.total_institution_score = total_score
 
     db.commit()
