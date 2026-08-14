@@ -146,6 +146,40 @@ class LeaveRequest(Base):
     reason = Column(Text, nullable=False)
     status = Column(String(50), default=LeaveStatus.PENDING.value)
     reviewed_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    admin_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     student = relationship("User", foreign_keys=[student_id])
+
+class StudentStar(Base):
+    __tablename__ = "student_stars"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid_str, index=True)
+    student_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    issuing_ustad_id = Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    center_id = Column(String(36), ForeignKey("centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(100), nullable=False)  # e.g., Tajweed Fluency, Namaz Discipline, Hifz Mastery
+    explanation = Column(Text, nullable=False)
+    awarded_date = Column(Date, default=lambda: datetime.now(timezone.utc).date(), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    student = relationship("User", foreign_keys=[student_id])
+    ustad = relationship("User", foreign_keys=[issuing_ustad_id])
+    center = relationship("Center")
+
+class StudentWarning(Base):
+    __tablename__ = "student_warnings"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid_str, index=True)
+    student_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    issuing_ustad_id = Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    center_id = Column(String(36), ForeignKey("centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    severity = Column(String(50), default="LOW", nullable=False)  # LOW, MEDIUM, HIGH
+    category = Column(String(100), nullable=False)  # Misconduct, Tardiness, Academic Negligence
+    reasoning = Column(Text, nullable=False)
+    issued_date = Column(Date, default=lambda: datetime.now(timezone.utc).date(), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    student = relationship("User", foreign_keys=[student_id])
+    ustad = relationship("User", foreign_keys=[issuing_ustad_id])
+    center = relationship("Center")

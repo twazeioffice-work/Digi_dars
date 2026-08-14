@@ -141,12 +141,54 @@ class LeaveRequestResponse(BaseModel):
     reason: str
     status: str
     reviewed_by: Optional[str] = None
+    admin_notes: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 class LeaveApprovalUpdate(BaseModel):
     status: str  # APPROVED or REJECTED
+    admin_notes: Optional[str] = None
+
+class StudentStarCreate(BaseModel):
+    student_id: str
+    category: str  # e.g., Tajweed Fluency, Namaz Discipline, Hifz Mastery
+    explanation: str
+
+class StudentStarResponse(BaseModel):
+    id: str
+    student_id: str
+    student_name: Optional[str] = None
+    issuing_ustad_id: str
+    issuing_ustad_name: Optional[str] = None
+    center_id: str
+    category: str
+    explanation: str
+    awarded_date: date
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class StudentWarningCreate(BaseModel):
+    student_id: str
+    severity: str  # LOW, MEDIUM, HIGH
+    category: str  # Misconduct, Tardiness, Academic Negligence
+    reasoning: str
+
+class StudentWarningResponse(BaseModel):
+    id: str
+    student_id: str
+    student_name: Optional[str] = None
+    issuing_ustad_id: str
+    issuing_ustad_name: Optional[str] = None
+    center_id: str
+    severity: str
+    category: str
+    reasoning: str
+    issued_date: date
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 class AttendanceTrend(BaseModel):
     date: str

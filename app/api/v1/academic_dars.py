@@ -7,7 +7,7 @@ from app.schemas.academic import (
     HalqaCreate, HalqaResponse, HalqaEnrollmentCreate, HalqaEnrollmentResponse,
     HifzLogCreate, HifzLogResponse, KitabLogCreate, KitabLogResponse,
     TarbiyyahLogCreate, BulkTarbiyyahCreate, TarbiyyahLogResponse, LeaveRequestCreate, LeaveRequestResponse, LeaveApprovalUpdate,
-    NazimDashboardResponse
+    NazimDashboardResponse, StudentStarCreate, StudentStarResponse, StudentWarningCreate, StudentWarningResponse
 )
 from app.services import academic_dars
 from app.core.guards import role_guard
@@ -189,3 +189,50 @@ def approve_leave_request_endpoint(
 def get_user_leave_requests_endpoint(user_id: str, db: Session = Depends(get_db)):
     """Retrieve all leave requests submitted for a specific user."""
     return academic_dars.get_user_leave_requests(db, user_id)
+
+@router.post(
+    "/stars",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
+)
+def award_student_star_endpoint(payload: StudentStarCreate, request: Request, db: Session = Depends(get_db)):
+    """(Usthad / Nazim) Award a gold star badge to a student."""
+    ustad_id = getattr(request.state, "user_id", "system-ustad")
+    return academic_dars.award_student_star(db, ustad_id, payload)
+
+@router.get(
+    "/stars/student/{student_id}",
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD", "PARENT", "STUDENT"]))]
+)
+def get_student_stars_endpoint(student_id: str, db: Session = Depends(get_db)):
+    """Fetch all gold star badges awarded to a student."""
+    return academic_dars.get_student_stars_service(db, student_id)
+
+@router.post(
+    "/warnings",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD"]))]
+)
+def issue_student_warning_endpoint(payload: StudentWarningCreate, request: Request, db: Session = Depends(get_db)):
+    """(Usthad / Nazim) Issue a severity-coded warning record to a student."""
+    ustad_id = getattr(request.state, "user_id", "system-ustad")
+    return academic_dars.issue_student_warning(db, ustad_id, payload)
+
+@router.get(
+    "/warnings/student/{student_id}",
+    dependencies=[Depends(role_guard(["SUPER_ADMIN", "CENTER_ADMIN", "NAZIM", "USTAD", "PARENT", "STUDENT"]))]
+)
+def get_student_warnings_endpoint(student_id: str, db: Session = Depends(get_db)):
+    """Fetch all severity warning records issued to a student."""
+    return academic_dars.get_student_warnings_service(db, student_id)
+
+@router.get(
+    "/super-admin/leave-performance-overview",
+    dependencies=[Depends(role_guard(["SUPER_ADMIN"]))]
+)
+def get_super_admin_leave_performance_overview_endpoint(
+    q: Optional[str] = Query(None, description="Search by Center Name/Code or Student/Staff Name/Code"),
+    db: Session = Depends(get_db)
+):
+    """(Super Admin) Fetch center-grouped student and staff dossiers, leaves, stars, and warnings."""
+    return academic_dars.get_super_admin_leave_performance_overview(db, q)

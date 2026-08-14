@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { BookOpen, Activity, Save, User, Loader2, CheckCircle2, Users, PhoneCall, Calendar, X, AlertCircle } from "lucide-react";
+import { BookOpen, Activity, Save, User, Loader2, CheckCircle2, Users, PhoneCall, Calendar, X, AlertCircle, Star, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import ResponsiveStudentList, { StudentListItem } from "@/components/ResponsiveStudentList";
 
@@ -20,9 +20,23 @@ interface Student {
 export default function UstadDailyLogPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [activeTab, setActiveTab] = useState<"hifz" | "tarbiyyah" | "overview">("hifz");
+  const [activeTab, setActiveTab] = useState<"hifz" | "tarbiyyah" | "overview" | "console">("hifz");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Star & Warning Console Form States
+  const [starForm, setStarForm] = useState({
+    student_id: "",
+    category: "Tajweed Fluency",
+    explanation: "Outstanding recitation fluency and error-free Sabaq presentation.",
+  });
+
+  const [warningForm, setWarningForm] = useState({
+    student_id: "",
+    severity: "LOW",
+    category: "Tardiness",
+    reasoning: "Arrived late for Fajr Jamaat prayer without prior permission.",
+  });
 
   // Emergency Leave Modal State
   const [emergencyModalStudent, setEmergencyModalStudent] = useState<StudentListItem | null>(null);
@@ -111,6 +125,61 @@ export default function UstadDailyLogPage() {
       fetchStudents();
     } catch (err) {
       toast.error("Failed to submit emergency leave.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Submit Gold Star Award
+  const handleAwardStar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const stId = starForm.student_id || (selectedStudent ? selectedStudent.id : (students[0] ? students[0].id : ""));
+    if (!stId) {
+      toast.error("Please select a student to award star.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post("/academic/stars", {
+        student_id: stId,
+        category: starForm.category,
+        explanation: starForm.explanation,
+      });
+      toast.success("⭐ Gold star badge awarded successfully!");
+      setStarForm({
+        ...starForm,
+        explanation: "Outstanding recitation fluency and error-free Sabaq presentation.",
+      });
+    } catch (err) {
+      toast.error("Failed to award star.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Submit Warning Record
+  const handleIssueWarning = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const stId = warningForm.student_id || (selectedStudent ? selectedStudent.id : (students[0] ? students[0].id : ""));
+    if (!stId) {
+      toast.error("Please select a student to issue warning.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post("/academic/warnings", {
+        student_id: stId,
+        severity: warningForm.severity,
+        category: warningForm.category,
+        reasoning: warningForm.reasoning,
+      });
+      toast.success("⚠️ Warning record issued to student!");
+      setWarningForm({
+        ...warningForm,
+        reasoning: "Arrived late for Fajr Jamaat prayer without prior permission.",
+      });
+    } catch (err) {
+      toast.error("Failed to issue warning.");
     } finally {
       setSaving(false);
     }
@@ -219,6 +288,17 @@ export default function UstadDailyLogPage() {
           }`}
         >
           <Users className="h-4 w-4" /> Roster View
+        </button>
+
+        <button
+          onClick={() => setActiveTab("console")}
+          className={`flex-1 flex items-center justify-center gap-2 h-12 md:h-10 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+            activeTab === "console"
+              ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+          }`}
+        >
+          <Star className="h-4 w-4 fill-amber-400 text-amber-500" /> Star & Warning Console
         </button>
       </div>
 
@@ -363,6 +443,149 @@ export default function UstadDailyLogPage() {
               });
             }}
           />
+        </div>
+      )}
+
+      {/* --- TAB 4: STAR & WARNING CONSOLE (USTHAD ACTION CONSOLE) --- */}
+      {activeTab === "console" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 1. AWARD GOLD STAR FORM */}
+          <form onSubmit={handleAwardStar} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 rounded-xl">
+                <Star className="h-5 w-5 fill-amber-400 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">Award Gold Star Badge</h3>
+                <p className="text-xs text-slate-500">Recognize student academic & moral excellence</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Select Student</label>
+              <select
+                value={starForm.student_id || (selectedStudent ? selectedStudent.id : "")}
+                onChange={(e) => setStarForm({ ...starForm, student_id: e.target.value })}
+                className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-semibold"
+              >
+                {students.map((st) => (
+                  <option key={st.id} value={st.id}>{st.full_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Achievement Category</label>
+              <select
+                value={starForm.category}
+                onChange={(e) => setStarForm({ ...starForm, category: e.target.value })}
+                className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-semibold"
+              >
+                <option value="Tajweed Fluency">Tajweed Fluency ⭐</option>
+                <option value="Namaz Discipline">Namaz Discipline 🕌</option>
+                <option value="Sabak Excellence">Sabak Excellence 📖</option>
+                <option value="Hifz Mastery">Hifz Mastery 🧠</option>
+                <option value="Noble Character">Noble Character & Adab 🤝</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Explanation ("Why did they get a star?")</label>
+              <textarea
+                rows={3}
+                required
+                placeholder="Detail the specific reason for awarding this star..."
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-medium"
+                value={starForm.explanation}
+                onChange={(e) => setStarForm({ ...starForm, explanation: e.target.value })}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-amber-600/20"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4 fill-amber-300" />}
+              Award Gold Star Badge
+            </button>
+          </form>
+
+          {/* 2. ISSUE SEVERITY WARNING FORM */}
+          <form onSubmit={handleIssueWarning} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="p-2 bg-rose-50 dark:bg-rose-950/40 text-rose-600 rounded-xl">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">Issue Warning Record</h3>
+                <p className="text-xs text-slate-500">Record behavior, tardiness, or academic negligence</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Select Student</label>
+              <select
+                value={warningForm.student_id || (selectedStudent ? selectedStudent.id : "")}
+                onChange={(e) => setWarningForm({ ...warningForm, student_id: e.target.value })}
+                className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-semibold"
+              >
+                {students.map((st) => (
+                  <option key={st.id} value={st.id}>{st.full_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Warning Severity</label>
+                <select
+                  value={warningForm.severity}
+                  onChange={(e) => setWarningForm({ ...warningForm, severity: e.target.value })}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-semibold"
+                >
+                  <option value="LOW">LOW (Mild)</option>
+                  <option value="MEDIUM">MEDIUM (Moderate)</option>
+                  <option value="HIGH">HIGH (Severe)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Category</label>
+                <select
+                  value={warningForm.category}
+                  onChange={(e) => setWarningForm({ ...warningForm, category: e.target.value })}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-semibold"
+                >
+                  <option value="Tardiness">Tardiness / Late Arrival</option>
+                  <option value="Misconduct">Misconduct / Behavioral Issue</option>
+                  <option value="Academic Negligence">Academic Negligence</option>
+                  <option value="Unexcused Absence">Unexcused Absence</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Justification ("Why did they get a warning?")</label>
+              <textarea
+                rows={3}
+                required
+                placeholder="Explain teacher reasoning and contextual justification..."
+                className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-medium"
+                value={warningForm.reasoning}
+                onChange={(e) => setWarningForm({ ...warningForm, reasoning: e.target.value })}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-rose-600/20"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+              Issue Warning Record
+            </button>
+          </form>
         </div>
       )}
 
