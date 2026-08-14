@@ -610,7 +610,7 @@ export default function UnifiedMasterTestBench() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       
       {/* GLOBAL SYSTEM BAR */}
       <div className="bg-slate-950 border-b border-slate-800 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
@@ -664,23 +664,23 @@ export default function UnifiedMasterTestBench() {
           <div className="space-y-6">
             
             {/* Header section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950 p-6 rounded-2xl border border-slate-800">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <div>
-                <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
-                  <Shield className="h-6 w-6 text-emerald-500" />
+                <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                  <Shield className="h-6 w-6 text-emerald-600" />
                   Super Admin Management Suite
                 </h1>
-                <p className="text-sm text-slate-400 mt-1">Cross-tenant educational leaderboard, leave applications triage, and safety complaint box.</p>
+                <p className="text-sm text-slate-500 mt-1">Cross-tenant educational leaderboard, leave applications triage, and safety complaint box.</p>
               </div>
-              <div className="flex items-center gap-4 bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs">
+              <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs">
                 <div>
-                  <span className="text-slate-500 block">Active Center Namespace</span>
-                  <span className="font-bold text-slate-200">Global (All Tenants)</span>
+                  <span className="text-slate-500 block font-medium">Active Center Namespace</span>
+                  <span className="font-bold text-slate-900">Global (All Tenants)</span>
                 </div>
-                <div className="h-8 w-px bg-slate-800"></div>
+                <div className="h-8 w-px bg-slate-200"></div>
                 <div>
-                  <span className="text-slate-500 block">Stripe Ledger Audit</span>
-                  <span className="text-emerald-400 font-bold flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /> Zakat Secure</span>
+                  <span className="text-slate-500 block font-medium">Stripe Ledger Audit</span>
+                  <span className="text-emerald-700 font-bold flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> Zakat Secure</span>
                 </div>
               </div>
             </div>
