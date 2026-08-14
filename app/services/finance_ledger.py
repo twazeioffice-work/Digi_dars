@@ -12,7 +12,29 @@ from app.schemas.finance import (
     GlobalZakatStatsResponse, CenterZakatSummary
 )
 
+def _resolve_center_id(db: Session, center_id: Optional[str] = None, user_id: Optional[str] = None) -> str:
+    resolved = center_id or current_tenant_id.get()
+    if resolved and str(resolved).strip() and str(resolved).strip().lower() != "none":
+        return str(resolved)
+
+    u_id = user_id or current_user_id.get()
+    if u_id:
+        user = db.query(User).filter(User.id == str(u_id)).first()
+        if user and user.center_id:
+            return str(user.center_id)
+
+    center = db.query(Center).first()
+    if center:
+        return str(center.id)
+
+    default_center = Center(name="Kallambalam Dars Center", code="MAIN001")
+    db.add(default_center)
+    db.commit()
+    db.refresh(default_center)
+    return str(default_center.id)
+
 def create_finance_category(db: Session, center_id: str, user_id: str, payload: CategoryCreate) -> FinanceCategory:
+    c_id = _resolve_center_id(db, center_id, user_id)
     fund_upper = payload.fund_type.upper()
     if fund_upper not in [f.value for f in FundCategory]:
         raise HTTPException(
@@ -21,7 +43,7 @@ def create_finance_category(db: Session, center_id: str, user_id: str, payload: 
         )
     
     existing = db.query(FinanceCategory).filter(
-        FinanceCategory.center_id == center_id,
+        FinanceCategory.center_id == c_id,
         FinanceCategory.name == payload.name
     ).first()
     if existing:
@@ -31,7 +53,7 @@ def create_finance_category(db: Session, center_id: str, user_id: str, payload: 
         )
     
     category = FinanceCategory(
-        center_id=center_id,
+        center_id=c_id,
         name=payload.name,
         fund_type=fund_upper,
         is_active=True,
@@ -43,12 +65,14 @@ def create_finance_category(db: Session, center_id: str, user_id: str, payload: 
     return category
 
 def get_finance_categories(db: Session, center_id: str):
+    c_id = _resolve_center_id(db, center_id)
     return db.query(FinanceCategory).filter(
-        FinanceCategory.center_id == center_id,
+        FinanceCategory.center_id == c_id,
         FinanceCategory.is_active == True
     ).all()
 
 def _resolve_or_create_category(db: Session, center_id: str, payload: Any) -> FinanceCategory:
+    c_id = _resolve_center_id(db, center_id)
     category_id = getattr(payload, "category_id", None)
     fund_type = getattr(payload, "fund_type", "GENERAL") or "GENERAL"
     category_name = getattr(payload, "category_name", "MISC") or "MISC"
@@ -56,20 +80,20 @@ def _resolve_or_create_category(db: Session, center_id: str, payload: Any) -> Fi
     if category_id:
         category = db.query(FinanceCategory).filter(
             FinanceCategory.id == str(category_id),
-            FinanceCategory.center_id == center_id
+            FinanceCategory.center_id == c_id
         ).first()
         if category:
             return category
 
     # Look up by fund_type & center
     category = db.query(FinanceCategory).filter(
-        FinanceCategory.center_id == center_id,
+        FinanceCategory.center_id == c_id,
         FinanceCategory.fund_type == fund_type
     ).first()
 
     if not category:
         category = FinanceCategory(
-            center_id=center_id,
+            center_id=c_id,
             name=category_name,
             fund_type=fund_type,
             is_active=True
@@ -81,7 +105,7 @@ def _resolve_or_create_category(db: Session, center_id: str, payload: Any) -> Fi
     return category
 
 def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTransactionCreate) -> dict:
-    t_id = center_id or current_tenant_id.get()
+    t_id = _resolve_center_id(db, center_id, user_id)
     u_id = user_id or current_user_id.get()
 
     category = _resolve_or_create_category(db, t_id, payload)
@@ -126,7 +150,7 @@ def record_income(db: Session, center_id: str, user_id: str, payload: IncomeTran
     }
 
 def record_expense(db: Session, center_id: str, user_id: str, payload: Union[ExpenseCreate, ExpenseTransactionCreate]) -> FinanceTransaction:
-    t_id = center_id or current_tenant_id.get()
+    t_id = _resolve_center_id(db, center_id, user_id)
     u_id = user_id or current_user_id.get()
 
     category = _resolve_or_create_category(db, t_id, payload)
@@ -176,7 +200,7 @@ def record_expense(db: Session, center_id: str, user_id: str, payload: Union[Exp
 record_expense_service = record_expense
 
 def reverse_transaction(db: Session, center_id: str, user_id: str, transaction_id: str, payload: ReversalRequest) -> FinanceTransaction:
-    t_id = center_id or current_tenant_id.get()
+    t_id = _resolve_center_id(db, center_id, user_id)
     u_id = user_id or current_user_id.get()
 
     original_txn = db.query(FinanceTransaction).filter(
@@ -311,8 +335,9 @@ def get_ledger(
     page: int = 1,
     limit: int = 50
 ) -> dict:
+    c_id = _resolve_center_id(db, center_id)
     query = db.query(FinanceTransaction).join(FinanceCategory).filter(
-        FinanceTransaction.center_id == center_id
+        FinanceTransaction.center_id == c_id
     )
 
     if start_date:
