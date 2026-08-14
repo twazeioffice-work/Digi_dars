@@ -7,6 +7,7 @@ import {
   User, Building2, BookOpen, Award, Clock, FileText, ChevronRight, X, Loader2 
 } from "lucide-react";
 import toast from "react-hot-toast";
+import CenterProfileModal from "@/components/CenterProfileModal";
 
 interface StarRecord {
   id: string;
@@ -88,6 +89,9 @@ export default function SuperAdminLeaveManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [centerGroups, setCenterGroups] = useState<CenterGroup[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Interactive Center Profile Modal State
+  const [viewCenterId, setViewCenterId] = useState<string | null>(null);
 
   // Selected Dossier for Interactive Sidebar
   const [selectedStudent, setSelectedStudent] = useState<StudentDossier | null>(null);
@@ -239,22 +243,26 @@ export default function SuperAdminLeaveManagementPage() {
           {centerGroups.map((center) => (
             <div key={center.center_id} className="space-y-4">
               {/* CENTER HEADER */}
-              <div className="flex items-center justify-between bg-white text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 shadow-sm">
+              <div 
+                onClick={() => setViewCenterId(center.center_id)}
+                className="flex items-center justify-between bg-white text-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-emerald-300 transition"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-200">
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="font-black text-base tracking-wide flex items-center gap-2 text-slate-900">
-                      <span>{center.center_name}</span>
+                    <h2 className="font-black text-base tracking-wide flex items-center gap-2 text-slate-900 group">
+                      <span className="hover:text-emerald-700 underline decoration-emerald-300 underline-offset-2">{center.center_name}</span>
                       <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-mono font-bold">
                         {center.center_code}
                       </span>
                     </h2>
                   </div>
                 </div>
-                <div className="text-xs text-slate-500 font-semibold">
-                  {activeTab === "students" ? `${center.students.length} Students` : `${center.staff.length} Staff Members`}
+                <div className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                  <span>{activeTab === "students" ? `${center.students.length} Students` : `${center.staff.length} Staff Members`}</span>
+                  <ChevronRight className="h-4 w-4" />
                 </div>
               </div>
 
@@ -729,6 +737,15 @@ export default function SuperAdminLeaveManagementPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* --- CENTER PROFILE DOSSIER & ROSTER MODAL OVERLAY --- */}
+      {viewCenterId && (
+        <CenterProfileModal
+          centerId={viewCenterId}
+          onClose={() => setViewCenterId(null)}
+          onUpdate={() => fetchOverview(searchQuery)}
+        />
       )}
     </div>
   );

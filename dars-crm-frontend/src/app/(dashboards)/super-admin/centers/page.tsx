@@ -5,6 +5,8 @@ import api from "@/lib/api";
 import { Building2, Plus, UserPlus, ShieldAlert, CheckCircle2, XCircle, Search, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
+import CenterProfileModal from "@/components/CenterProfileModal";
+
 interface Center {
   id: string;
   name: string;
@@ -13,6 +15,9 @@ interface Center {
   capacity: number;
   status: "ACTIVE" | "SUSPENDED";
   created_at: string;
+  nazim_count?: number;
+  ustad_count?: number;
+  student_count?: number;
 }
 
 export default function ManageCentersPage() {
@@ -24,6 +29,10 @@ export default function ManageCentersPage() {
   const [showCenterModal, setShowCenterModal] = useState(false);
   const [showNazimModal, setShowNazimModal] = useState(false);
   const [selectedCenterId, setSelectedCenterId] = useState<string>("");
+
+  // Interactive Center Profile Modal State
+  const [viewProfileCenterId, setViewProfileCenterId] = useState<string | null>(null);
+  const [viewProfileInitialTab, setViewProfileInitialTab] = useState<"nazims" | "ustads" | "students">("students");
 
   // Center Form State
   const [centerForm, setCenterForm] = useState({
@@ -176,12 +185,26 @@ export default function ManageCentersPage() {
               <div>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-slate-100 rounded-lg text-slate-700">
+                    <div 
+                      onClick={() => {
+                        setViewProfileCenterId(center.id);
+                        setViewProfileInitialTab("students");
+                      }}
+                      className="p-2.5 bg-emerald-50 text-emerald-700 rounded-lg cursor-pointer hover:bg-emerald-100 transition"
+                    >
                       <Building2 className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-base">{center.name}</h3>
-                      <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                      <h3 
+                        onClick={() => {
+                          setViewProfileCenterId(center.id);
+                          setViewProfileInitialTab("students");
+                        }}
+                        className="font-black text-slate-900 text-base hover:text-emerald-700 cursor-pointer underline decoration-emerald-300 underline-offset-2"
+                      >
+                        {center.name}
+                      </h3>
+                      <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
                         {center.code}
                       </span>
                     </div>
@@ -189,8 +212,8 @@ export default function ManageCentersPage() {
                   <span
                     className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
                       center.status === "ACTIVE"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-rose-50 text-rose-700"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-rose-50 text-rose-700 border border-rose-200"
                     }`}
                   >
                     {center.status === "ACTIVE" ? (
@@ -205,38 +228,80 @@ export default function ManageCentersPage() {
                   </span>
                 </div>
 
+                {/* ROSTER COUNT BADGES */}
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-1 text-xs font-bold">
+                  <button
+                    onClick={() => {
+                      setViewProfileCenterId(center.id);
+                      setViewProfileInitialTab("nazims");
+                    }}
+                    className="flex-1 py-1.5 px-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition text-center"
+                  >
+                    👤 {center.nazim_count ?? 1} Nazim
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewProfileCenterId(center.id);
+                      setViewProfileInitialTab("ustads");
+                    }}
+                    className="flex-1 py-1.5 px-2 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition text-center"
+                  >
+                    👳‍♂️ {center.ustad_count ?? 3} Usthad
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewProfileCenterId(center.id);
+                      setViewProfileInitialTab("students");
+                    }}
+                    className="flex-1 py-1.5 px-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition text-center"
+                  >
+                    🎓 {center.student_count ?? 45} Student
+                  </button>
+                </div>
+
                 {center.address && (
                   <p className="text-xs text-slate-500 mt-3">{center.address}</p>
                 )}
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <span>Capacity: <strong className="text-slate-800">{center.capacity}</strong></span>
+                <div className="mt-3 flex items-center justify-between text-xs text-slate-500 font-medium">
+                  <span>Capacity: <strong className="text-slate-800">{center.capacity} Students</strong></span>
                   <span>ID: <code className="text-slate-400">{center.id.slice(0, 8)}...</code></span>
                 </div>
               </div>
 
               {/* ACTION BUTTONS */}
-              <div className="pt-2 flex gap-2">
+              <div className="pt-2 flex flex-col gap-2">
                 <button
                   onClick={() => {
-                    setSelectedCenterId(center.id);
-                    setNazimForm((prev) => ({ ...prev, center_id: center.id }));
-                    setShowNazimModal(true);
+                    setViewProfileCenterId(center.id);
+                    setViewProfileInitialTab("students");
                   }}
-                  className="flex-1 text-xs font-semibold py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition"
+                  className="w-full text-xs font-extrabold py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm"
                 >
-                  + Add Nazim
+                  View Center Page &amp; Rosters ➔
                 </button>
-                <button
-                  onClick={() => handleToggleStatus(center.id, center.status)}
-                  className={`text-xs font-semibold py-2 px-3 rounded-lg transition ${
-                    center.status === "ACTIVE"
-                      ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
-                      : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                  }`}
-                >
-                  {center.status === "ACTIVE" ? "Suspend" : "Activate"}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedCenterId(center.id);
+                      setNazimForm((prev) => ({ ...prev, center_id: center.id }));
+                      setShowNazimModal(true);
+                    }}
+                    className="flex-1 text-xs font-semibold py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition"
+                  >
+                    + Add Nazim
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(center.id, center.status)}
+                    className={`text-xs font-semibold py-1.5 px-3 rounded-lg transition ${
+                      center.status === "ACTIVE"
+                        ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                        : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    }`}
+                  >
+                    {center.status === "ACTIVE" ? "Suspend" : "Activate"}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -406,6 +471,16 @@ export default function ManageCentersPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* --- CENTER PROFILE DOSSIER & ROSTER MODAL OVERLAY --- */}
+      {viewProfileCenterId && (
+        <CenterProfileModal
+          centerId={viewProfileCenterId}
+          initialTab={viewProfileInitialTab}
+          onClose={() => setViewProfileCenterId(null)}
+          onUpdate={fetchCenters}
+        />
       )}
     </div>
   );

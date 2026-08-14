@@ -53,6 +53,9 @@ def get_center_details(db: Session, center_id: str) -> Center:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Center with id '{center_id}' not found"
         )
+    center.nazim_count = db.query(User).filter(User.center_id == center.id, User.role == "NAZIM").count()
+    center.ustad_count = db.query(User).filter(User.center_id == center.id, User.role == "USTAD").count()
+    center.student_count = db.query(User).filter(User.center_id == center.id, User.role == "STUDENT").count()
     return center
 
 def register_user(db: Session, payload: Union[UserCreate, UserRegister]) -> User:
@@ -211,7 +214,12 @@ def link_parent_to_student(db: Session, parent_id: str, student_id: str, relatio
     return link
 
 def get_all_centers(db: Session) -> list[Center]:
-    return db.query(Center).order_by(Center.created_at.desc()).all()
+    centers = db.query(Center).order_by(Center.created_at.desc()).all()
+    for c in centers:
+        c.nazim_count = db.query(User).filter(User.center_id == c.id, User.role == "NAZIM").count()
+        c.ustad_count = db.query(User).filter(User.center_id == c.id, User.role == "USTAD").count()
+        c.student_count = db.query(User).filter(User.center_id == c.id, User.role == "STUDENT").count()
+    return centers
 
 def get_users_by_role(db: Session, role_val: str, center_id: Optional[str] = None) -> list[User]:
     query = db.query(User).filter(User.role == role_val.upper())

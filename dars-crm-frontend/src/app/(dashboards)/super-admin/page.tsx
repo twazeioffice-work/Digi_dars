@@ -11,6 +11,8 @@ import {
 } from "recharts";
 import toast from "react-hot-toast";
 
+import CenterProfileModal from "@/components/CenterProfileModal";
+
 interface Center {
   id: string;
   name: string;
@@ -19,6 +21,9 @@ interface Center {
   capacity: number;
   status: "ACTIVE" | "SUSPENDED";
   created_at: string;
+  nazim_count?: number;
+  ustad_count?: number;
+  student_count?: number;
 }
 
 interface CenterBreakdown {
@@ -47,6 +52,10 @@ export default function SuperAdminPage() {
   const [centers, setCenters] = useState<Center[]>([]);
   const [zakatStats, setZakatStats] = useState<GlobalZakatStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Interactive Center Profile Modal State
+  const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
+  const [modalInitialTab, setModalInitialTab] = useState<"nazims" | "ustads" | "students">("students");
 
   // AI Assistant State
   const [aiQuestion, setAiQuestion] = useState("");
@@ -128,13 +137,23 @@ export default function SuperAdminPage() {
 
       {/* --- GLOBAL SUMMARY METRICS (2-COLUMN GRID) --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div 
+          onClick={() => {
+            if (centers.length > 0) {
+              setSelectedCenterId(centers[0].id);
+              setModalInitialTab("students");
+            }
+          }}
+          className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between cursor-pointer hover:border-emerald-300 hover:shadow-md transition"
+        >
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Registered Centers</p>
             <p className="text-3xl font-black text-slate-900 mt-1">{centers.length}</p>
-            <p className="text-xs text-emerald-600 font-medium mt-1">{activeCentersCount} Currently Active</p>
+            <p className="text-xs text-emerald-600 font-bold mt-1 flex items-center gap-1">
+              {activeCentersCount} Currently Active • Click to open center dossiers ➔
+            </p>
           </div>
-          <div className="p-3.5 bg-slate-100 rounded-xl text-slate-800">
+          <div className="p-3.5 bg-emerald-50 rounded-xl text-emerald-700">
             <Building2 className="h-6 w-6" />
           </div>
         </div>
@@ -176,6 +195,7 @@ export default function SuperAdminPage() {
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold text-[11px] tracking-wider">
                     <th className="py-3.5 px-6">Center Name</th>
                     <th className="py-3.5 px-6">Center Code</th>
+                    <th className="py-3.5 px-6">Assigned Roster Counts</th>
                     <th className="py-3.5 px-6">Address</th>
                     <th className="py-3.5 px-6">Capacity</th>
                     <th className="py-3.5 px-6">Status</th>
@@ -185,11 +205,50 @@ export default function SuperAdminPage() {
                 <tbody className="divide-y divide-slate-100 font-medium">
                   {centers.map((center) => (
                     <tr key={center.id} className="hover:bg-slate-50 transition">
-                      <td className="py-4 px-6 font-bold text-slate-900 flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-emerald-600" />
-                        {center.name}
+                      <td className="py-4 px-6">
+                        <button
+                          onClick={() => {
+                            setSelectedCenterId(center.id);
+                            setModalInitialTab("students");
+                          }}
+                          className="font-extrabold text-emerald-700 hover:text-emerald-900 text-sm flex items-center gap-2 group text-left"
+                        >
+                          <Building2 className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition" />
+                          <span className="underline decoration-emerald-300 underline-offset-2">{center.name}</span>
+                        </button>
                       </td>
-                      <td className="py-4 px-6 font-mono text-xs text-slate-600">{center.code}</td>
+                      <td className="py-4 px-6 font-mono text-xs text-slate-600 font-bold">{center.code}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold">
+                          <button
+                            onClick={() => {
+                              setSelectedCenterId(center.id);
+                              setModalInitialTab("nazims");
+                            }}
+                            className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition"
+                          >
+                            👤 {center.nazim_count ?? 1} Nazim
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedCenterId(center.id);
+                              setModalInitialTab("ustads");
+                            }}
+                            className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition"
+                          >
+                            👳‍♂️ {center.ustad_count ?? 3} Usthad
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedCenterId(center.id);
+                              setModalInitialTab("students");
+                            }}
+                            className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition"
+                          >
+                            🎓 {center.student_count ?? 45} Student
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-4 px-6 text-slate-500">{center.address || "Main Branch"}</td>
                       <td className="py-4 px-6 text-slate-700">{center.capacity} Students</td>
                       <td className="py-4 px-6">
@@ -203,7 +262,16 @@ export default function SuperAdminPage() {
                           </span>
                         )}
                       </td>
-                      <td className="py-4 px-6 text-right">
+                      <td className="py-4 px-6 text-right space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedCenterId(center.id);
+                            setModalInitialTab("students");
+                          }}
+                          className="text-xs px-3 py-1.5 rounded-md font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                        >
+                          View Center Page ➔
+                        </button>
                         <button
                           onClick={() => handleToggleStatus(center.id, center.status)}
                           className={`text-xs px-3 py-1.5 rounded-md font-semibold transition ${
@@ -219,6 +287,10 @@ export default function SuperAdminPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      </div>
             </div>
           )}
         </div>
@@ -319,6 +391,16 @@ export default function SuperAdminPage() {
           )}
         </div>
       </div>
+
+      {/* --- CENTER PROFILE & ROSTERS MODAL OVERLAY --- */}
+      {selectedCenterId && (
+        <CenterProfileModal
+          centerId={selectedCenterId}
+          initialTab={modalInitialTab}
+          onClose={() => setSelectedCenterId(null)}
+          onUpdate={fetchAllData}
+        />
+      )}
     </div>
   );
 }

@@ -21,6 +21,9 @@ class CenterResponse(BaseModel):
     capacity: int
     status: str
     created_at: datetime
+    nazim_count: Optional[int] = 0
+    ustad_count: Optional[int] = 0
+    student_count: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 
