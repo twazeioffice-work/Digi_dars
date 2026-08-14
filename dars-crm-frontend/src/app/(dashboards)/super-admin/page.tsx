@@ -291,10 +291,6 @@ export default function SuperAdminPage() {
           )}
         </div>
       </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ========================================================= */}
       {/* SECTION 2: GLOBAL ZAKAT LEDGER & AI ASSISTANT             */}
