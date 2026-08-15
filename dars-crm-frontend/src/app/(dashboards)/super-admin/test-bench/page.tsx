@@ -6,7 +6,7 @@ import {
   ChevronRight, Building, Check, UserCheck, Star, Trash2, BookOpen, 
   Settings, ChefHat, CreditCard, DollarSign, Send, HelpCircle, Key, 
   Calendar, Award, MessageSquare, ClipboardList, Filter, Lock, Unlock, 
-  RefreshCw, TrendingDown, ShoppingCart, UserPlus, Info
+  RefreshCw, TrendingDown, ShoppingCart, UserPlus, Info, FileText, Download, CheckSquare
 } from 'lucide-react';
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, 
@@ -333,6 +333,26 @@ const INITIAL_KITCHEN_STOCK: KitchenStockItem[] = [
   { item: "Onions & Potatoes", currentStock: "5 kg", neededQuantity: "25 kg", lastUpdated: "Today 07:00 AM" }
 ];
 
+// Itemized Income Line Items (Tracked to the last rupee)
+const INCOME_LINE_ITEMS = [
+  { id: "TXN-INC-101", category: "Student Tuition & Hifz Fee", source: "Calicut Center (4 Students @ ₹15,000)", amount: 60000, status: "Verified & Deposited", date: "2026-08-01" },
+  { id: "TXN-INC-102", category: "Student Tuition & Hifz Fee", source: "Malappuram Hifz (4 Students @ ₹15,000)", amount: 60000, status: "Verified & Deposited", date: "2026-08-02" },
+  { id: "TXN-INC-103", category: "Zakat Institutional Grant", source: "Al-Amanah Educational Foundation Trust", amount: 30000, status: "Bank Wire Cleared", date: "2026-08-05" },
+  { id: "TXN-INC-104", category: "Community Sadaqah Drive", source: "Calicut Masjid Juma Collection Drive", amount: 15000, status: "Cash Deposited", date: "2026-08-08" },
+  { id: "TXN-INC-105", category: "Hostel Meal Subscriptions", source: "Hostel Boarding Fee (8 Boarding Students)", amount: 20000, status: "Collected", date: "2026-08-10" },
+];
+
+// Itemized Spending Expense Line Items (Tracked to the last rupee)
+const SPENDING_LINE_ITEMS = [
+  { id: "EXP-001", category: "Staff Salary (Net)", payee: "Usthad Ibrahim Kutty (Base ₹18,000 - Adv ₹2,500)", amount: 15500, paymentMethod: "Bank Transfer", status: "Pending Super Admin Release", date: "2026-08-01" },
+  { id: "EXP-002", category: "Staff Salary (Net)", payee: "Usthad Abdul Rahman (Base ₹19,500 - Adv ₹0)", amount: 19500, paymentMethod: "UPI Transfer", status: "Pending Super Admin Release", date: "2026-08-01" },
+  { id: "EXP-003", category: "Kitchen Provisions", payee: "Basmati Rice 45kg (Malabar Grain Wholesalers)", amount: 3500, paymentMethod: "Cash-in-hand", status: "Receipt Verified by Nazim", date: "2026-08-04" },
+  { id: "EXP-004", category: "Kitchen Provisions", payee: "Coconut Cooking Oil 8L (Calicut Oil Depot)", amount: 1600, paymentMethod: "UPI", status: "Receipt Verified by Nazim", date: "2026-08-05" },
+  { id: "EXP-005", category: "Kitchen Provisions", payee: "Fresh Vegetables & Spices Weekly Supply", amount: 5400, paymentMethod: "Cash-in-hand", status: "Receipt Verified by Nazim", date: "2026-08-07" },
+  { id: "EXP-006", category: "Hostel Utilities", payee: "Hostel Electricity & Water Board Utilities", amount: 2500, paymentMethod: "NetBanking", status: "Paid Direct", date: "2026-08-09" },
+  { id: "EXP-007", category: "Cloud & Communication", payee: "Meta WhatsApp API & Server Cloud Infrastructure", amount: 2500, paymentMethod: "Credit Card", status: "Auto-debited", date: "2026-08-10" },
+];
+
 // =============================================================================
 // MAIN APP COMPONENT
 // =============================================================================
@@ -383,8 +403,10 @@ export default function UnifiedDarsCrmApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
-  // Super Admin Drill-down and Home States
-  const [adminViewMode, setAdminViewMode] = useState<'home' | 'centers_list' | 'center_detail' | 'usthad_list' | 'student_list'>('home');
+  // Super Admin View Modes (Now including click-through audit panels for Income, Spending, Student Grading)
+  const [adminViewMode, setAdminViewMode] = useState<
+    'home' | 'centers_list' | 'center_detail' | 'usthad_list' | 'student_list' | 'income_audit' | 'spending_audit' | 'student_grading_audit'
+  >('home');
   const [selectedCenterId, setSelectedCenterId] = useState<string>('ctr_1');
 
   // Usthad Portal States
@@ -742,6 +764,9 @@ export default function UnifiedDarsCrmApp() {
                 <span className={`${textMutedClass} cursor-pointer hover:text-teal-500`} onClick={() => setAdminViewMode('home')}>Home</span>
                 {adminViewMode !== 'home' && <span className={textMutedClass}>/</span>}
                 {adminViewMode === 'centers_list' && <span className="text-teal-500 font-bold">Centers Rankings</span>}
+                {adminViewMode === 'income_audit' && <span className="text-emerald-500 font-bold">Income Audit</span>}
+                {adminViewMode === 'spending_audit' && <span className="text-rose-500 font-bold">Spending Audit</span>}
+                {adminViewMode === 'student_grading_audit' && <span className="text-indigo-500 font-bold">Student Grading Audit</span>}
                 {adminViewMode === 'center_detail' && (
                   <>
                     <span className={`${textMutedClass} cursor-pointer hover:text-teal-500`} onClick={() => setAdminViewMode('centers_list')}>Centers</span>
@@ -766,7 +791,7 @@ export default function UnifiedDarsCrmApp() {
               </div>
             </div>
 
-            {/* OVERVIEW OF ALL FACILITIES */}
+            {/* OVERVIEW OF ALL FACILITIES (ALL 6 CARDS ARE NOW FULLY CLICKABLE WITH DRILL-DOWN AUDITS) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               
               {/* CARD 1: WHATSAPP MESSAGES PENDING */}
@@ -814,39 +839,48 @@ export default function UnifiedDarsCrmApp() {
                 </div>
               </div>
 
-              {/* CARD 3: INCOME */}
-              <div className={`p-4 rounded-xl flex flex-col justify-between border ${cardBgClass}`}>
+              {/* CARD 3: INCOME (CLICKABLE TO LAST RUPEE AUDIT) */}
+              <div 
+                onClick={() => setAdminViewMode('income_audit')}
+                className={`p-4 rounded-xl flex flex-col justify-between border cursor-pointer transition group ${cardBgClass} hover:border-emerald-500/50`}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] text-emerald-500 font-extrabold tracking-wider uppercase">Monthly Income</span>
-                  <DollarSign className="h-4.5 w-4.5 text-emerald-500" />
+                  <DollarSign className="h-4.5 w-4.5 text-emerald-500 group-hover:scale-110 transition" />
                 </div>
                 <div>
                   <span className="text-2xl font-black text-emerald-500 block">₹1,85,000</span>
-                  <span className={`text-[10px] font-medium block mt-1 ${textMutedClass}`}>Fee and Zakat collections</span>
+                  <span className="text-[10px] text-emerald-500 font-extrabold block mt-1 underline">Click to audit line items</span>
                 </div>
               </div>
 
-              {/* CARD 4: SPENDING */}
-              <div className={`p-4 rounded-xl flex flex-col justify-between border ${cardBgClass}`}>
+              {/* CARD 4: SPENDING (CLICKABLE TO LAST RUPEE AUDIT) */}
+              <div 
+                onClick={() => setAdminViewMode('spending_audit')}
+                className={`p-4 rounded-xl flex flex-col justify-between border cursor-pointer transition group ${cardBgClass} hover:border-rose-500/50`}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] text-rose-500 font-extrabold tracking-wider uppercase">Monthly Spending</span>
-                  <CreditCard className="h-4.5 w-4.5 text-rose-500" />
+                  <CreditCard className="h-4.5 w-4.5 text-rose-500 group-hover:scale-110 transition" />
                 </div>
                 <div>
                   <span className="text-2xl font-black text-rose-500 block">₹50,500</span>
-                  <span className={`text-[10px] font-medium block mt-1 ${textMutedClass}`}>Payroll & food operations</span>
+                  <span className="text-[10px] text-rose-500 font-extrabold block mt-1 underline">Click to audit line items</span>
                 </div>
               </div>
 
-              {/* CARD 5: TOTAL GRADING OF STUDENTS */}
-              <div className={`p-4 rounded-xl flex flex-col justify-between border ${cardBgClass}`}>
+              {/* CARD 5: TOTAL GRADING OF STUDENTS (CLICKABLE TO INDIVIDUAL STUDENT SCORE AUDIT) */}
+              <div 
+                onClick={() => setAdminViewMode('student_grading_audit')}
+                className={`p-4 rounded-xl flex flex-col justify-between border cursor-pointer transition group ${cardBgClass} hover:border-indigo-500/50`}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] text-indigo-500 font-extrabold tracking-wider uppercase">Student Grading</span>
-                  <Users className="h-4.5 w-4.5 text-indigo-500" />
+                  <Users className="h-4.5 w-4.5 text-indigo-500 group-hover:scale-110 transition" />
                 </div>
                 <div>
                   <span className="text-2xl font-black text-indigo-500 block">{avgStudentScore}% Avg</span>
-                  <span className={`text-[10px] font-medium block mt-1 ${textMutedClass}`}>All branches cumulative</span>
+                  <span className="text-[10px] text-indigo-500 font-extrabold block mt-1 underline">Click to audit student scores</span>
                 </div>
               </div>
 
@@ -871,11 +905,317 @@ export default function UnifiedDarsCrmApp() {
 
             </div>
 
+            {/* DYNAMIC DRILL-DOWN AUDIT PANELS & HOME WORKSPACE */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* LEFT COLUMN: ACTIVE INTERACTIVE SUBVIEWS OR GENERAL WORKSPACES */}
+              {/* LEFT COLUMN: ACTIVE INTERACTIVE AUDITS OR DIRECTORY */}
               <div className="lg:col-span-2 space-y-6">
                 
+                {/* DRILL-DOWN AUDIT 1: MONTHLY INCOME AUDIT (TRACKED TO THE LAST RUPEE) */}
+                {adminViewMode === 'income_audit' && (
+                  <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
+                    <div className={`flex items-center justify-between border-b pb-3 ${
+                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                    }`}>
+                      <div>
+                        <h3 className={`font-bold flex items-center gap-2 text-emerald-500`}>
+                          <DollarSign className="h-5 w-5" />
+                          Monthly Income Audit Ledger (₹1,85,000 Total)
+                        </h3>
+                        <p className={`text-xs ${textMutedClass}`}>Itemized breakdown of all tuition collections, Zakat grants, and boarding fees tracked to the last point.</p>
+                      </div>
+                      <button 
+                        onClick={() => setAdminViewMode('home')}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                        }`}
+                      >
+                        ← Back Home
+                      </button>
+                    </div>
+
+                    {/* Summary Categories Breakdown */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Student Tuition Fees</span>
+                        <strong className="text-base text-emerald-500 block mt-0.5">₹1,20,000</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>8 Students @ ₹15,000</span>
+                      </div>
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Zakat & Sadaqah Grants</span>
+                        <strong className="text-base text-emerald-500 block mt-0.5">₹45,000</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>2 Verified Donor Grants</span>
+                      </div>
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Hostel & Mess Charges</span>
+                        <strong className="text-base text-emerald-500 block mt-0.5">₹20,000</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>8 Boarding Students</span>
+                      </div>
+                    </div>
+
+                    {/* Itemized Income Log Table */}
+                    <div className="space-y-2.5">
+                      <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Itemized Revenue Audit Log</span>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className={`border-b uppercase tracking-wider font-semibold ${
+                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                            }`}>
+                              <th className="py-2.5 px-2">TXN Ref</th>
+                              <th className="py-2.5 px-2">Category</th>
+                              <th className="py-2.5 px-2">Payer / Source Details</th>
+                              <th className="py-2.5 px-2">Date</th>
+                              <th className="py-2.5 px-2 text-right">Amount</th>
+                              <th className="py-2.5 px-2 text-right">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                            {INCOME_LINE_ITEMS.map((item) => (
+                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-slate-100/60'}>
+                                <td className="py-3 px-2 font-mono font-bold text-[11px] text-teal-500">{item.id}</td>
+                                <td className={`py-3 px-2 font-semibold ${textTitleClass}`}>{item.category}</td>
+                                <td className={`py-3 px-2 ${textMutedClass}`}>{item.source}</td>
+                                <td className={`py-3 px-2 text-[11px] ${textMutedClass}`}>{item.date}</td>
+                                <td className="py-3 px-2 text-right font-black text-emerald-500">₹{item.amount.toLocaleString()}</td>
+                                <td className="py-3 px-2 text-right">
+                                  <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded font-bold inline-block">
+                                    {item.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="h-4 w-4 text-emerald-500" />
+                        <span className={textMutedClass}>Bank audit verified. 100% funds reconciled.</span>
+                      </div>
+                      <button 
+                        onClick={() => alert("Audit statement exported as PDF!")}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Export Audit Statement
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* DRILL-DOWN AUDIT 2: MONTHLY SPENDING AUDIT (TRACKED TO THE LAST RUPEE) */}
+                {adminViewMode === 'spending_audit' && (
+                  <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
+                    <div className={`flex items-center justify-between border-b pb-3 ${
+                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                    }`}>
+                      <div>
+                        <h3 className={`font-bold flex items-center gap-2 text-rose-500`}>
+                          <CreditCard className="h-5 w-5" />
+                          Monthly Spending & Expense Audit (₹50,500 Total)
+                        </h3>
+                        <p className={`text-xs ${textMutedClass}`}>Itemized expense ledger tracking staff payroll, kitchen provisions, and server cloud costs to the last rupee.</p>
+                      </div>
+                      <button 
+                        onClick={() => setAdminViewMode('home')}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                        }`}
+                      >
+                        ← Back Home
+                      </button>
+                    </div>
+
+                    {/* Summary Expense Categories */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Net Staff Salaries</span>
+                        <strong className="text-base text-rose-500 block mt-0.5">₹36,000</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>Net Payroll Dispatched</span>
+                      </div>
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Kitchen & Mess Operations</span>
+                        <strong className="text-base text-rose-500 block mt-0.5">₹10,500</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>Rice, Oil, Veggie supplies</span>
+                      </div>
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Utilities & Cloud APIs</span>
+                        <strong className="text-base text-rose-500 block mt-0.5">₹4,000</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>Electricity & WABA Cloud</span>
+                      </div>
+                    </div>
+
+                    {/* Itemized Expense Table */}
+                    <div className="space-y-2.5">
+                      <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Itemized Expense Voucher Log</span>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className={`border-b uppercase tracking-wider font-semibold ${
+                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                            }`}>
+                              <th className="py-2.5 px-2">Voucher Code</th>
+                              <th className="py-2.5 px-2">Expense Line Item</th>
+                              <th className="py-2.5 px-2">Payment Method</th>
+                              <th className="py-2.5 px-2">Date</th>
+                              <th className="py-2.5 px-2 text-right">Amount</th>
+                              <th className="py-2.5 px-2 text-right">Audit Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                            {SPENDING_LINE_ITEMS.map((item) => (
+                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-slate-100/60'}>
+                                <td className="py-3 px-2 font-mono font-bold text-[11px] text-rose-500">{item.id}</td>
+                                <td className="py-3 px-2">
+                                  <span className={`font-bold block ${textTitleClass}`}>{item.category}</span>
+                                  <span className={`text-[10px] ${textMutedClass}`}>{item.payee}</span>
+                                </td>
+                                <td className={`py-3 px-2 text-[11px] ${textTitleClass}`}>{item.paymentMethod}</td>
+                                <td className={`py-3 px-2 text-[11px] ${textMutedClass}`}>{item.date}</td>
+                                <td className="py-3 px-2 text-right font-black text-rose-500">₹{item.amount.toLocaleString()}</td>
+                                <td className="py-3 px-2 text-right">
+                                  <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded font-bold inline-block">
+                                    {item.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
+                      <span className={textMutedClass}>Budget variance +2.4% within monthly projection limits.</span>
+                      <button 
+                        onClick={() => alert("Expense voucher summary exported!")}
+                        className="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Download Expense Vouchers
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* DRILL-DOWN AUDIT 3: GLOBAL STUDENT GRADING AUDIT (TRACKED TO THE LAST SCORE POINT) */}
+                {adminViewMode === 'student_grading_audit' && (
+                  <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
+                    <div className={`flex items-center justify-between border-b pb-3 ${
+                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                    }`}>
+                      <div>
+                        <h3 className={`font-bold flex items-center gap-2 text-indigo-500`}>
+                          <Users className="h-5 w-5" />
+                          Global Student Grading Audit Scorecard ({avgStudentScore}% Cumulative Avg)
+                        </h3>
+                        <p className={`text-xs ${textMutedClass}`}>Individual student scores evaluated to the last point across Namaz, Hygiene, Hifz, Chores & Conduct.</p>
+                      </div>
+                      <button 
+                        onClick={() => setAdminViewMode('home')}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                        }`}
+                      >
+                        ← Back Home
+                      </button>
+                    </div>
+
+                    {/* Summary Grade Statistics */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>High Performers (≥80%)</span>
+                        <strong className="text-base text-emerald-500 block mt-0.5">3 Students (60%)</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>Zaid, Nabeel, Ayman</span>
+                      </div>
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Underperforming (&lt;70%)</span>
+                        <strong className="text-base text-rose-500 block mt-0.5">2 Students (40%)</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>Azaan, Yahiya</span>
+                      </div>
+                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                        <span className={`block font-semibold ${textMutedClass}`}>Cumulative Network Avg</span>
+                        <strong className="text-base text-indigo-500 block mt-0.5">{avgStudentScore}% Grade</strong>
+                        <span className={`text-[10px] ${textMutedClass}`}>5 Students Total Roster</span>
+                      </div>
+                    </div>
+
+                    {/* Detailed Scorecard Table */}
+                    <div className="space-y-2.5">
+                      <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Student Score Breakdown (Click row to inspect profile)</span>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className={`border-b uppercase tracking-wider font-semibold ${
+                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                            }`}>
+                              <th className="py-2.5 px-2">Student & Center</th>
+                              <th className="py-2.5 px-2">Namaz</th>
+                              <th className="py-2.5 px-2">Hygiene</th>
+                              <th className="py-2.5 px-2">Sabak/Hifz</th>
+                              <th className="py-2.5 px-2">Chores</th>
+                              <th className="py-2.5 px-2">Merits / Warnings</th>
+                              <th className="py-2.5 px-2 text-right">Final Grade</th>
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                            {students.map((student) => {
+                              const starsCount = student.stars.length;
+                              const warningsCount = student.warnings.length;
+                              return (
+                                <tr 
+                                  key={student.id} 
+                                  onClick={() => {
+                                    setSelectedProfileId(student.id);
+                                    setAdminSubmenu('students');
+                                    alert(`Loaded ${student.name}'s profile in right dossier panel.`);
+                                  }}
+                                  className={`cursor-pointer transition ${isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-slate-100/60'}`}
+                                >
+                                  <td className="py-3 px-2">
+                                    <span className={`font-bold block ${textTitleClass}`}>{student.name}</span>
+                                    <span className={`text-[10px] ${textMutedClass}`}>{student.code} | {student.centerCode}</span>
+                                  </td>
+                                  <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '95%' : '60%'}</td>
+                                  <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '90%' : '50%'}</td>
+                                  <td className="py-3 px-2 font-semibold">{student.sabakScore}%</td>
+                                  <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '85%' : '40%'}</td>
+                                  <td className="py-3 px-2">
+                                    <div className="flex items-center gap-1 text-[10px]">
+                                      {starsCount > 0 && <span className="bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-bold">+{starsCount * 5} Stars</span>}
+                                      {warningsCount > 0 && <span className="bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded font-bold">-{warningsCount * 15} Warn</span>}
+                                      {starsCount === 0 && warningsCount === 0 && <span className={textMutedClass}>Neutral</span>}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-2 text-right">
+                                    <span className={`font-black text-sm block ${student.overallScore >= 80 ? 'text-emerald-500' : student.overallScore >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                      {student.overallScore}%
+                                    </span>
+                                    <span className={`text-[9px] uppercase font-bold ${textMutedClass}`}>
+                                      {student.overallScore >= 80 ? 'Grade A' : student.overallScore >= 70 ? 'Grade B' : 'Grade F'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
+                      <span className={textMutedClass}>Select any student row above to inspect their live daily checklist and leave log.</span>
+                      <button 
+                        onClick={() => alert("Student Scorecard exported to PDF!")}
+                        className="bg-indigo-500 hover:bg-indigo-600 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Export Grading Report
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* SUBVIEW 1A: DEFAULT DIRECTORY SEARCH OVERVIEW */}
                 {adminViewMode === 'home' && (
                   <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
