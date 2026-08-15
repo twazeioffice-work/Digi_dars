@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
+import Link from "next/link";
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer 
 } from "recharts";
-import { Users, BookOpen, Activity, HeartHandshake, Loader2, UserPlus, PlusCircle, GraduationCap } from "lucide-react";
+import { Users, BookOpen, Activity, HeartHandshake, Loader2, UserPlus, PlusCircle, GraduationCap, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface HalqaStat {
@@ -251,6 +252,12 @@ export default function NazimDashboard() {
           >
             <UserPlus className="h-4 w-4" /> + Add Student
           </button>
+          <Link
+            href="/nazim/finance"
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-lg shadow-sm transition"
+          >
+            <DollarSign className="h-4 w-4" /> 💰 Financial Ledger (Sadaqah, Hadiya, Expenses)
+          </Link>
           <button
             onClick={() => setShowHalqaModal(true)}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-lg shadow-sm transition"
@@ -312,6 +319,70 @@ export default function NazimDashboard() {
           <div className="p-3 bg-amber-50 rounded-lg">
             <Activity className="h-6 w-6 text-amber-600" />
           </div>
+        </div>
+      </div>
+
+      {/* --- NAZIM FINANCIAL QUICK DESK STRIP --- */}
+      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              💰 Center Financial Management Desk
+            </h2>
+            <p className="text-xs text-slate-500">Manage incoming Sadaqah, Hadiya, Tuition Fees, and all operational expenses (Salaries, Kitchen, Utilities)</p>
+          </div>
+          <Link
+            href="/nazim/finance"
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition"
+          >
+            Open Full Ledger ➔
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+          <Link
+            href="/nazim/finance"
+            className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 hover:bg-emerald-100/70 transition flex items-center justify-between group"
+          >
+            <div>
+              <span className="text-xs font-bold text-emerald-900 block">💚 Sadaqah & Hadiya</span>
+              <span className="text-[10px] text-emerald-700 font-medium">Record Collection</span>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-emerald-600 group-hover:scale-110 transition" />
+          </Link>
+
+          <Link
+            href="/nazim/finance"
+            className="p-3 rounded-xl bg-blue-50/70 border border-blue-200 hover:bg-blue-100/70 transition flex items-center justify-between group"
+          >
+            <div>
+              <span className="text-xs font-bold text-blue-900 block">👳‍♂️ Ustad Payroll</span>
+              <span className="text-[10px] text-blue-700 font-medium">Release Salaries</span>
+            </div>
+            <DollarSign className="h-4 w-4 text-blue-600 group-hover:scale-110 transition" />
+          </Link>
+
+          <Link
+            href="/nazim/kitchen"
+            className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 hover:bg-amber-100/70 transition flex items-center justify-between group"
+          >
+            <div>
+              <span className="text-xs font-bold text-amber-900 block">🍳 Kitchen Grocery</span>
+              <span className="text-[10px] text-amber-700 font-medium">Provisions & Cook</span>
+            </div>
+            <ArrowDownRight className="h-4 w-4 text-amber-600 group-hover:scale-110 transition" />
+          </Link>
+
+          <Link
+            href="/nazim/finance"
+            className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 hover:bg-indigo-100/70 transition flex items-center justify-between group"
+          >
+            <div>
+              <span className="text-xs font-bold text-indigo-900 block">⚡ Utilities & Repairs</span>
+              <span className="text-[10px] text-indigo-700 font-medium">Electric/Water/Maintenance</span>
+            </div>
+            <ArrowDownRight className="h-4 w-4 text-indigo-600 group-hover:scale-110 transition" />
+          </Link>
         </div>
       </div>
 
