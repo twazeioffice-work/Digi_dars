@@ -353,6 +353,42 @@ const SPENDING_LINE_ITEMS = [
   { id: "EXP-007", category: "Cloud & Communication", payee: "Meta WhatsApp API & Server Cloud Infrastructure", amount: 2500, paymentMethod: "Credit Card", status: "Auto-debited", date: "2026-08-10" },
 ];
 
+// Historical Month-Over-Month Performance Tracker (Since Day 1)
+const getStudentHistory = (studentId: string) => {
+  const historyData: Record<string, any[]> = {
+    "stud_101": [
+      { name: "June (Day 1)", score: 75, attendance: 90, rank: 3 },
+      { name: "July", score: 82, attendance: 92, rank: 2 },
+      { name: "August (Pres)", score: 90, attendance: 95, rank: 2 }
+    ],
+    "stud_102": [
+      { name: "June (Day 1)", score: 70, attendance: 85, rank: 4 },
+      { name: "July", score: 78, attendance: 88, rank: 3 },
+      { name: "August (Pres)", score: 88, attendance: 92, rank: 3 }
+    ],
+    "stud_103": [
+      { name: "June (Day 1)", score: 75, attendance: 82, rank: 2 },
+      { name: "July", score: 62, attendance: 75, rank: 5 },
+      { name: "August (Pres)", score: 50, attendance: 70, rank: 5 }
+    ],
+    "stud_104": [
+      { name: "June (Day 1)", score: 68, attendance: 78, rank: 5 },
+      { name: "July", score: 55, attendance: 72, rank: 6 },
+      { name: "August (Pres)", score: 40, attendance: 65, rank: 6 }
+    ],
+    "stud_201": [
+      { name: "June (Day 1)", score: 95, attendance: 100, rank: 1 },
+      { name: "July", score: 98, attendance: 100, rank: 1 },
+      { name: "August (Pres)", score: 100, attendance: 100, rank: 1 }
+    ]
+  };
+  return historyData[studentId] || [
+    { name: "June (Day 1)", score: 70, attendance: 85, rank: 1 },
+    { name: "July", score: 75, attendance: 90, rank: 1 },
+    { name: "August (Pres)", score: 80, attendance: 92, rank: 1 }
+  ];
+};
+
 // =============================================================================
 // MAIN APP COMPONENT
 // =============================================================================
@@ -403,9 +439,9 @@ export default function UnifiedDarsCrmApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
-  // Super Admin View Modes (Now including click-through audit panels for Income, Spending, Student Grading)
+  // Super Admin View Modes (Now including click-through audit panels for Income, Spending, Student Grading, Student Profile, Staff Profile)
   const [adminViewMode, setAdminViewMode] = useState<
-    'home' | 'centers_list' | 'center_detail' | 'usthad_list' | 'student_list' | 'income_audit' | 'spending_audit' | 'student_grading_audit'
+    'home' | 'centers_list' | 'center_detail' | 'usthad_list' | 'student_list' | 'income_audit' | 'spending_audit' | 'student_grading_audit' | 'student_profile' | 'staff_profile'
   >('home');
   const [selectedCenterId, setSelectedCenterId] = useState<string>('ctr_1');
 
@@ -658,6 +694,7 @@ export default function UnifiedDarsCrmApp() {
 
   const selectedStudentProfile = adminSubmenu === 'students' ? students.find(s => s.id === selectedProfileId) : undefined;
   const selectedStaffProfile = adminSubmenu === 'staff' ? staff.find(st => st.id === selectedProfileId) : undefined;
+  const activeProfile = adminSubmenu === 'students' ? selectedStudentProfile : selectedStaffProfile;
 
   const avgStudentScore = Math.round(students.reduce((acc, s) => acc + s.overallScore, 0) / students.length);
 
@@ -767,6 +804,8 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'income_audit' && <span className="text-emerald-500 font-bold">Income Audit</span>}
                 {adminViewMode === 'spending_audit' && <span className="text-rose-500 font-bold">Spending Audit</span>}
                 {adminViewMode === 'student_grading_audit' && <span className="text-indigo-500 font-bold">Student Grading Audit</span>}
+                {adminViewMode === 'student_profile' && <span className="text-teal-500 font-bold">Student Profile</span>}
+                {adminViewMode === 'staff_profile' && <span className="text-indigo-500 font-bold">Staff Profile</span>}
                 {adminViewMode === 'center_detail' && (
                   <>
                     <span className={`${textMutedClass} cursor-pointer hover:text-teal-500`} onClick={() => setAdminViewMode('centers_list')}>Centers</span>
@@ -791,8 +830,8 @@ export default function UnifiedDarsCrmApp() {
               </div>
             </div>
 
-            {/* OVERVIEW OF ALL FACILITIES (ALL 6 CARDS ARE NOW LIGHT CREAM IN LIGHT MODE AND PURE BLACK IN DARK MODE) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            {/* OVERVIEW OF ALL FACILITIES (7 CARDS WITH DYNAMIC CLICKABILITY & LIGHT CREAM / PURE BLACK THEME) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
               
               {/* CARD 1: WHATSAPP MESSAGES PENDING */}
               <div 
@@ -903,1156 +942,1653 @@ export default function UnifiedDarsCrmApp() {
                 </div>
               </div>
 
+              {/* CARD 7: STAFF PAYROLL VERIFICATION */}
+              <div 
+                onClick={() => {
+                  const element = document.getElementById('payroll-section');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    alert("Scroll down to the bottom of the Home panel to inspect and verify salary sheets!");
+                  }
+                }}
+                className={`p-4 rounded-xl flex flex-col justify-between border border-dashed cursor-pointer transition group ${cardBgClass} hover:border-emerald-500/50`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] text-emerald-500 font-extrabold tracking-wider uppercase">Staff Payroll</span>
+                  <CreditCard className="h-4.5 w-4.5 text-emerald-500 group-hover:scale-110 transition" />
+                </div>
+                <div>
+                  <span className="text-2xl font-black text-emerald-500 block">
+                    {staff.filter(s => !s.isPaid).length} Pending
+                  </span>
+                  <span className={`text-[10px] font-medium block mt-1 ${textMutedClass}`}>Verify & release salaries</span>
+                </div>
+              </div>
+
             </div>
 
-            {/* DYNAMIC DRILL-DOWN AUDIT PANELS & HOME WORKSPACE */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* LEFT COLUMN: ACTIVE INTERACTIVE AUDITS OR DIRECTORY */}
-              <div className="lg:col-span-2 space-y-6">
-                
-                {/* DRILL-DOWN AUDIT 1: MONTHLY INCOME AUDIT (TRACKED TO THE LAST RUPEE) */}
-                {adminViewMode === 'income_audit' && (
-                  <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                    }`}>
+            {/* FULL DETAILED STUDENT PROFILE VIEW WITH MONTH-OVER-MONTH HISTORICAL CHART */}
+            {adminViewMode === 'student_profile' && activeProfile && (() => {
+              const s = activeProfile as Student;
+              const history = getStudentHistory(s.id);
+              const totalStars = s.stars ? s.stars.length : 0;
+              const totalWarnings = s.warnings ? s.warnings.length : 0;
+
+              return (
+                <div className={`rounded-2xl p-6 border space-y-6 shadow-xl animate-fadeIn ${cardBgClass}`}>
+                  {/* Profile Header */}
+                  <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 ${
+                    isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-14 rounded-xl bg-teal-500/10 border border-teal-500/30 flex flex-col items-center justify-center text-teal-500">
+                        <Users className="h-6 w-6" />
+                        <span className="text-[10px] font-bold mt-1 uppercase">{s.code}</span>
+                      </div>
                       <div>
-                        <h3 className={`font-bold flex items-center gap-2 text-emerald-500`}>
-                          <DollarSign className="h-5 w-5" />
-                          Monthly Income Audit Ledger (₹1,85,000 Total)
-                        </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Itemized breakdown of all tuition collections, Zakat grants, and boarding fees tracked to the last point.</p>
-                      </div>
-                      <button 
-                        onClick={() => setAdminViewMode('home')}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
-                        }`}
-                      >
-                        ← Back Home
-                      </button>
-                    </div>
-
-                    {/* Summary Categories Breakdown */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Student Tuition Fees</span>
-                        <strong className="text-base text-emerald-500 block mt-0.5">₹1,20,000</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>8 Students @ ₹15,000</span>
-                      </div>
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Zakat & Sadaqah Grants</span>
-                        <strong className="text-base text-emerald-500 block mt-0.5">₹45,000</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>2 Verified Donor Grants</span>
-                      </div>
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Hostel & Mess Charges</span>
-                        <strong className="text-base text-emerald-500 block mt-0.5">₹20,000</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>8 Boarding Students</span>
+                        <div className="flex items-center gap-2">
+                          <h3 className={`text-xl font-black ${textTitleClass}`}>{s.name}</h3>
+                          <span className="text-[10px] bg-teal-500/10 text-teal-500 font-bold px-2.5 py-0.5 rounded-full uppercase">
+                            {s.centerCode}
+                          </span>
+                        </div>
+                        <p className={`text-xs mt-1 ${textMutedClass}`}>
+                          <strong>Branch:</strong> {s.centerName} | <strong>Batch:</strong> {s.batchName}
+                        </p>
+                        <p className={`text-[11px] mt-0.5 ${textMutedClass}`}>
+                          <strong>Parent Contact:</strong> {s.parentName} ({s.parentPhone})
+                        </p>
                       </div>
                     </div>
 
-                    {/* Itemized Income Log Table */}
-                    <div className="space-y-2.5">
-                      <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Itemized Revenue Audit Log</span>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead>
-                            <tr className={`border-b uppercase tracking-wider font-semibold ${
-                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
-                            }`}>
-                              <th className="py-2.5 px-2">TXN Ref</th>
-                              <th className="py-2.5 px-2">Category</th>
-                              <th className="py-2.5 px-2">Payer / Source Details</th>
-                              <th className="py-2.5 px-2">Date</th>
-                              <th className="py-2.5 px-2 text-right">Amount</th>
-                              <th className="py-2.5 px-2 text-right">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
-                            {INCOME_LINE_ITEMS.map((item) => (
-                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}>
-                                <td className="py-3 px-2 font-mono font-bold text-[11px] text-teal-500">{item.id}</td>
-                                <td className={`py-3 px-2 font-semibold ${textTitleClass}`}>{item.category}</td>
-                                <td className={`py-3 px-2 ${textMutedClass}`}>{item.source}</td>
-                                <td className={`py-3 px-2 text-[11px] ${textMutedClass}`}>{item.date}</td>
-                                <td className="py-3 px-2 text-right font-black text-emerald-500">₹{item.amount.toLocaleString()}</td>
-                                <td className="py-3 px-2 text-right">
-                                  <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded font-bold inline-block">
-                                    {item.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
-                      <div className="flex items-center gap-2">
-                        <CheckSquare className="h-4 w-4 text-emerald-500" />
-                        <span className={textMutedClass}>Bank audit verified. 100% funds reconciled.</span>
-                      </div>
-                      <button 
-                        onClick={() => alert("Audit statement exported as PDF!")}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Export Audit Statement
-                      </button>
-                    </div>
+                    <button 
+                      onClick={() => setAdminViewMode('home')}
+                      className={`text-xs font-bold px-4 py-2 rounded-xl transition border ${
+                        isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                      }`}
+                    >
+                      ← Back to Dashboard
+                    </button>
                   </div>
-                )}
 
-                {/* DRILL-DOWN AUDIT 2: MONTHLY SPENDING AUDIT (TRACKED TO THE LAST RUPEE) */}
-                {adminViewMode === 'spending_audit' && (
-                  <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                    }`}>
-                      <div>
-                        <h3 className={`font-bold flex items-center gap-2 text-rose-500`}>
-                          <CreditCard className="h-5 w-5" />
-                          Monthly Spending & Expense Audit (₹50,500 Total)
-                        </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Itemized expense ledger tracking staff payroll, kitchen provisions, and server cloud costs to the last rupee.</p>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* COLUMN 1: ACADEMIC PROGRESS & HISTORY */}
+                    <div className="space-y-6">
+                      {/* Historical progression chart */}
+                      <div className={`p-4 rounded-xl border space-y-3 ${innerCardClass}`}>
+                        <h4 className="text-xs font-bold text-teal-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <RefreshCw className="h-4 w-4 animate-spin-slow" /> Past & Present Performance (Since Day 1)
+                        </h4>
+                        <div className="h-48 text-xs">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={history} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#27272a" : "#e6dfd3"} />
+                              <XAxis dataKey="name" stroke={isDark ? "#a1a1aa" : "#78716c"} tick={{ fontSize: 10 }} />
+                              <YAxis domain={[0, 100]} stroke={isDark ? "#a1a1aa" : "#78716c"} tick={{ fontSize: 10 }} />
+                              <Tooltip contentStyle={{ backgroundColor: isDark ? '#09090b' : '#fffdfa', borderColor: isDark ? '#27272a' : '#e6dfd3', color: isDark ? '#fff' : '#1c1917' }} />
+                              <Bar dataKey="score" fill="#0d9488" radius={[4, 4, 0, 0]} name="Score %" />
+                              <Bar dataKey="attendance" fill="#6366f1" radius={[4, 4, 0, 0]} name="Attd %" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className={`text-[10px] text-center font-semibold ${textMutedClass}`}>
+                          Performance metrics show month-over-month cumulative growth
+                        </div>
                       </div>
-                      <button 
-                        onClick={() => setAdminViewMode('home')}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
-                        }`}
-                      >
-                        ← Back Home
-                      </button>
-                    </div>
 
-                    {/* Summary Expense Categories */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Net Staff Salaries</span>
-                        <strong className="text-base text-rose-500 block mt-0.5">₹36,000</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>Net Payroll Dispatched</span>
-                      </div>
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Kitchen & Mess Operations</span>
-                        <strong className="text-base text-rose-500 block mt-0.5">₹10,500</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>Rice, Oil, Veggie supplies</span>
-                      </div>
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Utilities & Cloud APIs</span>
-                        <strong className="text-base text-rose-500 block mt-0.5">₹4,000</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>Electricity & WABA Cloud</span>
-                      </div>
-                    </div>
-
-                    {/* Itemized Expense Table */}
-                    <div className="space-y-2.5">
-                      <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Itemized Expense Voucher Log</span>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead>
-                            <tr className={`border-b uppercase tracking-wider font-semibold ${
-                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
-                            }`}>
-                              <th className="py-2.5 px-2">Voucher Code</th>
-                              <th className="py-2.5 px-2">Expense Line Item</th>
-                              <th className="py-2.5 px-2">Payment Method</th>
-                              <th className="py-2.5 px-2">Date</th>
-                              <th className="py-2.5 px-2 text-right">Amount</th>
-                              <th className="py-2.5 px-2 text-right">Audit Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
-                            {SPENDING_LINE_ITEMS.map((item) => (
-                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}>
-                                <td className="py-3 px-2 font-mono font-bold text-[11px] text-rose-500">{item.id}</td>
-                                <td className="py-3 px-2">
-                                  <span className={`font-bold block ${textTitleClass}`}>{item.category}</span>
-                                  <span className={`text-[10px] ${textMutedClass}`}>{item.payee}</span>
-                                </td>
-                                <td className={`py-3 px-2 text-[11px] ${textTitleClass}`}>{item.paymentMethod}</td>
-                                <td className={`py-3 px-2 text-[11px] ${textMutedClass}`}>{item.date}</td>
-                                <td className="py-3 px-2 text-right font-black text-rose-500">₹{item.amount.toLocaleString()}</td>
-                                <td className="py-3 px-2 text-right">
-                                  <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded font-bold inline-block">
-                                    {item.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      {/* Tarbiyyah Core Progress Card */}
+                      <div className={`p-4 rounded-xl border space-y-4 ${innerCardClass}`}>
+                        <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Award className="h-4 w-4" /> Tarbiyyah Core Category Scores
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex justify-between text-xs font-semibold mb-1">
+                              <span className={textMutedClass}>🕌 Namaz & Congregation Compliance</span>
+                              <span className="text-indigo-500 font-bold">{s.overallScore}%</span>
+                            </div>
+                            <div className={`w-full rounded-full h-2 ${isDark ? 'bg-neutral-900' : 'bg-[#e8decb]'}`}>
+                              <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${s.overallScore}%` }}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-xs font-semibold mb-1">
+                              <span className={textMutedClass}>📖 Study hours & Sabak Hifz</span>
+                              <span className="text-teal-500 font-bold">{s.sabakScore}%</span>
+                            </div>
+                            <div className={`w-full rounded-full h-2 ${isDark ? 'bg-neutral-900' : 'bg-[#e8decb]'}`}>
+                              <div className="bg-teal-500 h-2 rounded-full" style={{ width: `${s.sabakScore}%` }}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-xs font-semibold mb-1">
+                              <span className={textMutedClass}>🧼 Personal Hygiene & Adab</span>
+                              <span className="text-emerald-500 font-bold">{s.overallScore + 5 > 100 ? 100 : s.overallScore + 5}%</span>
+                            </div>
+                            <div className={`w-full rounded-full h-2 ${isDark ? 'bg-neutral-900' : 'bg-[#e8decb]'}`}>
+                              <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${s.overallScore + 5 > 100 ? 100 : s.overallScore + 5}%` }}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-xs font-semibold mb-1">
+                              <span className={textMutedClass}>🧹 Hostel Chores Contribution</span>
+                              <span className="text-amber-500 font-bold">{s.overallScore - 5 < 0 ? 0 : s.overallScore - 5}%</span>
+                            </div>
+                            <div className={`w-full rounded-full h-2 ${isDark ? 'bg-neutral-900' : 'bg-[#e8decb]'}`}>
+                              <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${s.overallScore - 5 < 0 ? 0 : s.overallScore - 5}%` }}></div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
-                      <span className={textMutedClass}>Budget variance +2.4% within monthly projection limits.</span>
-                      <button 
-                        onClick={() => alert("Expense voucher summary exported!")}
-                        className="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Download Expense Vouchers
-                      </button>
-                    </div>
-                  </div>
-                )}
+                    {/* COLUMN 2: BEHAVIORAL RECORDS TIMELINE */}
+                    <div className="space-y-6 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Achievements - Stars */}
+                      <div className={`p-4 rounded-xl border space-y-4 ${innerCardClass}`}>
+                        <h4 className="text-xs font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Star className="h-4 w-4 fill-amber-500 text-amber-500" /> Star Achievements ({totalStars} Earned)
+                        </h4>
+                        
+                        <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
+                          {s.stars && s.stars.length > 0 ? (
+                            s.stars.map((star) => (
+                              <div key={star.id} className={`p-3.5 rounded-xl border space-y-1.5 text-xs leading-normal ${
+                                isDark ? 'bg-neutral-900/60 border-neutral-800' : 'bg-[#fffdfa] border-[#e6dfd3]'
+                              }`}>
+                                <div className="flex justify-between items-center">
+                                  <strong className="text-amber-500 flex items-center gap-1.5">
+                                    <Star className="h-3.5 w-3.5 fill-amber-500" /> {star.category}
+                                  </strong>
+                                  <span className={`text-[10px] font-bold ${textMutedClass}`}>{star.date}</span>
+                                </div>
+                                <p className={`italic ${textTitleClass}`}>&ldquo;{star.explanation}&rdquo;</p>
+                                <div className="text-[10px] text-teal-500 font-semibold block mt-1">Issued by: {star.teacher}</div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className={`p-8 text-center italic text-xs ${textMutedClass}`}>
+                              No achievement stars recorded on the ledger this month.
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-                {/* DRILL-DOWN AUDIT 3: GLOBAL STUDENT GRADING AUDIT (TRACKED TO THE LAST SCORE POINT) */}
-                {adminViewMode === 'student_grading_audit' && (
-                  <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                    }`}>
-                      <div>
-                        <h3 className={`font-bold flex items-center gap-2 text-indigo-500`}>
-                          <Users className="h-5 w-5" />
-                          Global Student Grading Audit Scorecard ({avgStudentScore}% Cumulative Avg)
-                        </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Individual student scores evaluated to the last point across Namaz, Hygiene, Hifz, Chores & Conduct.</p>
-                      </div>
-                      <button 
-                        onClick={() => setAdminViewMode('home')}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
-                        }`}
-                      >
-                        ← Back Home
-                      </button>
-                    </div>
+                      {/* Warning Logs */}
+                      <div className={`p-4 rounded-xl border space-y-4 ${innerCardClass}`}>
+                        <h4 className="text-xs font-bold text-rose-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <AlertCircle className="h-4 w-4 text-rose-500" /> Disciplinary Warnings ({totalWarnings} Logged)
+                        </h4>
 
-                    {/* Summary Grade Statistics */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>High Performers (≥80%)</span>
-                        <strong className="text-base text-emerald-500 block mt-0.5">3 Students (60%)</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>Zaid, Nabeel, Ayman</span>
+                        <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
+                          {s.warnings && s.warnings.length > 0 ? (
+                            s.warnings.map((warn) => (
+                              <div key={warn.id} className="bg-rose-500/5 p-3.5 rounded-xl border border-rose-500/20 space-y-1.5 text-xs leading-normal">
+                                <div className="flex justify-between items-center">
+                                  <strong className="text-rose-500 flex items-center gap-1.5">
+                                    <AlertCircle className="h-3.5 w-3.5" /> {warn.category}
+                                  </strong>
+                                  <span className="text-rose-500 bg-rose-500/10 text-[9px] px-1.5 py-0.5 rounded font-black uppercase">{warn.severity}</span>
+                                </div>
+                                <p className={`italic ${textTitleClass}`}>&ldquo;{warn.explanation}&rdquo;</p>
+                                <div className={`text-[10px] font-semibold block mt-1 ${textMutedClass}`}>Issued by: {warn.teacher} on {warn.date}</div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-8 text-center text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5">
+                              <CheckCircle className="h-4 w-4" /> Outstanding behavior! No warnings logged.
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Underperforming (&lt;70%)</span>
-                        <strong className="text-base text-rose-500 block mt-0.5">2 Students (40%)</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>Azaan, Yahiya</span>
-                      </div>
-                      <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                        <span className={`block font-semibold ${textMutedClass}`}>Cumulative Network Avg</span>
-                        <strong className="text-base text-indigo-500 block mt-0.5">{avgStudentScore}% Grade</strong>
-                        <span className={`text-[10px] ${textMutedClass}`}>5 Students Total Roster</span>
-                      </div>
-                    </div>
 
-                    {/* Detailed Scorecard Table */}
-                    <div className="space-y-2.5">
-                      <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Student Score Breakdown (Click row to inspect profile)</span>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead>
-                            <tr className={`border-b uppercase tracking-wider font-semibold ${
-                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
-                            }`}>
-                              <th className="py-2.5 px-2">Student & Center</th>
-                              <th className="py-2.5 px-2">Namaz</th>
-                              <th className="py-2.5 px-2">Hygiene</th>
-                              <th className="py-2.5 px-2">Sabak/Hifz</th>
-                              <th className="py-2.5 px-2">Chores</th>
-                              <th className="py-2.5 px-2">Merits / Warnings</th>
-                              <th className="py-2.5 px-2 text-right">Final Grade</th>
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
-                            {students.map((student) => {
-                              const starsCount = student.stars.length;
-                              const warningsCount = student.warnings.length;
-                              return (
-                                <tr 
-                                  key={student.id} 
-                                  onClick={() => {
-                                    setSelectedProfileId(student.id);
-                                    setAdminSubmenu('students');
-                                    alert(`Loaded ${student.name}'s profile in right dossier panel.`);
-                                  }}
-                                  className={`cursor-pointer transition ${isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}`}
-                                >
-                                  <td className="py-3 px-2">
-                                    <span className={`font-bold block ${textTitleClass}`}>{student.name}</span>
-                                    <span className={`text-[10px] ${textMutedClass}`}>{student.code} | {student.centerCode}</span>
-                                  </td>
-                                  <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '95%' : '60%'}</td>
-                                  <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '90%' : '50%'}</td>
-                                  <td className="py-3 px-2 font-semibold">{student.sabakScore}%</td>
-                                  <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '85%' : '40%'}</td>
-                                  <td className="py-3 px-2">
-                                    <div className="flex items-center gap-1 text-[10px]">
-                                      {starsCount > 0 && <span className="bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-bold">+{starsCount * 5} Stars</span>}
-                                      {warningsCount > 0 && <span className="bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded font-bold">-{warningsCount * 15} Warn</span>}
-                                      {starsCount === 0 && warningsCount === 0 && <span className={textMutedClass}>Neutral</span>}
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-2 text-right">
-                                    <span className={`font-black text-sm block ${student.overallScore >= 80 ? 'text-emerald-500' : student.overallScore >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
-                                      {student.overallScore}%
+                      {/* Leaves Applications inside the detailed full profile */}
+                      <div className={`p-4 rounded-xl border space-y-4 md:col-span-2 ${innerCardClass}`}>
+                        <h4 className="text-xs font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4 text-amber-500" /> Historical & Active Leaves Registry
+                        </h4>
+
+                        <div className="space-y-3">
+                          {s.leaveRequests && s.leaveRequests.length > 0 ? (
+                            s.leaveRequests.map((l) => (
+                              <div key={l.id} className={`p-4 rounded-xl border flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-xs ${
+                                isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-[#fffdfa] border-[#e6dfd3]'
+                              }`}>
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded ${l.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-500' : l.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500 animate-pulse' : 'bg-rose-500/10 text-rose-500'}`}>
+                                      {l.status}
                                     </span>
-                                    <span className={`text-[9px] uppercase font-bold ${textMutedClass}`}>
-                                      {student.overallScore >= 80 ? 'Grade A' : student.overallScore >= 70 ? 'Grade B' : 'Grade F'}
+                                    <strong className={textTitleClass}>Dates: {l.startDate} to {l.endDate}</strong>
+                                  </div>
+                                  <p className={`italic mt-1 ${textMutedClass}`}>&ldquo;{l.reason}&rdquo;</p>
+                                </div>
+
+                                {l.status === 'PENDING' && (
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <button 
+                                      onClick={() => {
+                                        setStudents(prev => prev.map(stud => {
+                                          if (stud.id === s.id) {
+                                            return {
+                                              ...stud,
+                                              leaveRequests: stud.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
+                                            };
+                                          }
+                                          return stud;
+                                        }));
+                                        alert("Leave Approved! WhatsApp confirmation dispatched automatically.");
+                                      }}
+                                      className="bg-teal-500 hover:bg-teal-600 text-slate-950 font-black px-3.5 py-1.5 rounded-lg transition"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        setStudents(prev => prev.map(stud => {
+                                          if (stud.id === s.id) {
+                                            return {
+                                              ...stud,
+                                              leaveRequests: stud.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
+                                            };
+                                          }
+                                          return stud;
+                                        }));
+                                        alert("Leave request declined.");
+                                      }}
+                                      className={`font-bold px-3.5 py-1.5 rounded-lg transition border text-rose-500 ${
+                                        isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
+                                      }`}
+                                    >
+                                      Decline
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <div className={`p-4 text-center text-xs italic ${textMutedClass}`}>
+                              No leave applications recorded in history.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* FULL DETAILED STAFF PROFILE VIEW */}
+            {adminViewMode === 'staff_profile' && activeProfile && (() => {
+              const st = activeProfile as Staff;
+              const netSalary = st.baseSalary - st.advanceTaken;
+
+              return (
+                <div className={`rounded-2xl p-6 border space-y-6 shadow-xl animate-fadeIn ${cardBgClass}`}>
+                  {/* Profile Header */}
+                  <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 ${
+                    isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-14 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex flex-col items-center justify-center text-indigo-500">
+                        <Award className="h-6 w-6" />
+                        <span className="text-[10px] font-bold mt-1 uppercase">{st.code}</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className={`text-xl font-black ${textTitleClass}`}>{st.name}</h3>
+                          <span className="text-[10px] bg-indigo-500/10 text-indigo-500 font-bold px-2.5 py-0.5 rounded-full uppercase">
+                            {st.role}
+                          </span>
+                        </div>
+                        <p className={`text-xs mt-1 ${textMutedClass}`}>
+                          <strong>Center:</strong> {st.centerName}
+                        </p>
+                        {st.role === 'usthad' && (
+                          <p className="text-xs text-indigo-500 mt-0.5">
+                            <strong>Assigned Class:</strong> {st.batchManaged}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => setAdminViewMode('home')}
+                      className={`text-xs font-bold px-4 py-2 rounded-xl transition border ${
+                        isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                      }`}
+                    >
+                      ← Back to Dashboard
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* COLUMN 1: RATINGS & ACADEMIC IMPACT */}
+                    <div className={`p-5 rounded-xl border space-y-4 ${innerCardClass}`}>
+                      <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <Award className="h-4 w-4" /> Operational & Performance Quality Metrics
+                      </h4>
+
+                      <div className={`p-4 rounded-xl text-center space-y-2 border ${
+                        isDark ? 'bg-neutral-900/60 border-neutral-800' : 'bg-[#fffdfa] border-[#e6dfd3]'
+                      }`}>
+                        <span className={`text-xs block font-semibold ${textMutedClass}`}>Active Rating Grade</span>
+                        <span className={`text-3xl font-black ${textTitleClass}`}>{st.rating}/100</span>
+                        <div className={`w-full rounded-full h-2.5 mt-2 ${isDark ? 'bg-neutral-950' : 'bg-[#e8decb]'}`}>
+                          <div className={`h-2.5 rounded-full ${st.rating >= 80 ? 'bg-emerald-500' : st.rating >= 70 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${st.rating}%` }}></div>
+                        </div>
+                      </div>
+
+                      {st.id === 'staff_1' && st.rating < 100 && (
+                        <div className="bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-xl text-xs text-rose-500 leading-normal space-y-1">
+                          <strong className="flex items-center gap-1">
+                            <AlertCircle className="h-3.5 w-3.5" /> Progressive Penalty Active
+                          </strong>
+                          <p className={textTitleClass}>Rating penalized from 100 to 70 due to 50% underperformance in the assigned batch (2 out of 4 students failing daily Tarbiyyah averages).</p>
+                        </div>
+                      )}
+
+                      <div className={`space-y-2 text-xs p-3 rounded-lg border ${
+                        isDark ? 'bg-neutral-900/40 border-neutral-850' : 'bg-[#fffdfa] border-[#e6dfd3]'
+                      }`}>
+                        <div className="flex justify-between">
+                          <span className={textMutedClass}>Past Month (June):</span>
+                          <span className={`font-bold ${textTitleClass}`}>95 / 100</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className={textMutedClass}>Past Month (July):</span>
+                          <span className={`font-bold ${textTitleClass}`}>90 / 100</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className={textMutedClass}>Present (August):</span>
+                          <span className="font-bold text-teal-500">{st.rating} / 100</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* COLUMN 2: FINANCIAL & DISBURSEMENT LEDGER */}
+                    <div className={`p-5 rounded-xl border space-y-4 ${innerCardClass}`}>
+                      <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <DollarSign className="h-4 w-4" /> Salaries, Loans & Repayments Log
+                      </h4>
+
+                      <div className="space-y-3.5 text-xs">
+                        <div className={`flex justify-between border-b pb-2 ${isDark ? 'border-neutral-800' : 'border-[#ebdccb]'}`}>
+                          <span className={textMutedClass}>Base Salary Contract</span>
+                          <span className={`font-bold ${textTitleClass}`}>₹{st.baseSalary}</span>
+                        </div>
+                        <div className={`flex justify-between border-b pb-2 ${isDark ? 'border-neutral-800' : 'border-[#ebdccb]'}`}>
+                          <span className={textMutedClass}>Advance Loans Taken</span>
+                          <span className={`font-bold ${textTitleClass}`}>₹{st.advanceTaken}</span>
+                        </div>
+                        <div className={`flex justify-between border-b pb-2 ${isDark ? 'border-neutral-800' : 'border-[#ebdccb]'}`}>
+                          <span className="text-rose-500">Repayment Deductions</span>
+                          <span className="font-bold text-rose-500">-₹{st.advanceTaken}</span>
+                        </div>
+                        <div className="flex justify-between pt-1 text-sm">
+                          <span className={`font-bold ${textTitleClass}`}>Net Salary Payable</span>
+                          <span className="font-black text-emerald-500">₹{netSalary}</span>
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-xl border space-y-3 ${
+                        isDark ? 'bg-neutral-900/60 border-neutral-800' : 'bg-[#fffdfa] border-[#e6dfd3]'
+                      }`}>
+                        <div className="flex justify-between text-xs">
+                          <span className={textMutedClass}>Payment Channel:</span>
+                          <strong className={textTitleClass}>{st.paymentMethod}</strong>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className={textMutedClass}>Release Status:</span>
+                          <span className={`font-extrabold ${st.isPaid ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`}>
+                            {st.isPaid ? 'PAID & CONFIRMED' : 'AWAITING VERIFICATION'}
+                          </span>
+                        </div>
+
+                        {!st.isPaid && (
+                          <button 
+                            onClick={() => {
+                              setStaff(prev => prev.map(s => s.id === st.id ? { ...s, isPaid: true } : s));
+                              alert(`Salary released successfully via ${st.paymentMethod}!`);
+                            }}
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs py-2 rounded-lg transition"
+                          >
+                            Release Salary Funds
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* COLUMN 3: LEAVE REGISTRY */}
+                    <div className={`p-5 rounded-xl border space-y-4 ${innerCardClass}`}>
+                      <h4 className="text-xs font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4" /> Leave Applications Registry
+                      </h4>
+
+                      <div className="space-y-3">
+                        {st.leaveRequests && st.leaveRequests.length > 0 ? (
+                          st.leaveRequests.map((l) => (
+                            <div key={l.id} className={`p-4 rounded-xl border space-y-3 text-xs ${
+                              isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-[#fffdfa] border-[#e6dfd3]'
+                            }`}>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${l.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-500' : l.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500 animate-pulse' : 'bg-rose-500/10 text-rose-500'}`}>
+                                    {l.status}
+                                  </span>
+                                  <span className={`text-[10px] ${textMutedClass}`}>{l.startDate} to {l.endDate}</span>
+                                </div>
+                                <p className={`mt-1 italic ${textMutedClass}`}>&ldquo;{l.reason}&rdquo;</p>
+                              </div>
+
+                              {l.status === 'PENDING' && (
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={() => {
+                                      setStaff(prev => prev.map(s => {
+                                        if (s.id === st.id) {
+                                          return {
+                                            ...s,
+                                            leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
+                                          };
+                                        }
+                                        return s;
+                                      }));
+                                      alert("Staff Leave Approved. Shift replacement alert sent.");
+                                    }}
+                                    className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 font-black py-1 rounded transition"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setStaff(prev => prev.map(s => {
+                                        if (s.id === st.id) {
+                                          return {
+                                            ...s,
+                                            leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
+                                          };
+                                        }
+                                        return s;
+                                      }));
+                                      alert("Staff Leave request declined.");
+                                    }}
+                                    className={`flex-1 font-bold py-1 rounded transition border text-rose-500 ${
+                                      isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
+                                    }`}
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className={`p-4 text-center text-xs italic ${textMutedClass}`}>
+                            No leave requests filed.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* DYNAMIC DRILL-DOWN AUDIT PANELS & HOME WORKSPACE */}
+            {adminViewMode !== 'student_profile' && adminViewMode !== 'staff_profile' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* LEFT COLUMN: ACTIVE INTERACTIVE AUDITS OR DIRECTORY */}
+                <div className="lg:col-span-2 space-y-6">
+                  
+                  {/* DRILL-DOWN AUDIT 1: MONTHLY INCOME AUDIT (TRACKED TO THE LAST RUPEE) */}
+                  {adminViewMode === 'income_audit' && (
+                    <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 text-emerald-500`}>
+                            <DollarSign className="h-5 w-5" />
+                            Monthly Income Audit Ledger (₹1,85,000 Total)
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Itemized breakdown of all tuition collections, Zakat grants, and boarding fees tracked to the last point.</p>
+                        </div>
+                        <button 
+                          onClick={() => setAdminViewMode('home')}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                            isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                          }`}
+                        >
+                          ← Back Home
+                        </button>
+                      </div>
+
+                      {/* Summary Categories Breakdown */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Student Tuition Fees</span>
+                          <strong className="text-base text-emerald-500 block mt-0.5">₹1,20,000</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>8 Students @ ₹15,000</span>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Zakat & Sadaqah Grants</span>
+                          <strong className="text-base text-emerald-500 block mt-0.5">₹45,000</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>2 Verified Donor Grants</span>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Hostel & Mess Charges</span>
+                          <strong className="text-base text-emerald-500 block mt-0.5">₹20,000</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>8 Boarding Students</span>
+                        </div>
+                      </div>
+
+                      {/* Itemized Income Log Table */}
+                      <div className="space-y-2.5">
+                        <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Itemized Revenue Audit Log</span>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className={`border-b uppercase tracking-wider font-semibold ${
+                                isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
+                              }`}>
+                                <th className="py-2.5 px-2">TXN Ref</th>
+                                <th className="py-2.5 px-2">Category</th>
+                                <th className="py-2.5 px-2">Payer / Source Details</th>
+                                <th className="py-2.5 px-2">Date</th>
+                                <th className="py-2.5 px-2 text-right">Amount</th>
+                                <th className="py-2.5 px-2 text-right">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
+                              {INCOME_LINE_ITEMS.map((item) => (
+                                <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}>
+                                  <td className="py-3 px-2 font-mono font-bold text-[11px] text-teal-500">{item.id}</td>
+                                  <td className={`py-3 px-2 font-semibold ${textTitleClass}`}>{item.category}</td>
+                                  <td className={`py-3 px-2 ${textMutedClass}`}>{item.source}</td>
+                                  <td className={`py-3 px-2 text-[11px] ${textMutedClass}`}>{item.date}</td>
+                                  <td className="py-3 px-2 text-right font-black text-emerald-500">₹{item.amount.toLocaleString()}</td>
+                                  <td className="py-3 px-2 text-right">
+                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded font-bold inline-block">
+                                      {item.status}
                                     </span>
                                   </td>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-4 w-4 text-emerald-500" />
+                          <span className={textMutedClass}>Bank audit verified. 100% funds reconciled.</span>
+                        </div>
+                        <button 
+                          onClick={() => alert("Audit statement exported as PDF!")}
+                          className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Export Audit Statement
+                        </button>
                       </div>
                     </div>
+                  )}
 
-                    <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
-                      <span className={textMutedClass}>Select any student row above to inspect their live daily checklist and leave log.</span>
-                      <button 
-                        onClick={() => alert("Student Scorecard exported to PDF!")}
-                        className="bg-indigo-500 hover:bg-indigo-600 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Export Grading Report
-                      </button>
+                  {/* DRILL-DOWN AUDIT 2: MONTHLY SPENDING AUDIT (TRACKED TO THE LAST RUPEE) */}
+                  {adminViewMode === 'spending_audit' && (
+                    <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 text-rose-500`}>
+                            <CreditCard className="h-5 w-5" />
+                            Monthly Spending & Expense Audit (₹50,500 Total)
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Itemized expense ledger tracking staff payroll, kitchen provisions, and server cloud costs to the last rupee.</p>
+                        </div>
+                        <button 
+                          onClick={() => setAdminViewMode('home')}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                            isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                          }`}
+                        >
+                          ← Back Home
+                        </button>
+                      </div>
+
+                      {/* Summary Expense Categories */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Net Staff Salaries</span>
+                          <strong className="text-base text-rose-500 block mt-0.5">₹36,000</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>Net Payroll Dispatched</span>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Kitchen & Mess Operations</span>
+                          <strong className="text-base text-rose-500 block mt-0.5">₹10,500</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>Rice, Oil, Veggie supplies</span>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Utilities & Cloud APIs</span>
+                          <strong className="text-base text-rose-500 block mt-0.5">₹4,000</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>Electricity & WABA Cloud</span>
+                        </div>
+                      </div>
+
+                      {/* Itemized Expense Table */}
+                      <div className="space-y-2.5">
+                        <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Itemized Expense Voucher Log</span>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className={`border-b uppercase tracking-wider font-semibold ${
+                                isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
+                              }`}>
+                                <th className="py-2.5 px-2">Voucher Code</th>
+                                <th className="py-2.5 px-2">Expense Line Item</th>
+                                <th className="py-2.5 px-2">Payment Method</th>
+                                <th className="py-2.5 px-2">Date</th>
+                                <th className="py-2.5 px-2 text-right">Amount</th>
+                                <th className="py-2.5 px-2 text-right">Audit Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
+                              {SPENDING_LINE_ITEMS.map((item) => (
+                                <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}>
+                                  <td className="py-3 px-2 font-mono font-bold text-[11px] text-rose-500">{item.id}</td>
+                                  <td className="py-3 px-2">
+                                    <span className={`font-bold block ${textTitleClass}`}>{item.category}</span>
+                                    <span className={`text-[10px] ${textMutedClass}`}>{item.payee}</span>
+                                  </td>
+                                  <td className={`py-3 px-2 text-[11px] ${textTitleClass}`}>{item.paymentMethod}</td>
+                                  <td className={`py-3 px-2 text-[11px] ${textMutedClass}`}>{item.date}</td>
+                                  <td className="py-3 px-2 text-right font-black text-rose-500">₹{item.amount.toLocaleString()}</td>
+                                  <td className="py-3 px-2 text-right">
+                                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/20 px-2 py-0.5 rounded font-bold inline-block">
+                                      {item.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
+                        <span className={textMutedClass}>Budget variance +2.4% within monthly projection limits.</span>
+                        <button 
+                          onClick={() => alert("Expense voucher summary exported!")}
+                          className="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Download Expense Vouchers
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DRILL-DOWN AUDIT 3: GLOBAL STUDENT GRADING AUDIT (TRACKED TO THE LAST SCORE POINT) */}
+                  {adminViewMode === 'student_grading_audit' && (
+                    <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 text-indigo-500`}>
+                            <Users className="h-5 w-5" />
+                            Global Student Grading Audit Scorecard ({avgStudentScore}% Cumulative Avg)
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Individual student scores evaluated to the last point across Namaz, Hygiene, Hifz, Chores & Conduct.</p>
+                        </div>
+                        <button 
+                          onClick={() => setAdminViewMode('home')}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                            isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                          }`}
+                        >
+                          ← Back Home
+                        </button>
+                      </div>
+
+                      {/* Summary Grade Statistics */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>High Performers (≥80%)</span>
+                          <strong className="text-base text-emerald-500 block mt-0.5">3 Students (60%)</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>Zaid, Nabeel, Ayman</span>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Underperforming (&lt;70%)</span>
+                          <strong className="text-base text-rose-500 block mt-0.5">2 Students (40%)</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>Azaan, Yahiya</span>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
+                          <span className={`block font-semibold ${textMutedClass}`}>Cumulative Network Avg</span>
+                          <strong className="text-base text-indigo-500 block mt-0.5">{avgStudentScore}% Grade</strong>
+                          <span className={`text-[10px] ${textMutedClass}`}>5 Students Total Roster</span>
+                        </div>
+                      </div>
+
+                      {/* Detailed Scorecard Table */}
+                      <div className="space-y-2.5">
+                        <span className={`text-xs font-bold uppercase tracking-wider block ${textMutedClass}`}>Student Score Breakdown (Click row to inspect profile)</span>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className={`border-b uppercase tracking-wider font-semibold ${
+                                isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
+                              }`}>
+                                <th className="py-2.5 px-2">Student & Center</th>
+                                <th className="py-2.5 px-2">Namaz</th>
+                                <th className="py-2.5 px-2">Hygiene</th>
+                                <th className="py-2.5 px-2">Sabak/Hifz</th>
+                                <th className="py-2.5 px-2">Chores</th>
+                                <th className="py-2.5 px-2">Merits / Warnings</th>
+                                <th className="py-2.5 px-2 text-right">Final Grade</th>
+                              </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
+                              {students.map((student) => {
+                                const starsCount = student.stars.length;
+                                const warningsCount = student.warnings.length;
+                                return (
+                                  <tr 
+                                    key={student.id} 
+                                    onClick={() => {
+                                      setSelectedProfileId(student.id);
+                                      setAdminSubmenu('students');
+                                      setAdminViewMode('student_profile');
+                                    }}
+                                    className={`cursor-pointer transition ${isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}`}
+                                  >
+                                    <td className="py-3 px-2">
+                                      <span className={`font-bold block ${textTitleClass}`}>{student.name}</span>
+                                      <span className={`text-[10px] ${textMutedClass}`}>{student.code} | {student.centerCode}</span>
+                                    </td>
+                                    <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '95%' : '60%'}</td>
+                                    <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '90%' : '50%'}</td>
+                                    <td className="py-3 px-2 font-semibold">{student.sabakScore}%</td>
+                                    <td className="py-3 px-2 font-semibold">{student.overallScore >= 70 ? '85%' : '40%'}</td>
+                                    <td className="py-3 px-2">
+                                      <div className="flex items-center gap-1 text-[10px]">
+                                        {starsCount > 0 && <span className="bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-bold">+{starsCount * 5} Stars</span>}
+                                        {warningsCount > 0 && <span className="bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded font-bold">-{warningsCount * 15} Warn</span>}
+                                        {starsCount === 0 && warningsCount === 0 && <span className={textMutedClass}>Neutral</span>}
+                                      </div>
+                                    </td>
+                                    <td className="py-3 px-2 text-right">
+                                      <span className={`font-black text-sm block ${student.overallScore >= 80 ? 'text-emerald-500' : student.overallScore >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                        {student.overallScore}%
+                                      </span>
+                                      <span className={`text-[9px] uppercase font-bold ${textMutedClass}`}>
+                                        {student.overallScore >= 80 ? 'Grade A' : student.overallScore >= 70 ? 'Grade B' : 'Grade F'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${innerCardClass}`}>
+                        <span className={textMutedClass}>Select any student row above to inspect their live daily checklist and leave log.</span>
+                        <button 
+                          onClick={() => alert("Student Scorecard exported to PDF!")}
+                          className="bg-indigo-500 hover:bg-indigo-600 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1 transition"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Export Grading Report
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBVIEW 1A: DEFAULT DIRECTORY SEARCH OVERVIEW */}
+                  {adminViewMode === 'home' && (
+                    <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
+                      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
+                            <ClipboardList className="h-5 w-5 text-teal-500" />
+                            Oversight & Leaves Directory
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Search and approve profiles across all network branches</p>
+                        </div>
+                        
+                        {/* Leaves sub-menus toggler */}
+                        <div className={`flex p-1 rounded-lg border ${subMenuBgClass}`}>
+                          <button 
+                            onClick={() => { setAdminSubmenu('students'); setSelectedProfileId(null); }}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${adminSubmenu === 'students' ? 'bg-teal-500 text-slate-950 shadow-sm' : `${textMutedClass} hover:text-teal-500`}`}
+                          >
+                            Students Directory
+                          </button>
+                          <button 
+                            onClick={() => { setAdminSubmenu('staff'); setSelectedProfileId(null); }}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${adminSubmenu === 'staff' ? 'bg-teal-500 text-slate-950 shadow-sm' : `${textMutedClass} hover:text-teal-500`}`}
+                          >
+                            Staff Directory
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Top Search bar */}
+                      <div className="relative">
+                        <Search className={`absolute left-3 top-3 h-4.5 w-4.5 ${textMutedClass}`} />
+                        <input 
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder={adminSubmenu === 'students' ? "Search student name, code, center name, or code..." : "Search staff name, code, center..."}
+                          className={`w-full rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 border ${inputBgClass}`}
+                        />
+                      </div>
+
+                      {/* Directory Result List */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto pr-1">
+                        {adminSubmenu === 'students' ? (
+                          filteredStudents.map(student => (
+                            <div 
+                              key={student.id}
+                              onClick={() => { setSelectedProfileId(student.id); setAdminSubmenu('students'); setAdminViewMode('student_profile'); }}
+                              className={`p-4 rounded-xl border cursor-pointer transition flex justify-between items-start ${
+                                selectedProfileId === student.id ? 'bg-teal-500/10 border-teal-500' : `${innerCardClass} hover:border-teal-500/40`
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                    isDark ? 'bg-neutral-800 text-neutral-300' : 'bg-[#eee4d4] text-stone-800'
+                                  }`}>
+                                    {student.code}
+                                  </span>
+                                  <span className="text-[10px] bg-teal-500/10 text-teal-500 font-bold px-1.5 py-0.5 rounded">
+                                    {student.centerCode}
+                                  </span>
+                                </div>
+                                <h4 className={`font-bold text-sm ${textTitleClass}`}>{student.name}</h4>
+                                <p className={`text-[11px] ${textMutedClass}`}>{student.centerName} | {student.batchName}</p>
+                              </div>
+                              
+                              <div className="text-right">
+                                <span className={`text-xs font-black block ${student.overallScore >= 70 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                  {student.overallScore}% Grade
+                                </span>
+                                {student.leaveRequests.some(l => l.status === 'PENDING') && (
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-500 font-bold px-1 py-0.5 rounded block mt-1 animate-pulse">
+                                    Leave Pending
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          filteredStaff.map(member => (
+                            <div 
+                              key={member.id}
+                              onClick={() => { setSelectedProfileId(member.id); setAdminSubmenu('staff'); setAdminViewMode('staff_profile'); }}
+                              className={`p-4 rounded-xl border cursor-pointer transition flex justify-between items-start ${
+                                selectedProfileId === member.id ? 'bg-teal-500/10 border-teal-500' : `${innerCardClass} hover:border-teal-500/40`
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                    isDark ? 'bg-neutral-800 text-neutral-300' : 'bg-[#eee4d4] text-stone-800'
+                                  }`}>
+                                    {member.code}
+                                  </span>
+                                  <span className="text-[10px] bg-indigo-500/10 text-indigo-500 font-bold px-1.5 py-0.5 rounded uppercase">
+                                    {member.role}
+                                  </span>
+                                </div>
+                                <h4 className={`font-bold text-sm ${textTitleClass}`}>{member.name}</h4>
+                                <p className={`text-[11px] ${textMutedClass}`}>{member.centerName}</p>
+                              </div>
+                              
+                              <div className="text-right">
+                                <span className={`text-xs font-black block ${member.rating >= 80 ? 'text-emerald-500' : member.rating >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                  {member.rating}/100 Rating
+                                </span>
+                                {member.leaveRequests && member.leaveRequests.some(l => l.status === 'PENDING') && (
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-500 font-bold px-1 py-0.5 rounded block mt-1 animate-pulse">
+                                    Leave Pending
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBVIEW 1B: CENTER-WISE RANKINGS LIST */}
+                  {adminViewMode === 'centers_list' && (
+                    <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
+                            <Award className="h-5 w-5 text-amber-500" />
+                            Center-wise Rankings Leaderboard
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Relative performance index across all network institutions</p>
+                        </div>
+                        <button 
+                          onClick={() => setAdminViewMode('home')}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                            isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                          }`}
+                        >
+                          ← Back Home
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* CENTER CARD 1: CTR-02 (Malappuram) */}
+                        <div 
+                          onClick={() => {
+                            setSelectedCenterId('ctr_2');
+                            setAdminViewMode('center_detail');
+                          }}
+                          className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 group ${innerCardClass} hover:border-teal-500/50`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 font-extrabold text-sm">
+                              #1
+                            </div>
+                            <div>
+                              <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Malappuram Hifz Academy</h4>
+                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase ${
+                                isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-[#eee4d4] text-stone-700 border-[#dccbb4]'
+                              }`}>Code: CTR-02</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-lg font-black text-emerald-500 block">{ctr2OverallScore}%</span>
+                            <span className={`text-[10px] ${textMutedClass}`}>Global Score</span>
+                          </div>
+                        </div>
+
+                        {/* CENTER CARD 2: CTR-01 (Calicut) */}
+                        <div 
+                          onClick={() => {
+                            setSelectedCenterId('ctr_1');
+                            setAdminViewMode('center_detail');
+                          }}
+                          className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 group ${innerCardClass} hover:border-teal-500/50`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`h-10 w-10 rounded-lg border flex items-center justify-center font-extrabold text-sm ${
+                              isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-400' : 'bg-[#eee4d4] border-[#dccbb4] text-stone-800'
+                            }`}>
+                              #2
+                            </div>
+                            <div>
+                              <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Al-Noor Central (Calicut)</h4>
+                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase ${
+                                isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-[#eee4d4] text-stone-700 border-[#dccbb4]'
+                              }`}>Code: CTR-01</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-lg font-black text-amber-500 block">{ctr1OverallScore}%</span>
+                            <span className={`text-[10px] ${textMutedClass}`}>Global Score</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBVIEW 1C: CENTER DETAILS BREAKDOWNS */}
+                  {adminViewMode === 'center_detail' && (
+                    <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
+                            <Building className="h-5 w-5 text-teal-500" />
+                            {selectedCenterId === 'ctr_1' ? 'Al-Noor Central (Calicut)' : 'Malappuram Hifz Academy'} - Component Breakdown
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Click on any core score parameter below to drill down into localized reports</p>
+                        </div>
+                        <button 
+                          onClick={() => setAdminViewMode('centers_list')}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                            isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                          }`}
+                        >
+                          ← Back to List
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        
+                        {/* Nazim card */}
+                        <div 
+                          onClick={() => {
+                            if (selectedCenterId === 'ctr_1') {
+                              setSelectedProfileId('staff_3');
+                              setAdminSubmenu('staff');
+                              setAdminViewMode('staff_profile');
+                            } else {
+                              alert("Malappuram local administrator record is not initialized in this session sandbox.");
+                            }
+                          }}
+                          className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between min-h-[140px] group ${innerCardClass} hover:border-emerald-500/50`}
+                        >
+                          <div>
+                            <span className="text-[10px] text-emerald-500 font-extrabold block uppercase tracking-wider mb-1">Nazim Rating (Avg)</span>
+                            <h4 className={`font-bold text-sm group-hover:text-emerald-500 transition ${textTitleClass}`}>Administration & Tasks</h4>
+                            <p className={`text-[10px] mt-1 ${textMutedClass}`}>Local compliance tracking and duty audit logs</p>
+                          </div>
+                          <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
+                            isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
+                          }`}>
+                            <span className={`text-[10px] underline group-hover:text-emerald-500 transition ${textMutedClass}`}>View Profile</span>
+                            <span className="text-lg font-black text-emerald-500">
+                              {selectedCenterId === 'ctr_1' ? ctr1NazimRating : 100}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Usthad card */}
+                        <div 
+                          onClick={() => setAdminViewMode('usthad_list')}
+                          className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between min-h-[140px] group ${innerCardClass} hover:border-indigo-500/50`}
+                        >
+                          <div>
+                            <span className="text-[10px] text-indigo-500 font-extrabold block uppercase tracking-wider mb-1">Usthad Rating (Avg)</span>
+                            <h4 className={`font-bold text-sm group-hover:text-indigo-500 transition ${textTitleClass}`}>Teaching Staff Ratings</h4>
+                            <p className={`text-[10px] mt-1 ${textMutedClass}`}>Classroom grading with dynamic class penalties</p>
+                          </div>
+                          <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
+                            isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
+                          }`}>
+                            <span className="text-[10px] text-indigo-500 font-bold group-hover:underline">Drill Down List →</span>
+                            <span className="text-lg font-black text-indigo-500">
+                              {selectedCenterId === 'ctr_1' ? ctr1AvgUsthad : ctr2AvgUsthad}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Student card */}
+                        <div 
+                          onClick={() => setAdminViewMode('student_list')}
+                          className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between min-h-[140px] group ${innerCardClass} hover:border-teal-500/50`}
+                        >
+                          <div>
+                            <span className="text-[10px] text-teal-500 font-extrabold block uppercase tracking-wider mb-1">Students Rating (Avg)</span>
+                            <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Student Progress Grades</h4>
+                            <p className={`text-[10px] mt-1 ${textMutedClass}`}>Average daily chores, hygiene, and namaz parameters</p>
+                          </div>
+                          <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
+                            isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
+                          }`}>
+                            <span className="text-[10px] text-teal-500 font-bold group-hover:underline">Drill Down List →</span>
+                            <span className="text-lg font-black text-teal-500">
+                              {selectedCenterId === 'ctr_1' ? ctr1AvgStudent : ctr2AvgStudent}%
+                            </span>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBVIEW 1D: DRILL DOWN LIST OF USTHADS */}
+                  {adminViewMode === 'usthad_list' && (
+                    <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
+                            <Award className="h-5 w-5 text-indigo-500" />
+                            Usthads in {selectedCenterId === 'ctr_1' ? 'Al-Noor Central (Calicut)' : 'Malappuram Hifz Academy'}
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Click on any teacher's profile to view full records in the right dossier panel</p>
+                        </div>
+                        <button 
+                          onClick={() => setAdminViewMode('center_detail')}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                            isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                          }`}
+                        >
+                          ← Back to Center
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {staff.filter(st => st.centerId === selectedCenterId && st.role === 'usthad').map(teacher => (
+                          <div 
+                            key={teacher.id}
+                            onClick={() => {
+                              setSelectedProfileId(teacher.id);
+                              setAdminSubmenu('staff');
+                              setAdminViewMode('staff_profile');
+                            }}
+                            className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 ${
+                              selectedProfileId === teacher.id ? 'bg-indigo-500/10 border-indigo-500' : `${innerCardClass} hover:border-indigo-500/40`
+                            }`}
+                          >
+                            <div>
+                              <h4 className={`font-bold text-sm ${textTitleClass}`}>{teacher.name}</h4>
+                              <p className={`text-xs ${textMutedClass}`}>Managing: <strong>{teacher.batchManaged}</strong> | Code: {teacher.code}</p>
+                              {teacher.id === 'staff_1' && teacher.rating < 100 && (
+                                <span className="text-[10px] bg-rose-500/15 text-rose-500 px-2 py-0.5 rounded font-bold block mt-1.5 border border-rose-500/20 max-w-max">
+                                  ⚠️ Class Penalty Triggered (-30 points due to batch underperformance)
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-right flex items-center gap-3">
+                              <div>
+                                <span className="text-sm font-black text-indigo-500 block">{teacher.rating}/100</span>
+                                <span className={`text-[9px] block uppercase ${textMutedClass}`}>Rating Score</span>
+                              </div>
+                              <ChevronRight className={`h-4 w-4 ${textMutedClass}`} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBVIEW 1E: DRILL DOWN LIST OF STUDENTS */}
+                  {adminViewMode === 'student_list' && (
+                    <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 ${
+                        isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
+                      }`}>
+                        <div>
+                          <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
+                            <Users className="h-5 w-5 text-teal-500" />
+                            Students in {selectedCenterId === 'ctr_1' ? 'Al-Noor Central (Calicut)' : 'Malappuram Hifz Academy'}
+                          </h3>
+                          <p className={`text-xs ${textMutedClass}`}>Click on any profile below to load their achievements dossier and leave applications on the right panel</p>
+                        </div>
+                        <button 
+                          onClick={() => setAdminViewMode('center_detail')}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                            isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
+                          }`}
+                        >
+                          ← Back to Center
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {students.filter(stud => stud.centerId === selectedCenterId).map(student => (
+                          <div 
+                            key={student.id}
+                            onClick={() => {
+                              setSelectedProfileId(student.id);
+                              setAdminSubmenu('students');
+                              setAdminViewMode('student_profile');
+                            }}
+                            className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 ${
+                              selectedProfileId === student.id ? 'bg-teal-500/10 border-teal-500' : `${innerCardClass} hover:border-teal-500/40`
+                            }`}
+                          >
+                            <div>
+                              <h4 className={`font-bold text-sm ${textTitleClass}`}>{student.name}</h4>
+                              <p className={`text-xs ${textMutedClass}`}>{student.batchName} | Card: {student.code}</p>
+                              <div className="flex gap-1.5 mt-1">
+                                <span className={`text-[9px] px-1.5 rounded ${
+                                  isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-[#eee4d4] text-stone-800'
+                                }`}>Juz: {student.memorizedJuz.split(',')[0]}</span>
+                                <span className={`text-[9px] px-1.5 rounded ${
+                                  isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-[#eee4d4] text-stone-800'
+                                }`}>Attd: {student.attendanceRate}%</span>
+                              </div>
+                            </div>
+                            <div className="text-right flex items-center gap-2">
+                              <div>
+                                <span className={`text-xs font-black block ${student.overallScore >= 70 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                  {student.overallScore}%
+                                </span>
+                                <span className={`text-[9px] block uppercase font-medium ${textMutedClass}`}>Grade</span>
+                              </div>
+                              <ChevronRight className={`h-4 w-4 ${textMutedClass}`} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Direct-to-Super-Admin Triage System */}
+                  <div id="complaints-section" className={`rounded-2xl p-5 space-y-4 border scroll-mt-20 ${cardBgClass}`}>
+                    <div>
+                      <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
+                        <ShieldAlert className="h-5 w-5 text-rose-500 animate-pulse" />
+                        Student/Parent Complaints Pipeline
+                      </h3>
+                      <p className={`text-xs ${textMutedClass}`}>Direct reports bypassing local branch logs. Direct action or route assignment.</p>
+                    </div>
+
+                    <div className="space-y-3.5">
+                      {complaints.map(comp => (
+                        <div key={comp.id} className={`p-4 rounded-xl space-y-3 border ${innerCardClass}`}>
+                          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2 ${
+                            isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
+                          }`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                comp.category === 'Nazim Mismanagement' ? 'bg-rose-500/10 text-rose-500' : `${subMenuBgClass} ${textMutedClass}`
+                              }`}>
+                                {comp.category}
+                              </span>
+                              <span className={`text-xs font-medium ${textMutedClass}`}>From parent of {comp.studentName} ({comp.centerName})</span>
+                            </div>
+                            <span className={`text-[10px] ${textMutedClass}`}>{comp.createdAt}</span>
+                          </div>
+
+                          <p className={`text-sm p-3 rounded-lg border leading-relaxed italic ${
+                            isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-200' : 'bg-[#fffdfa] border-[#e6dfd3] text-stone-800'
+                          }`}>
+                            &ldquo;{comp.description}&rdquo;
+                          </p>
+
+                          {/* Complaint Actions Panel */}
+                          {comp.status === 'pending_super_admin' ? (
+                            <div className="flex items-center flex-wrap gap-2 pt-1">
+                              {comp.category === 'Nazim Mismanagement' ? (
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                  <span className="text-rose-500 text-xs font-bold flex items-center gap-1 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">
+                                    <AlertCircle className="h-3.5 w-3.5 animate-bounce" /> Direct Action Required (Locked from Nazim)
+                                  </span>
+                                  <button 
+                                    onClick={() => {
+                                      setComplaints(prev => prev.map(c => c.id === comp.id ? { ...c, status: 'resolved_by_super_admin' } : c));
+                                      alert("Action recorded. Branch Trustees notified. Study rooms ordered to remain open till 11 PM.");
+                                    }}
+                                    className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                                  >
+                                    Execute Direct Resolve
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <button 
+                                    onClick={() => {
+                                      setComplaints(prev => prev.map(c => c.id === comp.id ? { ...c, status: 'assigned_to_nazim' } : c));
+                                      alert("Complaint routed securely down to Nazim Faisal's active portal desk.");
+                                    }}
+                                    className="bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition"
+                                  >
+                                    <ArrowRight className="h-3.5 w-3.5" /> Delegate to Nazim
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setComplaints(prev => prev.map(c => c.id === comp.id ? { ...c, status: 'resolved_by_super_admin' } : c));
+                                      alert("Resolved by Super Admin. Standard service notes recorded.");
+                                    }}
+                                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
+                                      isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4]'
+                                    }`}
+                                  >
+                                    Resolve Direct
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold inline-flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                              <Check className="h-3.5 w-3.5" /> Status: {comp.status.replace(/_/g, ' ').toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                )}
 
-                {/* SUBVIEW 1A: DEFAULT DIRECTORY SEARCH OVERVIEW */}
-                {adminViewMode === 'home' && (
+                  {/* Scholastic Library Verification Portal */}
                   <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
                     <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
                       isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
-                          <ClipboardList className="h-5 w-5 text-teal-500" />
-                          Oversight & Leaves Directory
+                          <BookOpen className="h-5 w-5 text-indigo-500" />
+                          Hadith Library Gateway Verification
                         </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Search and approve profiles across all network branches</p>
+                        <p className={`text-xs ${textMutedClass}`}>Review external API collections before student/teacher release</p>
                       </div>
-                      
-                      {/* Leaves sub-menus toggler */}
-                      <div className={`flex p-1 rounded-lg border ${subMenuBgClass}`}>
+
+                      {/* Gatekeeper toggle switch */}
+                      <div className={`flex items-center gap-2 p-1.5 px-3 rounded-xl border ${subMenuBgClass}`}>
+                        <span className={`text-xs font-bold ${textMutedClass}`}>Released to Public:</span>
                         <button 
-                          onClick={() => { setAdminSubmenu('students'); setSelectedProfileId(null); }}
-                          className={`px-3 py-1 rounded-md text-xs font-bold transition ${adminSubmenu === 'students' ? 'bg-teal-500 text-slate-950 shadow-sm' : `${textMutedClass} hover:text-teal-500`}`}
-                        >
-                          Students Directory
-                        </button>
-                        <button 
-                          onClick={() => { setAdminSubmenu('staff'); setSelectedProfileId(null); }}
-                          className={`px-3 py-1 rounded-md text-xs font-bold transition ${adminSubmenu === 'staff' ? 'bg-teal-500 text-slate-950 shadow-sm' : `${textMutedClass} hover:text-teal-500`}`}
-                        >
-                          Staff Directory
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Top Search bar */}
-                    <div className="relative">
-                      <Search className={`absolute left-3 top-3 h-4.5 w-4.5 ${textMutedClass}`} />
-                      <input 
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={adminSubmenu === 'students' ? "Search student name, code, center name, or code..." : "Search staff name, code, center..."}
-                        className={`w-full rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 border ${inputBgClass}`}
-                      />
-                    </div>
-
-                    {/* Directory Result List */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto pr-1">
-                      {adminSubmenu === 'students' ? (
-                        filteredStudents.map(student => (
-                          <div 
-                            key={student.id}
-                            onClick={() => setSelectedProfileId(student.id)}
-                            className={`p-4 rounded-xl border cursor-pointer transition flex justify-between items-start ${
-                              selectedProfileId === student.id ? 'bg-teal-500/10 border-teal-500' : `${innerCardClass} hover:border-teal-500/40`
-                            }`}
-                          >
-                            <div>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                                  isDark ? 'bg-neutral-800 text-neutral-300' : 'bg-[#eee4d4] text-stone-800'
-                                }`}>
-                                  {student.code}
-                                </span>
-                                <span className="text-[10px] bg-teal-500/10 text-teal-500 font-bold px-1.5 py-0.5 rounded">
-                                  {student.centerCode}
-                                </span>
-                              </div>
-                              <h4 className={`font-bold text-sm ${textTitleClass}`}>{student.name}</h4>
-                              <p className={`text-[11px] ${textMutedClass}`}>{student.centerName} | {student.batchName}</p>
-                            </div>
-                            
-                            <div className="text-right">
-                              <span className={`text-xs font-black block ${student.overallScore >= 70 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {student.overallScore}% Grade
-                              </span>
-                              {student.leaveRequests.some(l => l.status === 'PENDING') && (
-                                <span className="text-[9px] bg-amber-500/20 text-amber-500 font-bold px-1 py-0.5 rounded block mt-1 animate-pulse">
-                                  Leave Pending
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        filteredStaff.map(member => (
-                          <div 
-                            key={member.id}
-                            onClick={() => setSelectedProfileId(member.id)}
-                            className={`p-4 rounded-xl border cursor-pointer transition flex justify-between items-start ${
-                              selectedProfileId === member.id ? 'bg-teal-500/10 border-teal-500' : `${innerCardClass} hover:border-teal-500/40`
-                            }`}
-                          >
-                            <div>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                                  isDark ? 'bg-neutral-800 text-neutral-300' : 'bg-[#eee4d4] text-stone-800'
-                                }`}>
-                                  {member.code}
-                                </span>
-                                <span className="text-[10px] bg-indigo-500/10 text-indigo-500 font-bold px-1.5 py-0.5 rounded uppercase">
-                                  {member.role}
-                                </span>
-                              </div>
-                              <h4 className={`font-bold text-sm ${textTitleClass}`}>{member.name}</h4>
-                              <p className={`text-[11px] ${textMutedClass}`}>{member.centerName}</p>
-                            </div>
-                            
-                            <div className="text-right">
-                              <span className={`text-xs font-black block ${member.rating >= 80 ? 'text-emerald-500' : member.rating >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
-                                {member.rating}/100 Rating
-                              </span>
-                              {member.leaveRequests && member.leaveRequests.some(l => l.status === 'PENDING') && (
-                                <span className="text-[9px] bg-amber-500/20 text-amber-500 font-bold px-1 py-0.5 rounded block mt-1 animate-pulse">
-                                  Leave Pending
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* SUBVIEW 1B: CENTER-WISE RANKINGS LIST */}
-                {adminViewMode === 'centers_list' && (
-                  <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                    }`}>
-                      <div>
-                        <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
-                          <Award className="h-5 w-5 text-amber-500" />
-                          Center-wise Rankings Leaderboard
-                        </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Relative performance index across all network institutions</p>
-                      </div>
-                      <button 
-                        onClick={() => setAdminViewMode('home')}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
-                        }`}
-                      >
-                        ← Back Home
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      {/* CENTER CARD 1: CTR-02 (Malappuram) */}
-                      <div 
-                        onClick={() => {
-                          setSelectedCenterId('ctr_2');
-                          setAdminViewMode('center_detail');
-                        }}
-                        className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 group ${innerCardClass} hover:border-teal-500/50`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 font-extrabold text-sm">
-                            #1
-                          </div>
-                          <div>
-                            <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Malappuram Hifz Academy</h4>
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase ${
-                              isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-[#eee4d4] text-stone-700 border-[#dccbb4]'
-                            }`}>Code: CTR-02</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-lg font-black text-emerald-500 block">{ctr2OverallScore}%</span>
-                          <span className={`text-[10px] ${textMutedClass}`}>Global Score</span>
-                        </div>
-                      </div>
-
-                      {/* CENTER CARD 2: CTR-01 (Calicut) */}
-                      <div 
-                        onClick={() => {
-                          setSelectedCenterId('ctr_1');
-                          setAdminViewMode('center_detail');
-                        }}
-                        className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 group ${innerCardClass} hover:border-teal-500/50`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`h-10 w-10 rounded-lg border flex items-center justify-center font-extrabold text-sm ${
-                            isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-400' : 'bg-[#eee4d4] border-[#dccbb4] text-stone-800'
-                          }`}>
-                            #2
-                          </div>
-                          <div>
-                            <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Al-Noor Central (Calicut)</h4>
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase ${
-                              isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-[#eee4d4] text-stone-700 border-[#dccbb4]'
-                            }`}>Code: CTR-01</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-lg font-black text-amber-500 block">{ctr1OverallScore}%</span>
-                          <span className={`text-[10px] ${textMutedClass}`}>Global Score</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* SUBVIEW 1C: CENTER DETAILS BREAKDOWNS */}
-                {adminViewMode === 'center_detail' && (
-                  <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                    }`}>
-                      <div>
-                        <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
-                          <Building className="h-5 w-5 text-teal-500" />
-                          {selectedCenterId === 'ctr_1' ? 'Al-Noor Central (Calicut)' : 'Malappuram Hifz Academy'} - Component Breakdown
-                        </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Click on any core score parameter below to drill down into localized reports</p>
-                      </div>
-                      <button 
-                        onClick={() => setAdminViewMode('centers_list')}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
-                        }`}
-                      >
-                        ← Back to List
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      
-                      {/* Nazim card */}
-                      <div 
-                        onClick={() => {
-                          if (selectedCenterId === 'ctr_1') {
-                            setSelectedProfileId('staff_3');
-                            setAdminSubmenu('staff');
-                            alert("Loaded Nazim Faisal's detailed profile inside the right-hand panel.");
-                          } else {
-                            alert("Malappuram local administrator record is not initialized in this session sandbox.");
-                          }
-                        }}
-                        className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between min-h-[140px] group ${innerCardClass} hover:border-emerald-500/50`}
-                      >
-                        <div>
-                          <span className="text-[10px] text-emerald-500 font-extrabold block uppercase tracking-wider mb-1">Nazim Rating (Avg)</span>
-                          <h4 className={`font-bold text-sm group-hover:text-emerald-500 transition ${textTitleClass}`}>Administration & Tasks</h4>
-                          <p className={`text-[10px] mt-1 ${textMutedClass}`}>Local compliance tracking and duty audit logs</p>
-                        </div>
-                        <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
-                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
-                        }`}>
-                          <span className={`text-[10px] underline group-hover:text-emerald-500 transition ${textMutedClass}`}>View Profile</span>
-                          <span className="text-lg font-black text-emerald-500">
-                            {selectedCenterId === 'ctr_1' ? ctr1NazimRating : 100}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Usthad card */}
-                      <div 
-                        onClick={() => setAdminViewMode('usthad_list')}
-                        className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between min-h-[140px] group ${innerCardClass} hover:border-indigo-500/50`}
-                      >
-                        <div>
-                          <span className="text-[10px] text-indigo-500 font-extrabold block uppercase tracking-wider mb-1">Usthad Rating (Avg)</span>
-                          <h4 className={`font-bold text-sm group-hover:text-indigo-500 transition ${textTitleClass}`}>Teaching Staff Ratings</h4>
-                          <p className={`text-[10px] mt-1 ${textMutedClass}`}>Classroom grading with dynamic class penalties</p>
-                        </div>
-                        <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
-                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
-                        }`}>
-                          <span className="text-[10px] text-indigo-500 font-bold group-hover:underline">Drill Down List →</span>
-                          <span className="text-lg font-black text-indigo-500">
-                            {selectedCenterId === 'ctr_1' ? ctr1AvgUsthad : ctr2AvgUsthad}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Student card */}
-                      <div 
-                        onClick={() => setAdminViewMode('student_list')}
-                        className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between min-h-[140px] group ${innerCardClass} hover:border-teal-500/50`}
-                      >
-                        <div>
-                          <span className="text-[10px] text-teal-500 font-extrabold block uppercase tracking-wider mb-1">Students Rating (Avg)</span>
-                          <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Student Progress Grades</h4>
-                          <p className={`text-[10px] mt-1 ${textMutedClass}`}>Average daily chores, hygiene, and namaz parameters</p>
-                        </div>
-                        <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
-                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
-                        }`}>
-                          <span className="text-[10px] text-teal-500 font-bold group-hover:underline">Drill Down List →</span>
-                          <span className="text-lg font-black text-teal-500">
-                            {selectedCenterId === 'ctr_1' ? ctr1AvgStudent : ctr2AvgStudent}%
-                          </span>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-                )}
-
-                {/* SUBVIEW 1D: DRILL DOWN LIST OF USTHADS */}
-                {adminViewMode === 'usthad_list' && (
-                  <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                    }`}>
-                      <div>
-                        <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
-                          <Award className="h-5 w-5 text-indigo-500" />
-                          Usthads in {selectedCenterId === 'ctr_1' ? 'Al-Noor Central (Calicut)' : 'Malappuram Hifz Academy'}
-                        </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Click on any teacher's profile to view full records in the right dossier panel</p>
-                      </div>
-                      <button 
-                        onClick={() => setAdminViewMode('center_detail')}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
-                        }`}
-                      >
-                        ← Back to Center
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      {staff.filter(st => st.centerId === selectedCenterId && st.role === 'usthad').map(teacher => (
-                        <div 
-                          key={teacher.id}
                           onClick={() => {
-                            setSelectedProfileId(teacher.id);
-                            setAdminSubmenu('staff');
-                            alert(`Loaded ${teacher.name}'s detailed profile in the right dossier panel.`);
+                            setIsLibraryEnabled(!isLibraryEnabled);
+                            alert(isLibraryEnabled ? "Library locked globally." : "Library unlocked. Now visible to students and Usthads.");
                           }}
-                          className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 ${
-                            selectedProfileId === teacher.id ? 'bg-indigo-500/10 border-indigo-500' : `${innerCardClass} hover:border-indigo-500/40`
-                          }`}
+                          className={`h-6 w-11 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${isLibraryEnabled ? 'bg-teal-500' : 'bg-stone-400 dark:bg-neutral-700'}`}
                         >
-                          <div>
-                            <h4 className={`font-bold text-sm ${textTitleClass}`}>{teacher.name}</h4>
-                            <p className={`text-xs ${textMutedClass}`}>Managing: <strong>{teacher.batchManaged}</strong> | Code: {teacher.code}</p>
-                            {teacher.id === 'staff_1' && teacher.rating < 100 && (
-                              <span className="text-[10px] bg-rose-500/15 text-rose-500 px-2 py-0.5 rounded font-bold block mt-1.5 border border-rose-500/20 max-w-max">
-                                ⚠️ Class Penalty Triggered (-30 points due to batch underperformance)
-                              </span>
-                            )}
+                          <div className={`h-5 w-5 rounded-full bg-white transition-transform duration-200 flex items-center justify-center ${isLibraryEnabled ? 'transform translate-x-5' : ''}`}>
+                            {isLibraryEnabled ? <Unlock className="h-3 w-3 text-teal-600" /> : <Lock className="h-3 w-3 text-stone-600" />}
                           </div>
-                          <div className="text-right flex items-center gap-3">
-                            <div>
-                              <span className="text-sm font-black text-indigo-500 block">{teacher.rating}/100</span>
-                              <span className={`text-[9px] block uppercase ${textMutedClass}`}>Rating Score</span>
-                            </div>
-                            <ChevronRight className={`h-4 w-4 ${textMutedClass}`} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* SUBVIEW 1E: DRILL DOWN LIST OF STUDENTS */}
-                {adminViewMode === 'student_list' && (
-                  <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
-                    <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                    }`}>
-                      <div>
-                        <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
-                          <Users className="h-5 w-5 text-teal-500" />
-                          Students in {selectedCenterId === 'ctr_1' ? 'Al-Noor Central (Calicut)' : 'Malappuram Hifz Academy'}
-                        </h3>
-                        <p className={`text-xs ${textMutedClass}`}>Click on any profile below to load their achievements dossier and leave applications on the right panel</p>
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => setAdminViewMode('center_detail')}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
-                        }`}
-                      >
-                        ← Back to Center
-                      </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {students.filter(stud => stud.centerId === selectedCenterId).map(student => (
-                        <div 
-                          key={student.id}
-                          onClick={() => {
-                            setSelectedProfileId(student.id);
-                            setAdminSubmenu('students');
-                            alert(`Loaded ${student.name}'s dynamic achievements dossier in the right dossier panel.`);
-                          }}
-                          className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between gap-4 ${
-                            selectedProfileId === student.id ? 'bg-teal-500/10 border-teal-500' : `${innerCardClass} hover:border-teal-500/40`
-                          }`}
-                        >
-                          <div>
-                            <h4 className={`font-bold text-sm ${textTitleClass}`}>{student.name}</h4>
-                            <p className={`text-xs ${textMutedClass}`}>{student.batchName} | Card: {student.code}</p>
-                            <div className="flex gap-1.5 mt-1">
-                              <span className={`text-[9px] px-1.5 rounded ${
-                                isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-[#eee4d4] text-stone-800'
-                              }`}>Juz: {student.memorizedJuz.split(',')[0]}</span>
-                              <span className={`text-[9px] px-1.5 rounded ${
-                                isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-[#eee4d4] text-stone-800'
-                              }`}>Attd: {student.attendanceRate}%</span>
-                            </div>
-                          </div>
-                          <div className="text-right flex items-center gap-2">
-                            <div>
-                              <span className={`text-xs font-black block ${student.overallScore >= 70 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {student.overallScore}%
-                              </span>
-                              <span className={`text-[9px] block uppercase font-medium ${textMutedClass}`}>Grade</span>
-                            </div>
-                            <ChevronRight className={`h-4 w-4 ${textMutedClass}`} />
-                          </div>
-                        </div>
-                      ))}
+                    <div className={`p-4 rounded-xl border space-y-3 ${innerCardClass}`}>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-bold ${textMutedClass}`}>Sunnah API Endpoint Hooked:</span>
+                        <span className="text-[11px] bg-teal-500/10 text-teal-500 font-mono px-2 py-0.5 rounded font-bold">https://sunnah.amanahagent.cloud/api/v1</span>
+                      </div>
+                      <div className={`text-xs leading-normal ${textMutedClass}`}>
+                        <strong className={textTitleClass}>Alim Verification Protocol:</strong> The Super Admin must audit API translations using scholastic benchmarks. Once verified, flip the gateway toggle to grant access to student tablets.
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Direct-to-Super-Admin Triage System */}
-                <div id="complaints-section" className={`rounded-2xl p-5 space-y-4 border scroll-mt-20 ${cardBgClass}`}>
-                  <div>
-                    <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
-                      <ShieldAlert className="h-5 w-5 text-rose-500 animate-pulse" />
-                      Student/Parent Complaints Pipeline
+                {/* RIGHT COLUMN: INTERACTIVE PROFILE DETAIL DOSSIER & ACTIONS */}
+                <div className="lg:col-span-1 space-y-6">
+                  
+                  {/* Detailed profile viewer */}
+                  <div className={`rounded-2xl p-5 space-y-4 border sticky top-24 ${cardBgClass}`}>
+                    <h3 className={`font-bold text-sm border-b pb-3 flex items-center gap-2 ${
+                      isDark ? 'border-neutral-800 text-white' : 'border-[#e6dfd3] text-stone-900'
+                    }`}>
+                      <Info className="h-4 w-4 text-teal-500" />
+                      Dossier Detail Panel
                     </h3>
-                    <p className={`text-xs ${textMutedClass}`}>Direct reports bypassing local branch logs. Direct action or route assignment.</p>
-                  </div>
 
-                  <div className="space-y-3.5">
-                    {complaints.map(comp => (
-                      <div key={comp.id} className={`p-4 rounded-xl space-y-3 border ${innerCardClass}`}>
-                        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2 ${
-                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
-                        }`}>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                              comp.category === 'Nazim Mismanagement' ? 'bg-rose-500/10 text-rose-500' : `${subMenuBgClass} ${textMutedClass}`
-                            }`}>
-                              {comp.category}
-                            </span>
-                            <span className={`text-xs font-medium ${textMutedClass}`}>From parent of {comp.studentName} ({comp.centerName})</span>
+                    {selectedStudentProfile ? (
+                      <div className="space-y-5 animate-fadeIn">
+                        <div className={`p-4 rounded-xl border text-center space-y-2 ${innerCardClass}`}>
+                          <div className="h-14 w-14 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center mx-auto">
+                            <Users className="h-7 w-7 text-teal-500" />
                           </div>
-                          <span className={`text-[10px] ${textMutedClass}`}>{comp.createdAt}</span>
+                          <div>
+                            <h4 className={`font-bold text-base ${textTitleClass}`}>{selectedStudentProfile.name}</h4>
+                            <span className="text-xs text-teal-500 font-bold">{selectedStudentProfile.code}</span>
+                          </div>
+                          <div className={`text-[11px] ${textMutedClass}`}>
+                            {selectedStudentProfile.centerName}
+                          </div>
                         </div>
 
-                        <p className={`text-sm p-3 rounded-lg border leading-relaxed italic ${
-                          isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-200' : 'bg-[#fffdfa] border-[#e6dfd3] text-stone-800'
-                        }`}>
-                          &ldquo;{comp.description}&rdquo;
-                        </p>
+                        <div className="space-y-4">
+                          <div className={`grid grid-cols-2 gap-3 text-xs p-3 rounded-lg border ${innerCardClass}`}>
+                            <div>
+                              <span className={`block font-semibold ${textMutedClass}`}>Attendance</span>
+                              <span className={`font-bold text-sm ${textTitleClass}`}>{selectedStudentProfile.attendanceRate}%</span>
+                            </div>
+                            <div>
+                              <span className={`block font-semibold ${textMutedClass}`}>Memorization</span>
+                              <span className={`font-bold text-sm ${textTitleClass}`}>{selectedStudentProfile.memorizedJuz}</span>
+                            </div>
+                          </div>
 
-                        {/* Complaint Actions Panel */}
-                        {comp.status === 'pending_super_admin' ? (
-                          <div className="flex items-center flex-wrap gap-2 pt-1">
-                            {comp.category === 'Nazim Mismanagement' ? (
-                              <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <span className="text-rose-500 text-xs font-bold flex items-center gap-1 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">
-                                  <AlertCircle className="h-3.5 w-3.5 animate-bounce" /> Direct Action Required (Locked from Nazim)
-                                </span>
-                                <button 
-                                  onClick={() => {
-                                    setComplaints(prev => prev.map(c => c.id === comp.id ? { ...c, status: 'resolved_by_super_admin' } : c));
-                                    alert("Action recorded. Branch Trustees notified. Study rooms ordered to remain open till 11 PM.");
-                                  }}
-                                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                                >
-                                  Execute Direct Resolve
-                                </button>
-                              </div>
+                          {/* Leave requests section */}
+                          {selectedStudentProfile.leaveRequests && selectedStudentProfile.leaveRequests.length > 0 && (
+                            <div className="space-y-2">
+                              <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Leave Applications</span>
+                              {selectedStudentProfile.leaveRequests.map((l: LeaveRequest) => (
+                                <div key={l.id} className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg space-y-2">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-amber-500 font-bold flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" /> Leave Request
+                                    </span>
+                                    <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold px-2 py-0.5 rounded">
+                                      {l.status}
+                                    </span>
+                                  </div>
+                                  <p className={`text-xs ${textTitleClass}`}><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
+                                  <p className={`text-xs font-medium ${textTitleClass}`}><strong>Reason:</strong> {l.reason}</p>
+                                  
+                                  {l.status === 'PENDING' && (
+                                    <div className="flex items-center gap-2 pt-1">
+                                      <button 
+                                        onClick={() => {
+                                          setStudents(prev => prev.map(s => {
+                                            if (s.id === selectedStudentProfile.id) {
+                                              return {
+                                                ...s,
+                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
+                                              };
+                                            }
+                                            return s;
+                                          }));
+                                          alert("Leave Approved! Confirmation dispatched to parent via Meta Cloud WhatsApp API.");
+                                        }}
+                                        className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
+                                      >
+                                        Approve
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          setStudents(prev => prev.map(s => {
+                                            if (s.id === selectedStudentProfile.id) {
+                                              return {
+                                                ...s,
+                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
+                                              };
+                                            }
+                                            return s;
+                                          }));
+                                          alert("Leave request declined. Status updated.");
+                                        }}
+                                        className={`flex-1 text-rose-500 text-[11px] font-bold py-1 rounded transition border ${
+                                          isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
+                                        }`}
+                                      >
+                                        Decline
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Stars breakdown */}
+                          <div className="space-y-2">
+                            <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Academic Stars Earned</span>
+                            {selectedStudentProfile.stars && selectedStudentProfile.stars.length > 0 ? (
+                              selectedStudentProfile.stars.map((s: StarItem) => (
+                                <div key={s.id} className={`p-3 rounded-lg border space-y-1 ${innerCardClass}`}>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-amber-500 font-bold flex items-center gap-1">
+                                      <Star className="h-3 w-3 fill-amber-500" /> {s.category}
+                                    </span>
+                                    <span className={`text-[10px] ${textMutedClass}`}>{s.date}</span>
+                                  </div>
+                                  <p className={`text-xs leading-normal ${textTitleClass}`}>{s.explanation}</p>
+                                  <span className="text-[10px] text-teal-500 block font-medium">Issued by: {s.teacher}</span>
+                                </div>
+                              ))
                             ) : (
-                              <>
-                                <button 
-                                  onClick={() => {
-                                    setComplaints(prev => prev.map(c => c.id === comp.id ? { ...c, status: 'assigned_to_nazim' } : c));
-                                    alert("Complaint routed securely down to Nazim Faisal's active portal desk.");
-                                  }}
-                                  className="bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition"
-                                >
-                                  <ArrowRight className="h-3.5 w-3.5" /> Delegate to Nazim
-                                </button>
-                                <button 
-                                  onClick={() => {
-                                    setComplaints(prev => prev.map(c => c.id === comp.id ? { ...c, status: 'resolved_by_super_admin' } : c));
-                                    alert("Resolved by Super Admin. Standard service notes recorded.");
-                                  }}
-                                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                                    isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4]'
-                                  }`}
-                                >
-                                  Resolve Direct
-                                </button>
-                              </>
+                              <p className={`text-xs ${textMutedClass}`}>No achievements recorded this month.</p>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-xs font-bold inline-flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                            <Check className="h-3.5 w-3.5" /> Status: {comp.status.replace(/_/g, ' ').toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Scholastic Library Verification Portal */}
-                <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
-                  <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
-                    isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
-                  }`}>
-                    <div>
-                      <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
-                        <BookOpen className="h-5 w-5 text-indigo-500" />
-                        Hadith Library Gateway Verification
-                      </h3>
-                      <p className={`text-xs ${textMutedClass}`}>Review external API collections before student/teacher release</p>
-                    </div>
-
-                    {/* Gatekeeper toggle switch */}
-                    <div className={`flex items-center gap-2 p-1.5 px-3 rounded-xl border ${subMenuBgClass}`}>
-                      <span className={`text-xs font-bold ${textMutedClass}`}>Released to Public:</span>
-                      <button 
-                        onClick={() => {
-                          setIsLibraryEnabled(!isLibraryEnabled);
-                          alert(isLibraryEnabled ? "Library locked globally." : "Library unlocked. Now visible to students and Usthads.");
-                        }}
-                        className={`h-6 w-11 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${isLibraryEnabled ? 'bg-teal-500' : 'bg-stone-400 dark:bg-neutral-700'}`}
-                      >
-                        <div className={`h-5 w-5 rounded-full bg-white transition-transform duration-200 flex items-center justify-center ${isLibraryEnabled ? 'transform translate-x-5' : ''}`}>
-                          {isLibraryEnabled ? <Unlock className="h-3 w-3 text-teal-600" /> : <Lock className="h-3 w-3 text-stone-600" />}
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={`p-4 rounded-xl border space-y-3 ${innerCardClass}`}>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${textMutedClass}`}>Sunnah API Endpoint Hooked:</span>
-                      <span className="text-[11px] bg-teal-500/10 text-teal-500 font-mono px-2 py-0.5 rounded font-bold">https://sunnah.amanahagent.cloud/api/v1</span>
-                    </div>
-                    <div className={`text-xs leading-normal ${textMutedClass}`}>
-                      <strong className={textTitleClass}>Alim Verification Protocol:</strong> The Super Admin must audit API translations using scholastic benchmarks. Once verified, flip the gateway toggle to grant access to student tablets.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN: INTERACTIVE PROFILE DETAIL DOSSIER & ACTIONS */}
-              <div className="lg:col-span-1 space-y-6">
-                
-                {/* Detailed profile viewer */}
-                <div className={`rounded-2xl p-5 space-y-4 border sticky top-24 ${cardBgClass}`}>
-                  <h3 className={`font-bold text-sm border-b pb-3 flex items-center gap-2 ${
-                    isDark ? 'border-neutral-800 text-white' : 'border-[#e6dfd3] text-stone-900'
-                  }`}>
-                    <Info className="h-4 w-4 text-teal-500" />
-                    Dossier Detail Panel
-                  </h3>
-
-                  {selectedStudentProfile ? (
-                    <div className="space-y-5 animate-fadeIn">
-                      <div className={`p-4 rounded-xl border text-center space-y-2 ${innerCardClass}`}>
-                        <div className="h-14 w-14 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center mx-auto">
-                          <Users className="h-7 w-7 text-teal-500" />
-                        </div>
-                        <div>
-                          <h4 className={`font-bold text-base ${textTitleClass}`}>{selectedStudentProfile.name}</h4>
-                          <span className="text-xs text-teal-500 font-bold">{selectedStudentProfile.code}</span>
-                        </div>
-                        <div className={`text-[11px] ${textMutedClass}`}>
-                          {selectedStudentProfile.centerName}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className={`grid grid-cols-2 gap-3 text-xs p-3 rounded-lg border ${innerCardClass}`}>
-                          <div>
-                            <span className={`block font-semibold ${textMutedClass}`}>Attendance</span>
-                            <span className={`font-bold text-sm ${textTitleClass}`}>{selectedStudentProfile.attendanceRate}%</span>
-                          </div>
-                          <div>
-                            <span className={`block font-semibold ${textMutedClass}`}>Memorization</span>
-                            <span className={`font-bold text-sm ${textTitleClass}`}>{selectedStudentProfile.memorizedJuz}</span>
-                          </div>
-                        </div>
-
-                        {/* Leave requests section */}
-                        {selectedStudentProfile.leaveRequests && selectedStudentProfile.leaveRequests.length > 0 && (
+                          {/* Warnings breakdown */}
                           <div className="space-y-2">
-                            <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Leave Applications</span>
-                            {selectedStudentProfile.leaveRequests.map((l: LeaveRequest) => (
-                              <div key={l.id} className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg space-y-2">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-amber-500 font-bold flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" /> Leave Request
-                                  </span>
-                                  <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold px-2 py-0.5 rounded">
-                                    {l.status}
-                                  </span>
-                                </div>
-                                <p className={`text-xs ${textTitleClass}`}><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
-                                <p className={`text-xs font-medium ${textTitleClass}`}><strong>Reason:</strong> {l.reason}</p>
-                                
-                                {l.status === 'PENDING' && (
-                                  <div className="flex items-center gap-2 pt-1">
-                                    <button 
-                                      onClick={() => {
-                                        setStudents(prev => prev.map(s => {
-                                          if (s.id === selectedStudentProfile.id) {
-                                            return {
-                                              ...s,
-                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
-                                            };
-                                          }
-                                          return s;
-                                        }));
-                                        alert("Leave Approved! Confirmation dispatched to parent via Meta Cloud WhatsApp API.");
-                                      }}
-                                      className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button 
-                                      onClick={() => {
-                                        setStudents(prev => prev.map(s => {
-                                          if (s.id === selectedStudentProfile.id) {
-                                            return {
-                                              ...s,
-                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
-                                            };
-                                          }
-                                          return s;
-                                        }));
-                                        alert("Leave request declined. Status updated.");
-                                      }}
-                                      className={`flex-1 text-rose-500 text-[11px] font-bold py-1 rounded transition border ${
-                                        isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
-                                      }`}
-                                    >
-                                      Decline
-                                    </button>
+                            <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Warning Log</span>
+                            {selectedStudentProfile.warnings && selectedStudentProfile.warnings.length > 0 ? (
+                              selectedStudentProfile.warnings.map((w: WarningItem) => (
+                                <div key={w.id} className="bg-rose-500/10 p-3 rounded-lg border border-rose-500/20 space-y-1">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-rose-500 font-bold flex items-center gap-1">
+                                      <AlertCircle className="h-3 w-3" /> {w.category}
+                                    </span>
+                                    <span className="text-rose-500 text-[10px] uppercase font-black">{w.severity}</span>
                                   </div>
-                                )}
-                              </div>
-                            ))}
+                                  <p className={`text-xs leading-normal ${textTitleClass}`}>{w.explanation}</p>
+                                  <span className={`text-[10px] block ${textMutedClass}`}>Issued by: {w.teacher}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-emerald-500 flex items-center gap-1 text-[11px] font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                                <CheckCircle className="h-4 w-4" /> Flawless conduct record this month!
+                              </p>
+                            )}
                           </div>
-                        )}
-
-                        {/* Stars breakdown */}
-                        <div className="space-y-2">
-                          <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Academic Stars Earned</span>
-                          {selectedStudentProfile.stars && selectedStudentProfile.stars.length > 0 ? (
-                            selectedStudentProfile.stars.map((s: StarItem) => (
-                              <div key={s.id} className={`p-3 rounded-lg border space-y-1 ${innerCardClass}`}>
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-amber-500 font-bold flex items-center gap-1">
-                                    <Star className="h-3 w-3 fill-amber-500" /> {s.category}
-                                  </span>
-                                  <span className={`text-[10px] ${textMutedClass}`}>{s.date}</span>
-                                </div>
-                                <p className={`text-xs leading-normal ${textTitleClass}`}>{s.explanation}</p>
-                                <span className="text-[10px] text-teal-500 block font-medium">Issued by: {s.teacher}</span>
-                              </div>
-                            ))
-                          ) : (
-                            <p className={`text-xs ${textMutedClass}`}>No achievements recorded this month.</p>
-                          )}
-                        </div>
-
-                        {/* Warnings breakdown */}
-                        <div className="space-y-2">
-                          <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Warning Log</span>
-                          {selectedStudentProfile.warnings && selectedStudentProfile.warnings.length > 0 ? (
-                            selectedStudentProfile.warnings.map((w: WarningItem) => (
-                              <div key={w.id} className="bg-rose-500/10 p-3 rounded-lg border border-rose-500/20 space-y-1">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-rose-500 font-bold flex items-center gap-1">
-                                    <AlertCircle className="h-3 w-3" /> {w.category}
-                                  </span>
-                                  <span className="text-rose-500 text-[10px] uppercase font-black">{w.severity}</span>
-                                </div>
-                                <p className={`text-xs leading-normal ${textTitleClass}`}>{w.explanation}</p>
-                                <span className={`text-[10px] block ${textMutedClass}`}>Issued by: {w.teacher}</span>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-xs text-emerald-500 flex items-center gap-1 text-[11px] font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
-                              <CheckCircle className="h-4 w-4" /> Flawless conduct record this month!
-                            </p>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  ) : selectedStaffProfile ? (
-                    <div className="space-y-5 animate-fadeIn">
-                      <div className={`p-4 rounded-xl border text-center space-y-2 ${innerCardClass}`}>
-                        <div className="h-14 w-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto">
-                          <Award className="h-7 w-7 text-indigo-500" />
-                        </div>
-                        <div>
-                          <h4 className={`font-bold text-base ${textTitleClass}`}>{selectedStaffProfile.name}</h4>
-                          <span className="text-xs text-teal-500 font-bold">{selectedStaffProfile.code}</span>
-                        </div>
-                        <div className={`text-[11px] ${textMutedClass}`}>
-                          {selectedStaffProfile.centerName}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className={`p-3 rounded-lg border space-y-2 text-xs ${innerCardClass}`}>
-                          <div className="flex justify-between">
-                            <span className={textMutedClass}>Position Role:</span>
-                            <span className={`font-bold uppercase ${textTitleClass}`}>{selectedStaffProfile.role}</span>
+                    ) : selectedStaffProfile ? (
+                      <div className="space-y-5 animate-fadeIn">
+                        <div className={`p-4 rounded-xl border text-center space-y-2 ${innerCardClass}`}>
+                          <div className="h-14 w-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto">
+                            <Award className="h-7 w-7 text-indigo-500" />
                           </div>
-                          {selectedStaffProfile.role === 'usthad' && (
+                          <div>
+                            <h4 className={`font-bold text-base ${textTitleClass}`}>{selectedStaffProfile.name}</h4>
+                            <span className="text-xs text-teal-500 font-bold">{selectedStaffProfile.code}</span>
+                          </div>
+                          <div className={`text-[11px] ${textMutedClass}`}>
+                            {selectedStaffProfile.centerName}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className={`p-3 rounded-lg border space-y-2 text-xs ${innerCardClass}`}>
                             <div className="flex justify-between">
-                              <span className={textMutedClass}>Batch Assigned:</span>
-                              <span className="font-bold text-teal-500">{selectedStaffProfile.batchManaged}</span>
+                              <span className={textMutedClass}>Position Role:</span>
+                              <span className={`font-bold uppercase ${textTitleClass}`}>{selectedStaffProfile.role}</span>
+                            </div>
+                            {selectedStaffProfile.role === 'usthad' && (
+                              <div className="flex justify-between">
+                                <span className={textMutedClass}>Batch Assigned:</span>
+                                <span className="font-bold text-teal-500">{selectedStaffProfile.batchManaged}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Leave request approval block */}
+                          {selectedStaffProfile.leaveRequests && selectedStaffProfile.leaveRequests.length > 0 && (
+                            <div className="space-y-2">
+                              <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Staff Leave Requests</span>
+                              {selectedStaffProfile.leaveRequests.map((l: LeaveRequest) => (
+                                <div key={l.id} className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg space-y-2">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-amber-500 font-bold flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" /> Leave Request
+                                    </span>
+                                    <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold px-2 py-0.5 rounded">
+                                      {l.status}
+                                    </span>
+                                  </div>
+                                  <p className={`text-xs ${textTitleClass}`}><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
+                                  <p className={`text-xs font-medium ${textTitleClass}`}><strong>Reason:</strong> {l.reason}</p>
+                                  
+                                  {l.status === 'PENDING' && (
+                                    <div className="flex items-center gap-2 pt-1">
+                                      <button 
+                                        onClick={() => {
+                                          setStaff(prev => prev.map(s => {
+                                            if (s.id === selectedStaffProfile.id) {
+                                              return {
+                                                ...s,
+                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
+                                              };
+                                            }
+                                            return s;
+                                          }));
+                                          alert("Staff Leave Approved. Work coverage notice dispatched.");
+                                        }}
+                                        className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
+                                      >
+                                        Approve
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          setStaff(prev => prev.map(s => {
+                                            if (s.id === selectedStaffProfile.id) {
+                                              return {
+                                                ...s,
+                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
+                                              };
+                                            }
+                                            return s;
+                                          }));
+                                          alert("Leave request declined.");
+                                        }}
+                                        className={`flex-1 text-rose-500 text-[11px] font-bold py-1 rounded transition border ${
+                                          isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
+                                        }`}
+                                      >
+                                        Decline
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
-
-                        {/* Leave request approval block */}
-                        {selectedStaffProfile.leaveRequests && selectedStaffProfile.leaveRequests.length > 0 && (
-                          <div className="space-y-2">
-                            <span className={`text-xs font-bold block uppercase tracking-wider ${textMutedClass}`}>Staff Leave Requests</span>
-                            {selectedStaffProfile.leaveRequests.map((l: LeaveRequest) => (
-                              <div key={l.id} className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg space-y-2">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-amber-500 font-bold flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" /> Leave Request
-                                  </span>
-                                  <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold px-2 py-0.5 rounded">
-                                    {l.status}
-                                  </span>
-                                </div>
-                                <p className={`text-xs ${textTitleClass}`}><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
-                                <p className={`text-xs font-medium ${textTitleClass}`}><strong>Reason:</strong> {l.reason}</p>
-                                
-                                {l.status === 'PENDING' && (
-                                  <div className="flex items-center gap-2 pt-1">
-                                    <button 
-                                      onClick={() => {
-                                        setStaff(prev => prev.map(s => {
-                                          if (s.id === selectedStaffProfile.id) {
-                                            return {
-                                              ...s,
-                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
-                                            };
-                                          }
-                                          return s;
-                                        }));
-                                        alert("Staff Leave Approved. Work coverage notice dispatched.");
-                                      }}
-                                      className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button 
-                                      onClick={() => {
-                                        setStaff(prev => prev.map(s => {
-                                          if (s.id === selectedStaffProfile.id) {
-                                            return {
-                                              ...s,
-                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
-                                            };
-                                          }
-                                          return s;
-                                        }));
-                                        alert("Leave request declined.");
-                                      }}
-                                      className={`flex-1 text-rose-500 text-[11px] font-bold py-1 rounded transition border ${
-                                        isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
-                                      }`}
-                                    >
-                                      Decline
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className={`p-8 text-center space-y-2 rounded-xl border ${innerCardClass}`}>
-                      <Search className={`h-8 w-8 mx-auto ${textMutedClass}`} />
-                      <p className={`text-xs ${textMutedClass}`}>Select a student or staff member from the search results to load their full behavioral, progress, and leave details here.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Finance payroll release console */}
-                <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
-                  <div>
-                    <h3 className={`font-bold text-sm flex items-center gap-2 ${textTitleClass}`}>
-                      <CreditCard className="h-4 w-4 text-emerald-500" />
-                      Payroll Verification Box
-                    </h3>
-                    <p className={`text-xs ${textMutedClass}`}>Audit salaries and advance repayments submitted by local Nazims</p>
+                    ) : (
+                      <div className={`p-8 text-center space-y-2 rounded-xl border ${innerCardClass}`}>
+                        <Search className={`h-8 w-8 mx-auto ${textMutedClass}`} />
+                        <p className={`text-xs ${textMutedClass}`}>Select a student or staff member from the search results to load their full behavioral, progress, and leave details here.</p>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="space-y-3">
-                    {staff.map(member => {
-                      const netSalary = member.baseSalary - member.advanceTaken;
-                      return (
-                        <div key={member.id} className={`p-3 rounded-lg border flex justify-between items-center ${innerCardClass}`}>
-                          <div>
-                            <h4 className={`text-xs font-bold ${textTitleClass}`}>{member.name}</h4>
-                            <span className={`text-[10px] ${textMutedClass}`}>Base: ₹{member.baseSalary} | Adv Repay: -₹{member.advanceTaken}</span>
+                  {/* Finance payroll release console */}
+                  <div id="payroll-section" className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
+                    <div>
+                      <h3 className={`font-bold text-sm flex items-center gap-2 ${textTitleClass}`}>
+                        <CreditCard className="h-4 w-4 text-emerald-500" />
+                        Payroll Verification Box
+                      </h3>
+                      <p className={`text-xs ${textMutedClass}`}>Audit salaries and advance repayments submitted by local Nazims</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {staff.map(member => {
+                        const netSalary = member.baseSalary - member.advanceTaken;
+                        return (
+                          <div key={member.id} className={`p-3 rounded-lg border flex justify-between items-center ${innerCardClass}`}>
+                            <div>
+                              <h4 className={`text-xs font-bold ${textTitleClass}`}>{member.name}</h4>
+                              <span className={`text-[10px] ${textMutedClass}`}>Base: ₹{member.baseSalary} | Adv Repay: -₹{member.advanceTaken}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-black block text-emerald-500">₹{netSalary}</span>
+                              <button 
+                                onClick={() => {
+                                  setStaff(prev => prev.map(s => s.id === member.id ? { ...s, isPaid: true } : s));
+                                  alert(`Payment of ₹${netSalary} dispatched successfully via ${member.paymentMethod}!`);
+                                }}
+                                disabled={member.isPaid}
+                                className={`text-[9px] font-bold px-2 py-0.5 rounded mt-1 transition ${
+                                  member.isPaid 
+                                    ? `${subMenuBgClass} ${textMutedClass} cursor-not-allowed` 
+                                    : 'bg-emerald-500 text-slate-950 hover:bg-emerald-600'
+                                }`}
+                              >
+                                {member.isPaid ? 'RELEASED' : 'VERIFY & PAY'}
+                              </button>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-xs font-black block text-emerald-500">₹{netSalary}</span>
-                            <button 
-                              onClick={() => {
-                                setStaff(prev => prev.map(s => s.id === member.id ? { ...s, isPaid: true } : s));
-                                alert(`Payment of ₹${netSalary} dispatched successfully via ${member.paymentMethod}!`);
-                              }}
-                              disabled={member.isPaid}
-                              className={`text-[9px] font-bold px-2 py-0.5 rounded mt-1 transition ${
-                                member.isPaid 
-                                  ? `${subMenuBgClass} ${textMutedClass} cursor-not-allowed` 
-                                  : 'bg-emerald-500 text-slate-950 hover:bg-emerald-600'
-                              }`}
-                            >
-                              {member.isPaid ? 'RELEASED' : 'VERIFY & PAY'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
+
               </div>
-
-            </div>
+            )}
           </div>
         );
       })()}
