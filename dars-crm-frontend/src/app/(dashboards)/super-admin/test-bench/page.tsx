@@ -14,10 +14,109 @@ import {
 } from 'recharts';
 
 // =============================================================================
+// TYPES & INTERFACES
+// =============================================================================
+
+export interface LeaveRequest {
+  id: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: string;
+}
+
+export interface StarItem {
+  id: string;
+  category: string;
+  date: string;
+  teacher: string;
+  explanation: string;
+}
+
+export interface WarningItem {
+  id: string;
+  category: string;
+  severity: string;
+  date: string;
+  teacher: string;
+  explanation: string;
+}
+
+export interface Student {
+  id: string;
+  code: string;
+  name: string;
+  centerId: string;
+  centerName: string;
+  centerCode: string;
+  batchName: string;
+  parentName: string;
+  parentPhone: string;
+  overallScore: number;
+  attendanceRate: number;
+  memorizedJuz: string;
+  sabakScore: number;
+  stars: StarItem[];
+  warnings: WarningItem[];
+  leaveRequests: LeaveRequest[];
+}
+
+export interface Staff {
+  id: string;
+  code: string;
+  name: string;
+  role: string;
+  centerId: string;
+  centerName: string;
+  baseSalary: number;
+  advanceTaken: number;
+  paymentMethod: string;
+  rating: number;
+  batchManaged?: string;
+  isPaid: boolean;
+  leaveRequests: LeaveRequest[];
+}
+
+export interface Complaint {
+  id: string;
+  centerId: string;
+  centerName: string;
+  studentName: string;
+  parentPhone: string;
+  description: string;
+  category: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  sender: string;
+  text: string;
+  time: string;
+}
+
+export interface Chat {
+  id: string;
+  parentPhone: string;
+  parentName: string;
+  studentName: string;
+  usthadId: string | null;
+  isRecognized: boolean;
+  messages: ChatMessage[];
+}
+
+export interface KitchenStockItem {
+  item: string;
+  currentStock: string;
+  neededQuantity: string;
+  lastUpdated: string;
+}
+
+// =============================================================================
 // INITIAL UNIFIED DATA STATE (SHARED SEAMLESSLY BETWEEN PORTALS)
 // =============================================================================
 
-const INITIAL_STUDENTS = [
+const INITIAL_STUDENTS: Student[] = [
   {
     id: "stud_101",
     code: "STUD-101",
@@ -50,7 +149,7 @@ const INITIAL_STUDENTS = [
     centerCode: "CTR-01",
     batchName: "Hifz Batch A",
     parentName: "Sajid Rahman (Father)",
-    parentPhone: "+919000000000", // Will start unlinked to test Nazim linking!
+    parentPhone: "+919000000000",
     overallScore: 88,
     attendanceRate: 92,
     memorizedJuz: "Juz 30",
@@ -73,7 +172,7 @@ const INITIAL_STUDENTS = [
     batchName: "Hifz Batch A",
     parentName: "Farooq Ahmed (Father)",
     parentPhone: "+919111111111",
-    overallScore: 50, // Trigger for underperforming!
+    overallScore: 50,
     attendanceRate: 70,
     memorizedJuz: "Juz 30",
     sabakScore: 55,
@@ -94,7 +193,7 @@ const INITIAL_STUDENTS = [
     batchName: "Hifz Batch A",
     parentName: "Yunus Khan (Father)",
     parentPhone: "+919222222222",
-    overallScore: 40, // Trigger for underperforming!
+    overallScore: 40,
     attendanceRate: 65,
     memorizedJuz: "Juz 30",
     sabakScore: 42,
@@ -126,7 +225,7 @@ const INITIAL_STUDENTS = [
   }
 ];
 
-const INITIAL_STAFF = [
+const INITIAL_STAFF: Staff[] = [
   {
     id: "staff_1",
     code: "STAF-001",
@@ -137,7 +236,7 @@ const INITIAL_STAFF = [
     baseSalary: 18000,
     advanceTaken: 2500,
     paymentMethod: "Bank Transfer",
-    rating: 70, // Penalized rating
+    rating: 70,
     batchManaged: "Hifz Batch A",
     isPaid: false,
     leaveRequests: [
@@ -175,7 +274,7 @@ const INITIAL_STAFF = [
   }
 ];
 
-const INITIAL_COMPLAINTS = [
+const INITIAL_COMPLAINTS: Complaint[] = [
   {
     id: "comp_1",
     centerId: "ctr_1",
@@ -200,7 +299,7 @@ const INITIAL_COMPLAINTS = [
   }
 ];
 
-const INITIAL_CHATS = [
+const INITIAL_CHATS: Chat[] = [
   {
     id: "chat_1",
     parentPhone: "+919876543210",
@@ -215,7 +314,7 @@ const INITIAL_CHATS = [
   },
   {
     id: "chat_2",
-    parentPhone: "+919000000000", // Unlinked parent testing!
+    parentPhone: "+919000000000",
     parentName: "Unknown Parent",
     studentName: "Unlinked Roster",
     usthadId: null,
@@ -226,7 +325,7 @@ const INITIAL_CHATS = [
   }
 ];
 
-const INITIAL_KITCHEN_STOCK = [
+const INITIAL_KITCHEN_STOCK: KitchenStockItem[] = [
   { item: "Basmati Rice", currentStock: "45 kg", neededQuantity: "50 kg", lastUpdated: "Today 07:00 AM" },
   { item: "Coconut Oil", currentStock: "8 Liters", neededQuantity: "15 Liters", lastUpdated: "Yesterday" },
   { item: "Onions & Potatoes", currentStock: "5 kg", neededQuantity: "25 kg", lastUpdated: "Today 07:00 AM" }
@@ -239,12 +338,12 @@ const INITIAL_KITCHEN_STOCK = [
 export default function UnifiedDarsCrmApp() {
   // Shared Live Application States
   const [activeRole, setActiveRole] = useState<'super_admin' | 'usthad' | 'nazim' | 'kiosk' | 'parent_sim'>('super_admin');
-  const [students, setStudents] = useState(INITIAL_STUDENTS);
-  const [staff, setStaff] = useState(INITIAL_STAFF);
-  const [complaints, setComplaints] = useState(INITIAL_COMPLAINTS);
-  const [chats, setChats] = useState(INITIAL_CHATS);
+  const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
+  const [staff, setStaff] = useState<Staff[]>(INITIAL_STAFF);
+  const [complaints, setComplaints] = useState<Complaint[]>(INITIAL_COMPLAINTS);
+  const [chats, setChats] = useState<Chat[]>(INITIAL_CHATS);
   const [isLibraryEnabled, setIsLibraryEnabled] = useState(false);
-  const [kitchenStock, setKitchenStock] = useState(INITIAL_KITCHEN_STOCK);
+  const [kitchenStock, setKitchenStock] = useState<KitchenStockItem[]>(INITIAL_KITCHEN_STOCK);
   const [chatReplies, setChatReplies] = useState<Record<string, string>>({});
   
   // Cook Leave and Contingency State
@@ -303,13 +402,12 @@ export default function UnifiedDarsCrmApp() {
 
   // Nazim Workspace States
   const [nazimActiveTab, setNazimActiveTab] = useState<'payroll' | 'contingency' | 'unlinked_chats' | 'store_room' | 'checklist'>('payroll');
-  const [selectedUnlinkedChat, setSelectedUnlinkedChat] = useState<any>(null);
-  const [linkStudentRosterSearch, setLinkStudentRosterSearch] = useState("");
+  const [selectedUnlinkedChat, setSelectedUnlinkedChat] = useState<Chat | null>(null);
 
   // Student Kiosk States
   const [kioskCardId, setKioskCardId] = useState("");
   const [kioskPin, setKioskPin] = useState("");
-  const [loggedInKioskStudent, setLoggedInKioskStudent] = useState<any>(null);
+  const [loggedInKioskStudent, setLoggedInKioskStudent] = useState<Student | null>(null);
   const [kioskError, setKioskError] = useState("");
   const [kioskComplaintCategory, setKioskComplaintCategory] = useState("Hostel & Hygiene");
   const [kioskComplaintText, setKioskComplaintText] = useState("");
@@ -332,10 +430,9 @@ export default function UnifiedDarsCrmApp() {
 
   // Recalculate Usthad Ibrahim's rating based on batch failure rates
   useEffect(() => {
-    // Ibrahim's batch has: stud_101, stud_102, stud_103, stud_104
     const ibrahimStudents = students.filter(s => s.centerId === 'ctr_1' && s.batchName === 'Hifz Batch A');
     const underperforming = ibrahimStudents.filter(s => s.overallScore < 70).length;
-    const failureRate = underperforming / ibrahimStudents.length;
+    const failureRate = ibrahimStudents.length > 0 ? underperforming / ibrahimStudents.length : 0;
 
     let penalty = 0;
     if (failureRate > 0.30) {
@@ -371,15 +468,13 @@ export default function UnifiedDarsCrmApp() {
   const handleSimulateWhatsAppMessage = () => {
     if (!simMessageText.trim()) return;
 
-    // Check if number matches registered student
     const matchedStudent = students.find(s => s.parentPhone === simPhoneNumber);
     
     if (matchedStudent) {
-      // Is it a #complaint?
       const isComplaint = simMessageText.toLowerCase().includes("complaint") || simMessageText.startsWith("#complaint");
       
       if (isComplaint) {
-        const newComplaint = {
+        const newComplaint: Complaint = {
           id: `comp_${Date.now()}`,
           centerId: matchedStudent.centerId,
           centerName: matchedStudent.centerName,
@@ -393,7 +488,6 @@ export default function UnifiedDarsCrmApp() {
         setComplaints(prev => [newComplaint, ...prev]);
         alert("🚨 Complaint submitted securely and routed directly to the Super Admin panel!");
       } else {
-        // Standard Usthad message routing
         setChats(prev => prev.map(chat => {
           if (chat.parentPhone === simPhoneNumber) {
             return {
@@ -405,7 +499,6 @@ export default function UnifiedDarsCrmApp() {
         }));
       }
     } else {
-      // Unrecognized sender message
       const existingChat = chats.find(c => c.parentPhone === simPhoneNumber);
       if (existingChat) {
         setChats(prev => prev.map(chat => {
@@ -418,7 +511,7 @@ export default function UnifiedDarsCrmApp() {
           return chat;
         }));
       } else {
-        const newChat = {
+        const newChat: Chat = {
           id: `chat_${Date.now()}`,
           parentPhone: simPhoneNumber,
           parentName: "Unknown Parent",
@@ -442,7 +535,6 @@ export default function UnifiedDarsCrmApp() {
       setKioskError("Student Card ID not recognized.");
       return;
     }
-    // Simple mock credential checking
     const mockPins: Record<string, string> = {
       "STUD-101": "1111",
       "STUD-102": "2222",
@@ -464,7 +556,7 @@ export default function UnifiedDarsCrmApp() {
   const handleKioskComplaintSubmit = () => {
     if (!kioskComplaintText.trim() || !loggedInKioskStudent) return;
 
-    const newComp = {
+    const newComp: Complaint = {
       id: `comp_${Date.now()}`,
       centerId: loggedInKioskStudent.centerId,
       centerName: loggedInKioskStudent.centerName,
@@ -487,7 +579,6 @@ export default function UnifiedDarsCrmApp() {
     if (!libraryQuery.trim()) return;
 
     setIsLoadingLibrary(true);
-    // Simulate fetching from Sunnah cloud API
     setTimeout(() => {
       const mockHadiths = [
         {
@@ -532,15 +623,10 @@ export default function UnifiedDarsCrmApp() {
     );
   });
 
-  const activeProfile = adminSubmenu === 'students' 
-    ? students.find(s => s.id === selectedProfileId)
-    : staff.find(st => st.id === selectedProfileId);
+  const selectedStudentProfile = adminSubmenu === 'students' ? students.find(s => s.id === selectedProfileId) : undefined;
+  const selectedStaffProfile = adminSubmenu === 'staff' ? staff.find(st => st.id === selectedProfileId) : undefined;
 
-  // Score aggregations for the Super Admin leaderboard
   const avgStudentScore = Math.round(students.reduce((acc, s) => acc + s.overallScore, 0) / students.length);
-  const avgUsthadScore = Math.round(staff.filter(s => s.role === 'usthad').reduce((acc, s) => acc + s.rating, 0) / staff.filter(s => s.role === 'usthad').length);
-  const nazimScore = staff.find(s => s.role === 'nazim')?.rating || 0;
-  const overallInstitutionScore = Math.round((avgStudentScore * 0.4) + (avgUsthadScore * 0.35) + (nazimScore * 0.25));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-teal-500/30 selection:text-teal-200">
@@ -600,8 +686,6 @@ export default function UnifiedDarsCrmApp() {
           ROLE 1: SUPER ADMIN CONTROL PANEL ("HOME" GLOBAL DASHBOARD WITH FULL DRILL-DOWN)
           ============================================================================= */}
       {activeRole === 'super_admin' && (() => {
-        // Dynamic metrics calculation for centers:
-        // Center 1: Al-Noor Central (Calicut)
         const ctr1Students = students.filter(s => s.centerId === 'ctr_1');
         const ctr1AvgStudent = ctr1Students.length > 0 ? Math.round(ctr1Students.reduce((acc, s) => acc + s.overallScore, 0) / ctr1Students.length) : 0;
         const ctr1StaffUsthads = staff.filter(s => s.centerId === 'ctr_1' && s.role === 'usthad');
@@ -609,7 +693,6 @@ export default function UnifiedDarsCrmApp() {
         const ctr1NazimRating = staff.find(s => s.centerId === 'ctr_1' && s.role === 'nazim')?.rating || 0;
         const ctr1OverallScore = Math.round((ctr1AvgStudent * 0.4) + (ctr1AvgUsthad * 0.35) + (ctr1NazimRating * 0.25));
 
-        // Center 2: Malappuram Hifz Academy
         const ctr2Students = students.filter(s => s.centerId === 'ctr_2');
         const ctr2AvgStudent = ctr2Students.length > 0 ? Math.round(ctr2Students.reduce((acc, s) => acc + s.overallScore, 0) / ctr2Students.length) : 100;
         const ctr2StaffUsthads = staff.filter(s => s.centerId === 'ctr_2' && s.role === 'usthad');
@@ -617,11 +700,7 @@ export default function UnifiedDarsCrmApp() {
         const ctr2NazimRating = staff.find(s => s.centerId === 'ctr_2' && s.role === 'nazim')?.rating || 100;
         const ctr2OverallScore = Math.round((ctr2AvgStudent * 0.4) + (ctr2AvgUsthad * 0.35) + (ctr2NazimRating * 0.25));
 
-        // Average Ranking of all centers (Calicut & Malappuram)
         const avgCentersRanking = Math.round((ctr1OverallScore + ctr2OverallScore) / 2);
-
-        // Core Aggregates
-        const avgStudentScore = Math.round(students.reduce((acc, s) => acc + s.overallScore, 0) / students.length);
 
         return (
           <div className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
@@ -665,7 +744,7 @@ export default function UnifiedDarsCrmApp() {
               </div>
             </div>
 
-            {/* OVERVIEW OF ALL FACILITIES (6 CARDS WITH DIRECT INTERACTION) */}
+            {/* OVERVIEW OF ALL FACILITIES */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               
               {/* CARD 1: WHATSAPP MESSAGES PENDING */}
@@ -749,7 +828,7 @@ export default function UnifiedDarsCrmApp() {
                 </div>
               </div>
 
-              {/* CARD 6: AVERAGE RANKING OF ALL CENTERS (CLICKABLE INTERACTIVE ENTRY) */}
+              {/* CARD 6: AVERAGE RANKING OF ALL CENTERS */}
               <div 
                 onClick={() => {
                   setAdminViewMode('centers_list');
@@ -977,7 +1056,7 @@ export default function UnifiedDarsCrmApp() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       
-                      {/* Nazim card - loads detailed profile of the local Nazim */}
+                      {/* Nazim card */}
                       <div 
                         onClick={() => {
                           if (selectedCenterId === 'ctr_1') {
@@ -1003,7 +1082,7 @@ export default function UnifiedDarsCrmApp() {
                         </div>
                       </div>
 
-                      {/* Usthad card - redirects to the Usthad Drill down list */}
+                      {/* Usthad card */}
                       <div 
                         onClick={() => setAdminViewMode('usthad_list')}
                         className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 hover:border-indigo-500/40 cursor-pointer transition flex flex-col justify-between min-h-[140px] group"
@@ -1021,7 +1100,7 @@ export default function UnifiedDarsCrmApp() {
                         </div>
                       </div>
 
-                      {/* Student card - redirects to Student list drill down */}
+                      {/* Student card */}
                       <div 
                         onClick={() => setAdminViewMode('student_list')}
                         className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 hover:border-teal-500/40 cursor-pointer transition flex flex-col justify-between min-h-[140px] group"
@@ -1276,220 +1355,227 @@ export default function UnifiedDarsCrmApp() {
                     Dossier Detail Panel
                   </h3>
 
-                  {activeProfile ? (
+                  {selectedStudentProfile ? (
                     <div className="space-y-5 animate-fadeIn">
-                      
-                      {/* Common Header info */}
                       <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 text-center space-y-2">
                         <div className="h-14 w-14 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center mx-auto">
-                          {adminSubmenu === 'students' ? <Users className="h-7 w-7 text-teal-400" /> : <Award className="h-7 w-7 text-indigo-400" />}
+                          <Users className="h-7 w-7 text-teal-400" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-white text-base">{activeProfile.name}</h4>
-                          <span className="text-xs text-teal-400 font-bold">{activeProfile.code}</span>
+                          <h4 className="font-bold text-white text-base">{selectedStudentProfile.name}</h4>
+                          <span className="text-xs text-teal-400 font-bold">{selectedStudentProfile.code}</span>
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          {activeProfile.centerName}
+                          {selectedStudentProfile.centerName}
                         </div>
                       </div>
 
-                      {/* Student-specific details */}
-                      {adminSubmenu === 'students' && (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-850">
-                            <div>
-                              <span className="text-slate-500 block font-semibold">Attendance</span>
-                              <span className="text-white font-bold text-sm">{(activeProfile as any).attendanceRate}%</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500 block font-semibold">Memorization</span>
-                              <span className="text-white font-bold text-sm">{(activeProfile as any).memorizedJuz}</span>
-                            </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded-lg border border-slate-850">
+                          <div>
+                            <span className="text-slate-500 block font-semibold">Attendance</span>
+                            <span className="text-white font-bold text-sm">{selectedStudentProfile.attendanceRate}%</span>
                           </div>
-
-                          {/* Leave requests section */}
-                          {(activeProfile as any).leaveRequests && (activeProfile as any).leaveRequests.length > 0 && (
-                            <div className="space-y-2">
-                              <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Leave Applications</span>
-                              {(activeProfile as any).leaveRequests.map((l: any) => (
-                                <div key={l.id} className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-lg space-y-2">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-amber-400 font-bold flex items-center gap-1">
-                                      <Calendar className="h-3 w-3" /> Leave Request
-                                    </span>
-                                    <span className="text-[10px] bg-amber-500/10 text-amber-400 font-extrabold px-2 py-0.5 rounded">
-                                      {l.status}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-slate-300"><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
-                                  <p className="text-xs text-slate-300 font-medium"><strong>Reason:</strong> {l.reason}</p>
-                                  
-                                  {l.status === 'PENDING' && (
-                                    <div className="flex items-center gap-2 pt-1">
-                                      <button 
-                                        onClick={() => {
-                                          setStudents(prev => prev.map(s => {
-                                            if (s.id === activeProfile.id) {
-                                              return {
-                                                ...s,
-                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
-                                              };
-                                            }
-                                            return s;
-                                          }));
-                                          alert("✅ Leave Approved! Confirmation dispatched to parent via Meta Cloud WhatsApp API.");
-                                        }}
-                                        className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
-                                      >
-                                        Approve
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          setStudents(prev => prev.map(s => {
-                                            if (s.id === activeProfile.id) {
-                                              return {
-                                                ...s,
-                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
-                                              };
-                                            }
-                                            return s;
-                                          }));
-                                          alert("❌ Leave request declined. Status updated.");
-                                        }}
-                                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-rose-400 text-[11px] font-bold py-1 rounded transition"
-                                      >
-                                        Decline
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Stars breakdown */}
-                          <div className="space-y-2">
-                            <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Academic Stars Earned</span>
-                            {(activeProfile as any).stars && (activeProfile as any).stars.length > 0 ? (
-                              (activeProfile as any).stars.map((s: any) => (
-                                <div key={s.id} className="bg-slate-950 p-3 rounded-lg border border-slate-850 space-y-1">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-amber-400 font-bold flex items-center gap-1">
-                                      <Star className="h-3 w-3 fill-amber-400" /> {s.category}
-                                    </span>
-                                    <span className="text-slate-500 text-[10px]">{s.date}</span>
-                                  </div>
-                                  <p className="text-xs text-slate-300 leading-normal">{s.explanation}</p>
-                                  <span className="text-[10px] text-teal-400 block font-medium">Issued by: {s.teacher}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs text-slate-500">No achievements recorded this month.</p>
-                            )}
-                          </div>
-
-                          {/* Warnings breakdown */}
-                          <div className="space-y-2">
-                            <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Warning Log</span>
-                            {(activeProfile as any).warnings && (activeProfile as any).warnings.length > 0 ? (
-                              (activeProfile as any).warnings.map((w: any) => (
-                                <div key={w.id} className="bg-rose-500/5 p-3 rounded-lg border border-rose-500/20 space-y-1">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-rose-400 font-bold flex items-center gap-1">
-                                      <AlertCircle className="h-3 w-3" /> {w.category}
-                                    </span>
-                                    <span className="text-rose-500 text-[10px] uppercase font-black">{w.severity}</span>
-                                  </div>
-                                  <p className="text-xs text-slate-300 leading-normal">{w.explanation}</p>
-                                  <span className="text-[10px] text-slate-500 block">Issued by: {w.teacher}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-xs text-emerald-400 flex items-center gap-1 text-[11px] font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
-                                <CheckCircle className="h-4 w-4" /> Flawless conduct record this month!
-                              </p>
-                            )}
+                          <div>
+                            <span className="text-slate-500 block font-semibold">Memorization</span>
+                            <span className="text-white font-bold text-sm">{selectedStudentProfile.memorizedJuz}</span>
                           </div>
                         </div>
-                      )}
 
-                      {/* Staff-specific details */}
-                      {adminSubmenu === 'staff' && (
-                        <div className="space-y-4">
-                          <div className="bg-slate-950 p-3 rounded-lg border border-slate-850 space-y-2 text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Position Role:</span>
-                              <span className="font-bold text-slate-200 uppercase">{activeProfile.role}</span>
-                            </div>
-                            {activeProfile.role === 'usthad' && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">Batch Assigned:</span>
-                                <span className="font-bold text-teal-400">{(activeProfile as any).batchManaged}</span>
+                        {/* Leave requests section */}
+                        {selectedStudentProfile.leaveRequests && selectedStudentProfile.leaveRequests.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Leave Applications</span>
+                            {selectedStudentProfile.leaveRequests.map((l: LeaveRequest) => (
+                              <div key={l.id} className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-lg space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-amber-400 font-bold flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" /> Leave Request
+                                  </span>
+                                  <span className="text-[10px] bg-amber-500/10 text-amber-400 font-extrabold px-2 py-0.5 rounded">
+                                    {l.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-300"><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
+                                <p className="text-xs text-slate-300 font-medium"><strong>Reason:</strong> {l.reason}</p>
+                                
+                                {l.status === 'PENDING' && (
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <button 
+                                      onClick={() => {
+                                        setStudents(prev => prev.map(s => {
+                                          if (s.id === selectedStudentProfile.id) {
+                                            return {
+                                              ...s,
+                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
+                                            };
+                                          }
+                                          return s;
+                                        }));
+                                        alert("✅ Leave Approved! Confirmation dispatched to parent via Meta Cloud WhatsApp API.");
+                                      }}
+                                      className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        setStudents(prev => prev.map(s => {
+                                          if (s.id === selectedStudentProfile.id) {
+                                            return {
+                                              ...s,
+                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
+                                            };
+                                          }
+                                          return s;
+                                        }));
+                                        alert("❌ Leave request declined. Status updated.");
+                                      }}
+                                      className="flex-1 bg-slate-800 hover:bg-slate-700 text-rose-400 text-[11px] font-bold py-1 rounded transition"
+                                    >
+                                      Decline
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            ))}
                           </div>
+                        )}
 
-                          {/* Leave request approval block */}
-                          {activeProfile.leaveRequests && activeProfile.leaveRequests.length > 0 && (
-                            <div className="space-y-2">
-                              <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Staff Leave Requests</span>
-                              {activeProfile.leaveRequests.map((l: any) => (
-                                <div key={l.id} className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-lg space-y-2">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-amber-400 font-bold flex items-center gap-1">
-                                      <Calendar className="h-3 w-3" /> Leave Request
-                                    </span>
-                                    <span className="text-[10px] bg-amber-500/10 text-amber-400 font-extrabold px-2 py-0.5 rounded">
-                                      {l.status}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-slate-300"><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
-                                  <p className="text-xs text-slate-300 font-medium"><strong>Reason:</strong> {l.reason}</p>
-                                  
-                                  {l.status === 'PENDING' && (
-                                    <div className="flex items-center gap-2 pt-1">
-                                      <button 
-                                        onClick={() => {
-                                          setStaff(prev => prev.map(s => {
-                                            if (s.id === activeProfile.id) {
-                                              return {
-                                                ...s,
-                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
-                                              };
-                                            }
-                                            return s;
-                                          }));
-                                          alert("✅ Staff Leave Approved. Work coverage notice dispatched.");
-                                        }}
-                                        className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
-                                      >
-                                        Approve
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          setStaff(prev => prev.map(s => {
-                                            if (s.id === activeProfile.id) {
-                                              return {
-                                                ...s,
-                                                leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
-                                              };
-                                            }
-                                            return s;
-                                          }));
-                                          alert("❌ Leave request declined.");
-                                        }}
-                                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-rose-400 text-[11px] font-bold py-1 rounded transition"
-                                      >
-                                        Decline
-                                      </button>
-                                    </div>
-                                  )}
+                        {/* Stars breakdown */}
+                        <div className="space-y-2">
+                          <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Academic Stars Earned</span>
+                          {selectedStudentProfile.stars && selectedStudentProfile.stars.length > 0 ? (
+                            selectedStudentProfile.stars.map((s: StarItem) => (
+                              <div key={s.id} className="bg-slate-950 p-3 rounded-lg border border-slate-850 space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-amber-400 font-bold flex items-center gap-1">
+                                    <Star className="h-3 w-3 fill-amber-400" /> {s.category}
+                                  </span>
+                                  <span className="text-slate-500 text-[10px]">{s.date}</span>
                                 </div>
-                              ))}
+                                <p className="text-xs text-slate-300 leading-normal">{s.explanation}</p>
+                                <span className="text-[10px] text-teal-400 block font-medium">Issued by: {s.teacher}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-slate-500">No achievements recorded this month.</p>
+                          )}
+                        </div>
+
+                        {/* Warnings breakdown */}
+                        <div className="space-y-2">
+                          <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Warning Log</span>
+                          {selectedStudentProfile.warnings && selectedStudentProfile.warnings.length > 0 ? (
+                            selectedStudentProfile.warnings.map((w: WarningItem) => (
+                              <div key={w.id} className="bg-rose-500/5 p-3 rounded-lg border border-rose-500/20 space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-rose-400 font-bold flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3" /> {w.category}
+                                  </span>
+                                  <span className="text-rose-500 text-[10px] uppercase font-black">{w.severity}</span>
+                                </div>
+                                <p className="text-xs text-slate-300 leading-normal">{w.explanation}</p>
+                                <span className="text-[10px] text-slate-500 block">Issued by: {w.teacher}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-emerald-400 flex items-center gap-1 text-[11px] font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                              <CheckCircle className="h-4 w-4" /> Flawless conduct record this month!
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : selectedStaffProfile ? (
+                    <div className="space-y-5 animate-fadeIn">
+                      <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 text-center space-y-2">
+                        <div className="h-14 w-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto">
+                          <Award className="h-7 w-7 text-indigo-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white text-base">{selectedStaffProfile.name}</h4>
+                          <span className="text-xs text-teal-400 font-bold">{selectedStaffProfile.code}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {selectedStaffProfile.centerName}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="bg-slate-950 p-3 rounded-lg border border-slate-850 space-y-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Position Role:</span>
+                            <span className="font-bold text-slate-200 uppercase">{selectedStaffProfile.role}</span>
+                          </div>
+                          {selectedStaffProfile.role === 'usthad' && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Batch Assigned:</span>
+                              <span className="font-bold text-teal-400">{selectedStaffProfile.batchManaged}</span>
                             </div>
                           )}
                         </div>
-                      )}
+
+                        {/* Leave request approval block */}
+                        {selectedStaffProfile.leaveRequests && selectedStaffProfile.leaveRequests.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Staff Leave Requests</span>
+                            {selectedStaffProfile.leaveRequests.map((l: LeaveRequest) => (
+                              <div key={l.id} className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-lg space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-amber-400 font-bold flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" /> Leave Request
+                                  </span>
+                                  <span className="text-[10px] bg-amber-500/10 text-amber-400 font-extrabold px-2 py-0.5 rounded">
+                                    {l.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-300"><strong>Dates:</strong> {l.startDate} to {l.endDate}</p>
+                                <p className="text-xs text-slate-300 font-medium"><strong>Reason:</strong> {l.reason}</p>
+                                
+                                {l.status === 'PENDING' && (
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <button 
+                                      onClick={() => {
+                                        setStaff(prev => prev.map(s => {
+                                          if (s.id === selectedStaffProfile.id) {
+                                            return {
+                                              ...s,
+                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'APPROVED' } : lr)
+                                            };
+                                          }
+                                          return s;
+                                        }));
+                                        alert("✅ Staff Leave Approved. Work coverage notice dispatched.");
+                                      }}
+                                      className="flex-1 bg-teal-500 hover:bg-teal-600 text-slate-950 text-[11px] font-black py-1 rounded transition"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        setStaff(prev => prev.map(s => {
+                                          if (s.id === selectedStaffProfile.id) {
+                                            return {
+                                              ...s,
+                                              leaveRequests: s.leaveRequests.map(lr => lr.id === l.id ? { ...lr, status: 'REJECTED' } : lr)
+                                            };
+                                          }
+                                          return s;
+                                        }));
+                                        alert("❌ Leave request declined.");
+                                      }}
+                                      className="flex-1 bg-slate-800 hover:bg-slate-700 text-rose-400 text-[11px] font-bold py-1 rounded transition"
+                                    >
+                                      Decline
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="p-8 text-center text-slate-500 space-y-2 bg-slate-950/40 border border-slate-850 rounded-xl">
@@ -1544,7 +1630,7 @@ export default function UnifiedDarsCrmApp() {
       })()}
 
       {/* =============================================================================
-          ROLE 2: USTHAD ACTIVE PORTAL PANEL (WITH ALL SPECIFIED UPDATES CORRECTLY LINKED!)
+          ROLE 2: USTHAD ACTIVE PORTAL PANEL
           ============================================================================= */}
       {activeRole === 'usthad' && (
         <div className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
@@ -1662,7 +1748,6 @@ export default function UnifiedDarsCrmApp() {
                         onChange={(e) => {
                           const val = e.target.checked;
                           setTarbiyyahLogs(prev => ({ ...prev, namaz: val }));
-                          // Dynamic math adjustment to trigger underperforming changes
                           setStudents(prev => prev.map(s => s.id === selectedStudentId ? { ...s, overallScore: val ? Math.min(100, s.overallScore + 10) : Math.max(0, s.overallScore - 15) } : s));
                         }}
                         className="h-5 w-5 accent-indigo-500 cursor-pointer"
@@ -1738,7 +1823,7 @@ export default function UnifiedDarsCrmApp() {
                 </div>
               )}
 
-              {/* SUBVIEW 2B: STAR & WARNING DISPATCH HUB (WITH TRACING REASONS) */}
+              {/* SUBVIEW 2B: STAR & WARNING DISPATCH HUB */}
               {selectedClassTab === 'behavior_star_warn' && (
                 <div className="space-y-6">
                   <div>
@@ -1833,7 +1918,7 @@ export default function UnifiedDarsCrmApp() {
                       }
 
                       if (actionType === 'star') {
-                        const newStar = {
+                        const newStar: StarItem = {
                           id: `star_${Date.now()}`,
                           category: actionCategory,
                           date: new Date().toISOString().split('T')[0],
@@ -1852,7 +1937,7 @@ export default function UnifiedDarsCrmApp() {
                         }));
                         alert("🌟 Achievement star dispatched! Verified on Student progress card.");
                       } else {
-                        const newWarn = {
+                        const newWarn: WarningItem = {
                           id: `warn_${Date.now()}`,
                           category: actionCategory,
                           severity: actionSeverity,
@@ -2069,7 +2154,7 @@ export default function UnifiedDarsCrmApp() {
                         alert("Please specify a reason.");
                         return;
                       }
-                      const newRequest = {
+                      const newRequest: LeaveRequest = {
                         id: `tl_${Date.now()}`,
                         startDate: usthadLeaveStart,
                         endDate: usthadLeaveEnd,
@@ -2352,14 +2437,11 @@ export default function UnifiedDarsCrmApp() {
                           </div>
                           <button 
                             onClick={() => {
-                              // Auto link to Nabeel Sajid STUD-102
                               const targetStudent = students.find(s => s.code === "STUD-102");
                               if (!targetStudent) return;
 
-                              // 1. Permanently update student contact
                               setStudents(prev => prev.map(s => s.code === "STUD-102" ? { ...s, parentPhone: selectedUnlinkedChat.parentPhone } : s));
 
-                              // 2. Link chat thread and assign to Usthad Ibrahim
                               setChats(prev => prev.map(c => {
                                 if (c.id === selectedUnlinkedChat.id) {
                                   return {
@@ -2384,7 +2466,7 @@ export default function UnifiedDarsCrmApp() {
 
                         {/* Message log */}
                         <div className="p-4 flex-1 overflow-y-auto flex flex-col gap-3">
-                          {selectedUnlinkedChat.messages.map((m: any, i: number) => (
+                          {selectedUnlinkedChat.messages.map((m, i) => (
                             <div 
                               key={i}
                               className={`max-w-[80%] p-2.5 rounded-lg text-xs leading-normal ${m.sender === 'parent' ? 'bg-slate-900 border border-slate-800 self-start text-slate-200' : 'bg-emerald-600 text-slate-950 font-medium self-end'}`}
@@ -2590,7 +2672,7 @@ export default function UnifiedDarsCrmApp() {
                 <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-2">Tarbiyyah Performance Chart</span>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" radius="75%" data={[
+                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={[
                       { category: "Namaz", score: loggedInKioskStudent.overallScore },
                       { category: "Hygiene", score: loggedInKioskStudent.overallScore + 5 },
                       { category: "Study", score: loggedInKioskStudent.overallScore - 10 },
@@ -2610,7 +2692,7 @@ export default function UnifiedDarsCrmApp() {
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-400 block uppercase">Behavioral Merits Log</span>
                   {loggedInKioskStudent.stars.length > 0 ? (
-                    loggedInKioskStudent.stars.map((s: any) => (
+                    loggedInKioskStudent.stars.map((s: StarItem) => (
                       <div key={s.id} className="bg-slate-950 p-3 rounded-lg border border-slate-850 space-y-1 text-xs">
                         <strong className="text-amber-400 flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-amber-400" /> {s.category}</strong>
                         <p className="text-slate-300 leading-normal">{s.explanation}</p>
@@ -2737,7 +2819,6 @@ export default function UnifiedDarsCrmApp() {
   );
 }
 
-// Simple helper functions for rendering & documentation matching
 function sIdMatching(nameA: string, nameB: string): boolean {
   if (!nameA || !nameB) return false;
   return nameA.toLowerCase().trim() === nameB.toLowerCase().trim();
