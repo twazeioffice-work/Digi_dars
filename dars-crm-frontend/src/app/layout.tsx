@@ -1,6 +1,7 @@
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import type { Metadata, Viewport } from 'next';
+import { ThemeProvider } from '../context/ThemeContext';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -9,7 +10,7 @@ export const viewport: Viewport = {
   userScalable: false,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
   ],
 };
 
@@ -25,9 +26,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white">
-        <Toaster position="top-right" />
-        {children}
+      <body className="min-h-screen antialiased selection:bg-emerald-500 selection:text-white">
+        <ThemeProvider>
+          <Toaster position="top-right" />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
