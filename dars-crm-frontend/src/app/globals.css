@@ -5,9 +5,11 @@
 @layer base {
   :root {
     --bg-primary: #ffffff;
-    --text-primary: #09090b;
-    --card-bg: #ffffff;
-    --card-border: #e4e4e7;
+    --text-primary: #1c1917;
+    --card-bg: #fcf8f2;       /* Light Cream for primary cards */
+    --card-border: #e6dfd3;   /* Soft warm cream border */
+    --inner-card-bg: #f6f0e4; /* Warm rich cream for inner nested boxes */
+    --input-bg: #fffdfa;      /* Soft off-white cream for input fields */
   }
 
   html.dark {
@@ -15,6 +17,8 @@
     --text-primary: #ffffff;
     --card-bg: #0a0a0a;
     --card-border: #27272a;
+    --inner-card-bg: #000000;
+    --input-bg: #171717;
   }
 
   body {
@@ -30,7 +34,7 @@
   }
 }
 
-/* Custom Pure Black Theme Utilities */
+/* Custom Pure Black & Cream Theme Utilities */
 .dark-pure-black {
   background-color: #000000 !important;
 }
@@ -38,6 +42,16 @@
 .dark-pure-card {
   background-color: #0a0a0a !important;
   border-color: #27272a !important;
+}
+
+.light-cream-card {
+  background-color: #fcf8f2 !important;
+  border-color: #e6dfd3 !important;
+}
+
+.light-cream-inner-box {
+  background-color: #f6f0e4 !important;
+  border-color: #ebdccb !important;
 }
 
 @layer utilities {

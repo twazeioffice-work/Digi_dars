@@ -361,15 +361,15 @@ export default function UnifiedDarsCrmApp() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Theme Utility Classes (Dark mode = Pure Black #000000, Light mode = Pure White #ffffff)
-  const mainBgClass = isDark ? 'bg-black text-white' : 'bg-white text-slate-900';
-  const navBgClass = isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-slate-100 border-slate-200';
-  const cardBgClass = isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-slate-50 border-slate-200 shadow-sm';
-  const innerCardClass = isDark ? 'bg-black border-neutral-850' : 'bg-white border-slate-200 shadow-sm';
-  const inputBgClass = isDark ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-slate-300 text-slate-900';
-  const subMenuBgClass = isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-slate-200 border-slate-300';
-  const textMutedClass = isDark ? 'text-neutral-400' : 'text-slate-600';
-  const textTitleClass = isDark ? 'text-white' : 'text-slate-900';
+  // Theme Utility Classes (Dark mode = Pure Black #000000, Light mode = White main background with Light Cream #fcf8f2 for cards & #f6f0e4 for boxes)
+  const mainBgClass = isDark ? 'bg-black text-white' : 'bg-white text-stone-900';
+  const navBgClass = isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-[#f4ebd9] border-[#dfd4c0]';
+  const cardBgClass = isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-[#fcf8f2] border-[#e6dfd3] shadow-sm';
+  const innerCardClass = isDark ? 'bg-black border-neutral-850' : 'bg-[#f6f0e4] border-[#ebdccb] shadow-sm';
+  const inputBgClass = isDark ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-[#fffdfa] border-[#dcd3c1] text-stone-900';
+  const subMenuBgClass = isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-[#eee4d4] border-[#dccbb4]';
+  const textMutedClass = isDark ? 'text-neutral-400' : 'text-stone-600';
+  const textTitleClass = isDark ? 'text-white' : 'text-stone-900';
 
   // Shared Live Application States
   const [activeRole, setActiveRole] = useState<'super_admin' | 'usthad' | 'nazim' | 'kiosk' | 'parent_sim'>('super_admin');
@@ -681,7 +681,7 @@ export default function UnifiedDarsCrmApp() {
           
           <div className="flex items-center flex-wrap gap-2 self-start md:self-auto">
             <div className={`flex items-center flex-wrap gap-1 p-1 rounded-xl border ${
-              isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-slate-200 border-slate-300'
+              isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-[#eee4d4] border-[#dccbb4]'
             }`}>
               <span className={`text-[10px] font-bold px-2 ${textMutedClass}`}>PORTAL:</span>
               <button 
@@ -747,7 +747,7 @@ export default function UnifiedDarsCrmApp() {
             
             {/* Dashboard breadcrumb and title banner */}
             <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 ${
-              isDark ? 'border-neutral-800' : 'border-slate-200'
+              isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
             }`}>
               <div>
                 <h2 className={`text-xl font-extrabold flex items-center gap-2 ${textTitleClass}`}>
@@ -759,7 +759,7 @@ export default function UnifiedDarsCrmApp() {
               
               {/* Breadcrumb Indicator */}
               <div className={`flex items-center gap-2 p-1.5 px-3 rounded-lg text-xs font-semibold border ${
-                isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-slate-100 border-slate-200'
+                isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-[#eee4d4] border-[#dccbb4]'
               }`}>
                 <span className={`${textMutedClass} cursor-pointer hover:text-teal-500`} onClick={() => setAdminViewMode('home')}>Home</span>
                 {adminViewMode !== 'home' && <span className={textMutedClass}>/</span>}
@@ -791,7 +791,7 @@ export default function UnifiedDarsCrmApp() {
               </div>
             </div>
 
-            {/* OVERVIEW OF ALL FACILITIES (ALL 6 CARDS ARE NOW FULLY CLICKABLE WITH DRILL-DOWN AUDITS) */}
+            {/* OVERVIEW OF ALL FACILITIES (ALL 6 CARDS ARE NOW LIGHT CREAM IN LIGHT MODE AND PURE BLACK IN DARK MODE) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               
               {/* CARD 1: WHATSAPP MESSAGES PENDING */}
@@ -839,7 +839,7 @@ export default function UnifiedDarsCrmApp() {
                 </div>
               </div>
 
-              {/* CARD 3: INCOME (CLICKABLE TO LAST RUPEE AUDIT) */}
+              {/* CARD 3: INCOME */}
               <div 
                 onClick={() => setAdminViewMode('income_audit')}
                 className={`p-4 rounded-xl flex flex-col justify-between border cursor-pointer transition group ${cardBgClass} hover:border-emerald-500/50`}
@@ -854,7 +854,7 @@ export default function UnifiedDarsCrmApp() {
                 </div>
               </div>
 
-              {/* CARD 4: SPENDING (CLICKABLE TO LAST RUPEE AUDIT) */}
+              {/* CARD 4: SPENDING */}
               <div 
                 onClick={() => setAdminViewMode('spending_audit')}
                 className={`p-4 rounded-xl flex flex-col justify-between border cursor-pointer transition group ${cardBgClass} hover:border-rose-500/50`}
@@ -869,7 +869,7 @@ export default function UnifiedDarsCrmApp() {
                 </div>
               </div>
 
-              {/* CARD 5: TOTAL GRADING OF STUDENTS (CLICKABLE TO INDIVIDUAL STUDENT SCORE AUDIT) */}
+              {/* CARD 5: TOTAL GRADING OF STUDENTS */}
               <div 
                 onClick={() => setAdminViewMode('student_grading_audit')}
                 className={`p-4 rounded-xl flex flex-col justify-between border cursor-pointer transition group ${cardBgClass} hover:border-indigo-500/50`}
@@ -915,7 +915,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'income_audit' && (
                   <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
                     <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 text-emerald-500`}>
@@ -927,7 +927,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => setAdminViewMode('home')}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
                         }`}
                       >
                         ← Back Home
@@ -960,7 +960,7 @@ export default function UnifiedDarsCrmApp() {
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
                             <tr className={`border-b uppercase tracking-wider font-semibold ${
-                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
                             }`}>
                               <th className="py-2.5 px-2">TXN Ref</th>
                               <th className="py-2.5 px-2">Category</th>
@@ -970,9 +970,9 @@ export default function UnifiedDarsCrmApp() {
                               <th className="py-2.5 px-2 text-right">Status</th>
                             </tr>
                           </thead>
-                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
                             {INCOME_LINE_ITEMS.map((item) => (
-                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-slate-100/60'}>
+                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}>
                                 <td className="py-3 px-2 font-mono font-bold text-[11px] text-teal-500">{item.id}</td>
                                 <td className={`py-3 px-2 font-semibold ${textTitleClass}`}>{item.category}</td>
                                 <td className={`py-3 px-2 ${textMutedClass}`}>{item.source}</td>
@@ -1009,7 +1009,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'spending_audit' && (
                   <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
                     <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 text-rose-500`}>
@@ -1021,7 +1021,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => setAdminViewMode('home')}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
                         }`}
                       >
                         ← Back Home
@@ -1054,7 +1054,7 @@ export default function UnifiedDarsCrmApp() {
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
                             <tr className={`border-b uppercase tracking-wider font-semibold ${
-                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
                             }`}>
                               <th className="py-2.5 px-2">Voucher Code</th>
                               <th className="py-2.5 px-2">Expense Line Item</th>
@@ -1064,9 +1064,9 @@ export default function UnifiedDarsCrmApp() {
                               <th className="py-2.5 px-2 text-right">Audit Status</th>
                             </tr>
                           </thead>
-                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
                             {SPENDING_LINE_ITEMS.map((item) => (
-                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-slate-100/60'}>
+                              <tr key={item.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}>
                                 <td className="py-3 px-2 font-mono font-bold text-[11px] text-rose-500">{item.id}</td>
                                 <td className="py-3 px-2">
                                   <span className={`font-bold block ${textTitleClass}`}>{item.category}</span>
@@ -1103,7 +1103,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'student_grading_audit' && (
                   <div className={`rounded-2xl p-5 space-y-5 border ${cardBgClass}`}>
                     <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 text-indigo-500`}>
@@ -1115,7 +1115,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => setAdminViewMode('home')}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
                         }`}
                       >
                         ← Back Home
@@ -1148,7 +1148,7 @@ export default function UnifiedDarsCrmApp() {
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
                             <tr className={`border-b uppercase tracking-wider font-semibold ${
-                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                              isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
                             }`}>
                               <th className="py-2.5 px-2">Student & Center</th>
                               <th className="py-2.5 px-2">Namaz</th>
@@ -1159,7 +1159,7 @@ export default function UnifiedDarsCrmApp() {
                               <th className="py-2.5 px-2 text-right">Final Grade</th>
                             </tr>
                           </thead>
-                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                          <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
                             {students.map((student) => {
                               const starsCount = student.stars.length;
                               const warningsCount = student.warnings.length;
@@ -1171,7 +1171,7 @@ export default function UnifiedDarsCrmApp() {
                                     setAdminSubmenu('students');
                                     alert(`Loaded ${student.name}'s profile in right dossier panel.`);
                                   }}
-                                  className={`cursor-pointer transition ${isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-slate-100/60'}`}
+                                  className={`cursor-pointer transition ${isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}`}
                                 >
                                   <td className="py-3 px-2">
                                     <span className={`font-bold block ${textTitleClass}`}>{student.name}</span>
@@ -1220,7 +1220,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'home' && (
                   <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
                     <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
@@ -1272,7 +1272,9 @@ export default function UnifiedDarsCrmApp() {
                           >
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
-                                <span className="text-[10px] bg-slate-200 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 font-bold px-1.5 py-0.5 rounded uppercase">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                  isDark ? 'bg-neutral-800 text-neutral-300' : 'bg-[#eee4d4] text-stone-800'
+                                }`}>
                                   {student.code}
                                 </span>
                                 <span className="text-[10px] bg-teal-500/10 text-teal-500 font-bold px-1.5 py-0.5 rounded">
@@ -1306,7 +1308,9 @@ export default function UnifiedDarsCrmApp() {
                           >
                             <div>
                               <div className="flex items-center gap-1.5 mb-1">
-                                <span className="text-[10px] bg-slate-200 dark:bg-neutral-800 text-slate-700 dark:text-neutral-300 font-bold px-1.5 py-0.5 rounded uppercase">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                  isDark ? 'bg-neutral-800 text-neutral-300' : 'bg-[#eee4d4] text-stone-800'
+                                }`}>
                                   {member.code}
                                 </span>
                                 <span className="text-[10px] bg-indigo-500/10 text-indigo-500 font-bold px-1.5 py-0.5 rounded uppercase">
@@ -1338,7 +1342,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'centers_list' && (
                   <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
                     <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
@@ -1350,7 +1354,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => setAdminViewMode('home')}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
                         }`}
                       >
                         ← Back Home
@@ -1373,7 +1377,7 @@ export default function UnifiedDarsCrmApp() {
                           <div>
                             <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Malappuram Hifz Academy</h4>
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase ${
-                              isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-slate-100 text-slate-600 border-slate-200'
+                              isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-[#eee4d4] text-stone-700 border-[#dccbb4]'
                             }`}>Code: CTR-02</span>
                           </div>
                         </div>
@@ -1393,14 +1397,14 @@ export default function UnifiedDarsCrmApp() {
                       >
                         <div className="flex items-center gap-4">
                           <div className={`h-10 w-10 rounded-lg border flex items-center justify-center font-extrabold text-sm ${
-                            isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-400' : 'bg-slate-200 border-slate-300 text-slate-700'
+                            isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-400' : 'bg-[#eee4d4] border-[#dccbb4] text-stone-800'
                           }`}>
                             #2
                           </div>
                           <div>
                             <h4 className={`font-bold text-sm group-hover:text-teal-500 transition ${textTitleClass}`}>Al-Noor Central (Calicut)</h4>
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase ${
-                              isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-slate-100 text-slate-600 border-slate-200'
+                              isDark ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-[#eee4d4] text-stone-700 border-[#dccbb4]'
                             }`}>Code: CTR-01</span>
                           </div>
                         </div>
@@ -1417,7 +1421,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'center_detail' && (
                   <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
                     <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
@@ -1429,7 +1433,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => setAdminViewMode('centers_list')}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
                         }`}
                       >
                         ← Back to List
@@ -1457,7 +1461,7 @@ export default function UnifiedDarsCrmApp() {
                           <p className={`text-[10px] mt-1 ${textMutedClass}`}>Local compliance tracking and duty audit logs</p>
                         </div>
                         <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
-                          isDark ? 'border-neutral-800' : 'border-slate-200'
+                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
                         }`}>
                           <span className={`text-[10px] underline group-hover:text-emerald-500 transition ${textMutedClass}`}>View Profile</span>
                           <span className="text-lg font-black text-emerald-500">
@@ -1477,7 +1481,7 @@ export default function UnifiedDarsCrmApp() {
                           <p className={`text-[10px] mt-1 ${textMutedClass}`}>Classroom grading with dynamic class penalties</p>
                         </div>
                         <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
-                          isDark ? 'border-neutral-800' : 'border-slate-200'
+                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
                         }`}>
                           <span className="text-[10px] text-indigo-500 font-bold group-hover:underline">Drill Down List →</span>
                           <span className="text-lg font-black text-indigo-500">
@@ -1497,7 +1501,7 @@ export default function UnifiedDarsCrmApp() {
                           <p className={`text-[10px] mt-1 ${textMutedClass}`}>Average daily chores, hygiene, and namaz parameters</p>
                         </div>
                         <div className={`text-right mt-3 border-t pt-2 flex items-center justify-between ${
-                          isDark ? 'border-neutral-800' : 'border-slate-200'
+                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
                         }`}>
                           <span className="text-[10px] text-teal-500 font-bold group-hover:underline">Drill Down List →</span>
                           <span className="text-lg font-black text-teal-500">
@@ -1514,7 +1518,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'usthad_list' && (
                   <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
                     <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
@@ -1526,7 +1530,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => setAdminViewMode('center_detail')}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
                         }`}
                       >
                         ← Back to Center
@@ -1572,7 +1576,7 @@ export default function UnifiedDarsCrmApp() {
                 {adminViewMode === 'student_list' && (
                   <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
                     <div className={`flex items-center justify-between border-b pb-3 ${
-                      isDark ? 'border-neutral-800' : 'border-slate-200'
+                      isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                     }`}>
                       <div>
                         <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
@@ -1584,7 +1588,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => setAdminViewMode('center_detail')}
                         className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300'
+                          isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700 hover:bg-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4] hover:bg-[#e4d7c3]'
                         }`}
                       >
                         ← Back to Center
@@ -1609,10 +1613,10 @@ export default function UnifiedDarsCrmApp() {
                             <p className={`text-xs ${textMutedClass}`}>{student.batchName} | Card: {student.code}</p>
                             <div className="flex gap-1.5 mt-1">
                               <span className={`text-[9px] px-1.5 rounded ${
-                                isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-slate-200 text-slate-700'
+                                isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-[#eee4d4] text-stone-800'
                               }`}>Juz: {student.memorizedJuz.split(',')[0]}</span>
                               <span className={`text-[9px] px-1.5 rounded ${
-                                isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-slate-200 text-slate-700'
+                                isDark ? 'bg-neutral-900 text-neutral-400' : 'bg-[#eee4d4] text-stone-800'
                               }`}>Attd: {student.attendanceRate}%</span>
                             </div>
                           </div>
@@ -1645,7 +1649,7 @@ export default function UnifiedDarsCrmApp() {
                     {complaints.map(comp => (
                       <div key={comp.id} className={`p-4 rounded-xl space-y-3 border ${innerCardClass}`}>
                         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2 ${
-                          isDark ? 'border-neutral-800' : 'border-slate-200'
+                          isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
                         }`}>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
@@ -1659,7 +1663,7 @@ export default function UnifiedDarsCrmApp() {
                         </div>
 
                         <p className={`text-sm p-3 rounded-lg border leading-relaxed italic ${
-                          isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                          isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-200' : 'bg-[#fffdfa] border-[#e6dfd3] text-stone-800'
                         }`}>
                           &ldquo;{comp.description}&rdquo;
                         </p>
@@ -1699,7 +1703,7 @@ export default function UnifiedDarsCrmApp() {
                                     alert("Resolved by Super Admin. Standard service notes recorded.");
                                   }}
                                   className={`text-xs font-bold px-3 py-1.5 rounded-lg transition border ${
-                                    isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300'
+                                    isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4]'
                                   }`}
                                 >
                                   Resolve Direct
@@ -1720,7 +1724,7 @@ export default function UnifiedDarsCrmApp() {
                 {/* Scholastic Library Verification Portal */}
                 <div className={`rounded-2xl p-5 space-y-4 border ${cardBgClass}`}>
                   <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${
-                    isDark ? 'border-neutral-800' : 'border-slate-200'
+                    isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
                   }`}>
                     <div>
                       <h3 className={`font-bold flex items-center gap-2 ${textTitleClass}`}>
@@ -1738,10 +1742,10 @@ export default function UnifiedDarsCrmApp() {
                           setIsLibraryEnabled(!isLibraryEnabled);
                           alert(isLibraryEnabled ? "Library locked globally." : "Library unlocked. Now visible to students and Usthads.");
                         }}
-                        className={`h-6 w-11 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${isLibraryEnabled ? 'bg-teal-500' : 'bg-slate-400 dark:bg-neutral-700'}`}
+                        className={`h-6 w-11 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${isLibraryEnabled ? 'bg-teal-500' : 'bg-stone-400 dark:bg-neutral-700'}`}
                       >
                         <div className={`h-5 w-5 rounded-full bg-white transition-transform duration-200 flex items-center justify-center ${isLibraryEnabled ? 'transform translate-x-5' : ''}`}>
-                          {isLibraryEnabled ? <Unlock className="h-3 w-3 text-teal-600" /> : <Lock className="h-3 w-3 text-slate-600" />}
+                          {isLibraryEnabled ? <Unlock className="h-3 w-3 text-teal-600" /> : <Lock className="h-3 w-3 text-stone-600" />}
                         </div>
                       </button>
                     </div>
@@ -1765,7 +1769,7 @@ export default function UnifiedDarsCrmApp() {
                 {/* Detailed profile viewer */}
                 <div className={`rounded-2xl p-5 space-y-4 border sticky top-24 ${cardBgClass}`}>
                   <h3 className={`font-bold text-sm border-b pb-3 flex items-center gap-2 ${
-                    isDark ? 'border-neutral-800 text-white' : 'border-slate-200 text-slate-900'
+                    isDark ? 'border-neutral-800 text-white' : 'border-[#e6dfd3] text-stone-900'
                   }`}>
                     <Info className="h-4 w-4 text-teal-500" />
                     Dossier Detail Panel
@@ -1848,7 +1852,7 @@ export default function UnifiedDarsCrmApp() {
                                         alert("Leave request declined. Status updated.");
                                       }}
                                       className={`flex-1 text-rose-500 text-[11px] font-bold py-1 rounded transition border ${
-                                        isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-slate-200 border-slate-300'
+                                        isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
                                       }`}
                                     >
                                       Decline
@@ -1984,7 +1988,7 @@ export default function UnifiedDarsCrmApp() {
                                         alert("Leave request declined.");
                                       }}
                                       className={`flex-1 text-rose-500 text-[11px] font-bold py-1 rounded transition border ${
-                                        isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-slate-200 border-slate-300'
+                                        isDark ? 'bg-neutral-800 border-neutral-700' : 'bg-[#eee4d4] border-[#dccbb4]'
                                       }`}
                                     >
                                       Decline
@@ -2061,7 +2065,7 @@ export default function UnifiedDarsCrmApp() {
           
           {/* Usthad Profile summary bar */}
           <div className={`p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border ${
-            isDark ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200'
+            isDark ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-[#f8f3e8] border-[#ebdccb]'
           }`}>
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center">
@@ -2069,7 +2073,7 @@ export default function UnifiedDarsCrmApp() {
               </div>
               <div>
                 <h2 className={`text-lg font-black ${textTitleClass}`}>Teacher Center Panel: Usthad Ibrahim Kutty</h2>
-                <p className={`text-xs ${isDark ? 'text-indigo-300' : 'text-indigo-800'}`}>Managing: <strong>Hifz Batch A (4 Students)</strong> | Al-Noor Central (Calicut)</p>
+                <p className={`text-xs ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>Managing: <strong>Hifz Batch A (4 Students)</strong> | Al-Noor Central (Calicut)</p>
               </div>
             </div>
 
@@ -2096,7 +2100,7 @@ export default function UnifiedDarsCrmApp() {
                 className={`w-full text-left p-3.5 rounded-xl border font-bold text-sm flex items-center justify-between transition ${
                   selectedClassTab === 'tarbiyyah_logs' 
                     ? 'bg-indigo-500/10 border-indigo-500 text-indigo-500' 
-                    : `${cardBgClass} hover:border-slate-400 ${textTitleClass}`
+                    : `${cardBgClass} hover:border-[#c5b8a5] ${textTitleClass}`
                 }`}
               >
                 <span className="flex items-center gap-2"><ClipboardList className="h-4.5 w-4.5" /> Daily Tarbiyyah Logs</span>
@@ -2108,7 +2112,7 @@ export default function UnifiedDarsCrmApp() {
                 className={`w-full text-left p-3.5 rounded-xl border font-bold text-sm flex items-center justify-between transition ${
                   selectedClassTab === 'behavior_star_warn' 
                     ? 'bg-indigo-500/10 border-indigo-500 text-indigo-500' 
-                    : `${cardBgClass} hover:border-slate-400 ${textTitleClass}`
+                    : `${cardBgClass} hover:border-[#c5b8a5] ${textTitleClass}`
                 }`}
               >
                 <span className="flex items-center gap-2"><Star className="h-4.5 w-4.5" /> Issue Stars & Warnings</span>
@@ -2120,7 +2124,7 @@ export default function UnifiedDarsCrmApp() {
                 className={`w-full text-left p-3.5 rounded-xl border font-bold text-sm flex items-center justify-between transition ${
                   selectedClassTab === 'whatsapp_chat' 
                     ? 'bg-indigo-500/10 border-indigo-500 text-indigo-500' 
-                    : `${cardBgClass} hover:border-slate-400 ${textTitleClass}`
+                    : `${cardBgClass} hover:border-[#c5b8a5] ${textTitleClass}`
                 }`}
               >
                 <span className="flex items-center gap-2"><MessageSquare className="h-4.5 w-4.5" /> Parent WhatsApp Chats</span>
@@ -2132,7 +2136,7 @@ export default function UnifiedDarsCrmApp() {
                 className={`w-full text-left p-3.5 rounded-xl border font-bold text-sm flex items-center justify-between transition ${
                   selectedClassTab === 'library' 
                     ? 'bg-indigo-500/10 border-indigo-500 text-indigo-500' 
-                    : `${cardBgClass} hover:border-slate-400 ${textTitleClass}`
+                    : `${cardBgClass} hover:border-[#c5b8a5] ${textTitleClass}`
                 }`}
               >
                 <span className="flex items-center gap-2"><BookOpen className="h-4.5 w-4.5" /> Hadith Scholastic Library</span>
@@ -2144,7 +2148,7 @@ export default function UnifiedDarsCrmApp() {
                 className={`w-full text-left p-3.5 rounded-xl border font-bold text-sm flex items-center justify-between transition ${
                   selectedClassTab === 'apply_leave' 
                     ? 'bg-indigo-500/10 border-indigo-500 text-indigo-500' 
-                    : `${cardBgClass} hover:border-slate-400 ${textTitleClass}`
+                    : `${cardBgClass} hover:border-[#c5b8a5] ${textTitleClass}`
                 }`}
               >
                 <span className="flex items-center gap-2"><Calendar className="h-4.5 w-4.5" /> Apply for Leave</span>
@@ -2639,7 +2643,7 @@ export default function UnifiedDarsCrmApp() {
           
           {/* Nazim Workspace Header */}
           <div className={`p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border ${
-            isDark ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'
+            isDark ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-[#f8f3e8] border-[#ebdccb]'
           }`}>
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
@@ -2647,7 +2651,7 @@ export default function UnifiedDarsCrmApp() {
               </div>
               <div>
                 <h2 className={`text-lg font-black ${textTitleClass}`}>Branch Management Console: Nazim Faisal</h2>
-                <p className={`text-xs ${isDark ? 'text-emerald-300' : 'text-emerald-800'}`}>Operational Head: <strong>Calicut Center (CTR-01)</strong></p>
+                <p className={`text-xs ${isDark ? 'text-emerald-300' : 'text-emerald-900'}`}>Operational Head: <strong>Calicut Center (CTR-01)</strong></p>
               </div>
             </div>
 
@@ -2702,7 +2706,7 @@ export default function UnifiedDarsCrmApp() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className={`border-b uppercase tracking-wider font-semibold ${
-                        isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                        isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
                       }`}>
                         <th className="py-3 px-2">Staff Details</th>
                         <th className="py-3 px-2">Base Salary</th>
@@ -2713,11 +2717,11 @@ export default function UnifiedDarsCrmApp() {
                         <th className="py-3 px-2 text-right">Action Status</th>
                       </tr>
                     </thead>
-                    <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                    <tbody className={`divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
                       {staff.filter(s => s.centerId === 'ctr_1').map(member => {
                         const netPayable = member.baseSalary - member.advanceTaken;
                         return (
-                          <tr key={member.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-slate-100/60'}>
+                          <tr key={member.id} className={isDark ? 'hover:bg-neutral-900/50' : 'hover:bg-[#f6f0e4]/80'}>
                             <td className="py-4 px-2">
                               <span className={`font-bold block ${textTitleClass}`}>{member.name}</span>
                               <span className={`text-[10px] uppercase ${textMutedClass}`}>{member.role} ({member.code})</span>
@@ -2784,7 +2788,7 @@ export default function UnifiedDarsCrmApp() {
                         alert("Cook marked as returned. Contingency feeding system stood down.");
                       }}
                       className={`text-xs font-bold py-1.5 px-3 rounded-lg transition border ${
-                        isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700' : 'bg-slate-200 text-slate-800 border-slate-300'
+                        isDark ? 'bg-neutral-800 text-neutral-200 border-neutral-700' : 'bg-[#eee4d4] text-stone-800 border-[#dccbb4]'
                       }`}
                     >
                       Clear Leave (Cook Returned)
@@ -2867,19 +2871,19 @@ export default function UnifiedDarsCrmApp() {
                 <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 rounded-xl border overflow-hidden min-h-[350px] ${innerCardClass}`}>
                   
                   {/* Left list unrecognized */}
-                  <div className={`border-r flex flex-col ${isDark ? 'border-neutral-800' : 'border-slate-200'}`}>
+                  <div className={`border-r flex flex-col ${isDark ? 'border-neutral-800' : 'border-[#ebdccb]'}`}>
                     <div className={`p-3 border-b text-xs font-bold uppercase tracking-wider ${
-                      isDark ? 'border-neutral-800 text-neutral-400' : 'border-slate-200 text-slate-600'
+                      isDark ? 'border-neutral-800 text-neutral-400' : 'border-[#ebdccb] text-stone-600'
                     }`}>
                       Unverified Numbers
                     </div>
-                    <div className={`flex-1 overflow-y-auto divide-y ${isDark ? 'divide-neutral-850' : 'divide-slate-200'}`}>
+                    <div className={`flex-1 overflow-y-auto divide-y ${isDark ? 'divide-neutral-850' : 'divide-[#ebdccb]'}`}>
                       {chats.filter(c => !c.isRecognized).map(chat => (
                         <button
                           key={chat.id}
                           onClick={() => setSelectedUnlinkedChat(chat)}
                           className={`w-full text-left p-3.5 flex justify-between items-center transition ${
-                            selectedUnlinkedChat?.id === chat.id ? 'bg-emerald-500/10' : 'hover:bg-slate-100 dark:hover:bg-neutral-900/60'
+                            selectedUnlinkedChat?.id === chat.id ? 'bg-emerald-500/10' : 'hover:bg-[#f6f0e4]/80'
                           }`}
                         >
                           <div>
@@ -2899,7 +2903,7 @@ export default function UnifiedDarsCrmApp() {
                     {selectedUnlinkedChat ? (
                       <>
                         <div className={`p-3 border-b flex items-center justify-between ${
-                          isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-slate-100 border-slate-200'
+                          isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-[#eee4d4] border-[#dccbb4]'
                         }`}>
                           <div>
                             <span className={`font-bold text-xs block ${textTitleClass}`}>{selectedUnlinkedChat.parentPhone}</span>
@@ -2952,7 +2956,7 @@ export default function UnifiedDarsCrmApp() {
 
                         {/* Send box */}
                         <div className={`p-3 border-t flex items-center gap-2 ${
-                          isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-slate-100 border-slate-200'
+                          isDark ? 'bg-neutral-950 border-neutral-800' : 'bg-[#eee4d4] border-[#dccbb4]'
                         }`}>
                           <input 
                             type="text"
@@ -2993,7 +2997,7 @@ export default function UnifiedDarsCrmApp() {
                   {kitchenStock.map((item, idx) => (
                     <div key={idx} className={`p-4 rounded-xl border space-y-3 ${innerCardClass}`}>
                       <div className={`flex justify-between items-center border-b pb-2 ${
-                        isDark ? 'border-neutral-800' : 'border-slate-200'
+                        isDark ? 'border-neutral-800' : 'border-[#ebdccb]'
                       }`}>
                         <strong className={`text-sm ${textTitleClass}`}>{item.item}</strong>
                         <span className={`text-[10px] ${textMutedClass}`}>{item.lastUpdated}</span>
@@ -3012,7 +3016,7 @@ export default function UnifiedDarsCrmApp() {
                       <button 
                         onClick={() => alert(`Purchase Order of ${item.neededQuantity} generated for ${item.item}!`)}
                         className={`w-full text-[11px] font-bold py-1.5 rounded transition border ${
-                          isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-200 hover:bg-neutral-800' : 'bg-slate-100 border-slate-200 text-slate-800 hover:bg-slate-200'
+                          isDark ? 'bg-neutral-900 border-neutral-800 text-neutral-200 hover:bg-neutral-800' : 'bg-[#eee4d4] border-[#dccbb4] text-stone-800 hover:bg-[#e4d7c3]'
                         }`}
                       >
                         Generate Purchase Order
@@ -3128,7 +3132,7 @@ export default function UnifiedDarsCrmApp() {
               
               {/* Card Header */}
               <div className={`flex justify-between items-start border-b pb-4 ${
-                isDark ? 'border-neutral-800' : 'border-slate-200'
+                isDark ? 'border-neutral-800' : 'border-[#e6dfd3]'
               }`}>
                 <div>
                   <h3 className={`text-base font-black ${textTitleClass}`}>{loggedInKioskStudent.name}</h3>
@@ -3162,9 +3166,9 @@ export default function UnifiedDarsCrmApp() {
                       { category: "Study", score: loggedInKioskStudent.overallScore - 10 },
                       { category: "Chores", score: loggedInKioskStudent.overallScore + 10 }
                     ]}>
-                      <PolarGrid stroke={isDark ? "#333333" : "#cbd5e1"} />
-                      <PolarAngleAxis dataKey="category" stroke={isDark ? "#a1a1aa" : "#475569"} tick={{ fontSize: 10 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} stroke={isDark ? "#333333" : "#cbd5e1"} tick={{ fontSize: 8 }} />
+                      <PolarGrid stroke={isDark ? "#333333" : "#d3c7b5"} />
+                      <PolarAngleAxis dataKey="category" stroke={isDark ? "#a1a1aa" : "#574e42"} tick={{ fontSize: 10 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} stroke={isDark ? "#333333" : "#d3c7b5"} tick={{ fontSize: 8 }} />
                       <Radar name={loggedInKioskStudent.name} dataKey="score" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.2} />
                     </RadarChart>
                   </ResponsiveContainer>
@@ -3296,7 +3300,7 @@ export default function UnifiedDarsCrmApp() {
 
       {/* Footer copyright */}
       <footer className={`border-t py-4 text-center text-[11px] transition-colors ${
-        isDark ? 'bg-black border-neutral-900 text-neutral-500' : 'bg-slate-100 border-slate-200 text-slate-500'
+        isDark ? 'bg-black border-neutral-900 text-neutral-500' : 'bg-[#f4ebd9] border-[#dfd4c0] text-stone-600'
       }`}>
         © 2026 Digi Dars CRM Multi-tenant Core Hub. All Rights Reserved.
       </footer>
