@@ -50,7 +50,7 @@ export default function DigitalLibraryPage() {
     { label: "Tahajjud / Night Prayer", query: "shalat malam" },
     { label: "Fajr Prayer", query: "fajr" },
     { label: "Fast of Ramadan", query: "fasting ramadan" },
-    { label: "Zakat & Charity", query: "zakat charity" },
+    { label: "Charity & Sadaqah", query: "charity sadaqah" },
     { label: "Adab & Good Manners", query: "good manners adab" }
   ];
 

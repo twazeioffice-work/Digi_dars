@@ -337,7 +337,7 @@ const INITIAL_KITCHEN_STOCK: KitchenStockItem[] = [
 const INCOME_LINE_ITEMS = [
   { id: "TXN-INC-101", category: "Student Tuition & Hifz Fee", source: "Calicut Center (4 Students @ ₹15,000)", amount: 60000, status: "Verified & Deposited", date: "2026-08-01" },
   { id: "TXN-INC-102", category: "Student Tuition & Hifz Fee", source: "Malappuram Hifz (4 Students @ ₹15,000)", amount: 60000, status: "Verified & Deposited", date: "2026-08-02" },
-  { id: "TXN-INC-103", category: "Zakat Institutional Grant", source: "Al-Amanah Educational Foundation Trust", amount: 30000, status: "Bank Wire Cleared", date: "2026-08-05" },
+  { id: "TXN-INC-103", category: "Institutional Grant", source: "Al-Amanah Educational Foundation Trust", amount: 30000, status: "Bank Wire Cleared", date: "2026-08-05" },
   { id: "TXN-INC-104", category: "Community Sadaqah Drive", source: "Calicut Masjid Juma Collection Drive", amount: 15000, status: "Cash Deposited", date: "2026-08-08" },
   { id: "TXN-INC-105", category: "Hostel Meal Subscriptions", source: "Hostel Boarding Fee (8 Boarding Students)", amount: 20000, status: "Collected", date: "2026-08-10" },
 ];
@@ -1457,7 +1457,7 @@ export default function UnifiedDarsCrmApp() {
                             <DollarSign className="h-5 w-5" />
                             Monthly Income Audit Ledger (₹1,85,000 Total)
                           </h3>
-                          <p className={`text-xs ${textMutedClass}`}>Itemized breakdown of all tuition collections, Zakat grants, and boarding fees tracked to the last point.</p>
+                          <p className={`text-xs ${textMutedClass}`}>Itemized breakdown of all tuition collections, institutional grants, and boarding fees tracked to the last point.</p>
                         </div>
                         <button 
                           onClick={() => setAdminViewMode('home')}
@@ -1477,7 +1477,7 @@ export default function UnifiedDarsCrmApp() {
                           <span className={`text-[10px] ${textMutedClass}`}>8 Students @ ₹15,000</span>
                         </div>
                         <div className={`p-3.5 rounded-xl border ${innerCardClass}`}>
-                          <span className={`block font-semibold ${textMutedClass}`}>Zakat & Sadaqah Grants</span>
+                          <span className={`block font-semibold ${textMutedClass}`}>Educational & Donor Grants</span>
                           <strong className="text-base text-emerald-500 block mt-0.5">₹45,000</strong>
                           <span className={`text-[10px] ${textMutedClass}`}>2 Verified Donor Grants</span>
                         </div>

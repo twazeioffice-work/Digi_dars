@@ -221,7 +221,7 @@ export default function SuperAdminStudentsPage() {
                 <th className="px-6 py-4">Emergency Contact</th>
                 <th className="px-6 py-4">Address</th>
                 <th className="px-6 py-4">Center</th>
-                <th className="px-6 py-4">Zakat Eligible</th>
+                <th className="px-6 py-4">Financial Aid Status</th>
                 <th className="px-6 py-4">Govt ID Proof</th>
               </tr>
             </thead>
@@ -432,7 +432,7 @@ export default function SuperAdminStudentsPage() {
                   onChange={(e) => setForm({ ...form, is_zakat_eligible: e.target.checked })}
                 />
                 <label htmlFor="zakat_eligible" className="text-xs text-slate-700 font-medium cursor-pointer">
-                  Mark as Zakat Eligible (Verified for financial support)
+                  Mark for Financial Aid / Stipend Support
                 </label>
               </div>
 

@@ -22,7 +22,7 @@ class CategoryResponseWrapper(BaseModel):
 
 class ExpenseCreate(BaseModel):
     category_id: Optional[Union[UUID, str]] = None
-    fund_type: Optional[str] = "ZAKAT"
+    fund_type: Optional[str] = "GENERAL"
     category_name: Optional[str] = "STIPEND"
     amount: float = Field(..., gt=0, description="Amount must be greater than zero")
     description: str
@@ -38,7 +38,7 @@ class ExpenseTransactionCreate(ExpenseCreate):
 
 class IncomeTransactionCreate(BaseModel):
     category_id: Optional[Union[UUID, str]] = None
-    fund_type: Optional[str] = "ZAKAT"
+    fund_type: Optional[str] = "GENERAL"
     category_name: Optional[str] = "DONATION"
     amount: float = Field(..., gt=0, description="Amount must be greater than zero")
     description: str

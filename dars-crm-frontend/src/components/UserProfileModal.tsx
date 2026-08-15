@@ -293,7 +293,7 @@ export default function UserProfileModal({ userId, onClose, onUpdate }: UserProf
 
                 {isZakat !== undefined && (
                   <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
-                    <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide mb-1">Zakat Eligibility</p>
+                    <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide mb-1">Financial Aid Status</p>
                     {isZakat ? (
                       <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800">
                         <HeartHandshake className="h-4 w-4 text-emerald-600" /> Eligible for Financial Assistance

@@ -126,7 +126,7 @@ export default function SuperAdminPage() {
             <Building2 className="h-8 w-8 text-emerald-600" /> Super Admin Global Dashboard
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Complete multi-tenant center management, Nazim onboarding, and global Zakat financial control right on this page.
+            Complete multi-tenant center management, Nazim onboarding, and global financial control right on this page.
           </p>
         </div>
 
@@ -163,9 +163,9 @@ export default function SuperAdminPage() {
 
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Global Zakat Collected</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Global Financial Revenue</p>
             <p className="text-3xl font-black text-emerald-600 mt-1">₹{totalZakatCollected.toLocaleString()}</p>
-            <p className="text-xs text-slate-400 mt-1">Cross-tenant Zakat audit ledger</p>
+            <p className="text-xs text-slate-400 mt-1">Cross-tenant financial audit ledger</p>
           </div>
           <div className="p-3.5 bg-emerald-50 rounded-xl text-emerald-600">
             <DollarSign className="h-6 w-6" />
@@ -345,7 +345,7 @@ export default function SuperAdminPage() {
         {/* CENTER LEDGER RECHARTS BAR CHART */}
         {zakatStats?.centers_breakdown && zakatStats.centers_breakdown.length > 0 && (
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-base font-extrabold text-slate-900">Center-by-Center Zakat Audit Breakdown</h3>
+            <h3 className="text-base font-extrabold text-slate-900">Center-by-Center Financial Audit Breakdown</h3>
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={zakatStats.centers_breakdown}>
@@ -378,7 +378,7 @@ export default function SuperAdminPage() {
               type="text"
               value={aiQuestion}
               onChange={(e) => setAiQuestion(e.target.value)}
-              placeholder="e.g., How much Zakat was collected across all centers this month?"
+              placeholder="e.g., How much revenue was collected across all centers this month?"
               className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-amber-400"
             />
             <button

@@ -286,7 +286,7 @@ export default function NazimDashboard() {
 
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Zakat Eligible</p>
+            <p className="text-sm font-medium text-gray-500">Stipend / Aid Eligible</p>
             <p className="text-2xl font-bold text-emerald-600">{data?.zakat_eligible_count || 0}</p>
           </div>
           <div className="p-3 bg-emerald-50 rounded-lg">
@@ -487,7 +487,7 @@ export default function NazimDashboard() {
                   onChange={(e) => setStudentForm({ ...studentForm, is_zakat_eligible: e.target.checked })}
                 />
                 <label htmlFor="zakat_check" className="text-xs font-semibold text-emerald-900 cursor-pointer">
-                  Zakat Eligible (Entitled to financial aid / stipend)
+                  Financial Aid / Stipend Eligible (Entitled to financial aid / stipend)
                 </label>
               </div>
 

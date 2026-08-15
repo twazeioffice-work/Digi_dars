@@ -223,23 +223,23 @@ def execute_text_to_sql_service(db: Session, question: str) -> TextToSqlResponse
             generated_sql = re.sub(r"^```sql\s*|\s*```$", "", generated_sql, flags=re.IGNORECASE).strip()
         except Exception:
             generated_sql = (
-                "SELECT c.name AS center_name, SUM(t.amount) AS total_zakat "
+                "SELECT c.name AS center_name, SUM(t.amount) AS total_revenue "
                 "FROM transactions t "
                 "JOIN centers c ON t.center_id = c.id "
                 "JOIN finance_categories f ON t.category_id = f.id "
-                "WHERE f.fund_type = 'ZAKAT' AND t.type = 'CREDIT' "
+                "WHERE t.type = 'CREDIT' "
                 "GROUP BY c.name "
-                "ORDER BY total_zakat DESC LIMIT 1;"
+                "ORDER BY total_revenue DESC LIMIT 1;"
             )
     else:
         generated_sql = (
-            "SELECT c.name AS center_name, SUM(t.amount) AS total_zakat "
+            "SELECT c.name AS center_name, SUM(t.amount) AS total_revenue "
             "FROM transactions t "
             "JOIN centers c ON t.center_id = c.id "
             "JOIN finance_categories f ON t.category_id = f.id "
-            "WHERE f.fund_type = 'ZAKAT' AND t.type = 'CREDIT' "
+            "WHERE t.type = 'CREDIT' "
             "GROUP BY c.name "
-            "ORDER BY total_zakat DESC LIMIT 1;"
+            "ORDER BY total_revenue DESC LIMIT 1;"
         )
 
     if any(kw in generated_sql.lower() for kw in forbidden_keywords):
@@ -269,12 +269,12 @@ def execute_text_to_sql_service(db: Session, question: str) -> TextToSqlResponse
             ai_summary = sum_response.choices[0].message.content.strip()
         except Exception:
             c_name = raw_data[0].get("center_name", "Primary Dars Center") if raw_data else "Comm Dars Center"
-            amt = raw_data[0].get("total_zakat", 45000.0) if raw_data else 45000.0
-            ai_summary = f"{c_name} collected the highest Zakat expenditure/funds, totaling ₹{amt:,.2f}."
+            amt = raw_data[0].get("total_revenue", 45000.0) if raw_data else 45000.0
+            ai_summary = f"{c_name} collected the highest operational/institutional funds, totaling ₹{amt:,.2f}."
     else:
         c_name = raw_data[0].get("center_name", "Primary Dars Center") if raw_data else "Comm Dars Center"
-        amt = raw_data[0].get("total_zakat", 45000.0) if raw_data else 45000.0
-        ai_summary = f"{c_name} collected the highest Zakat expenditure/funds, totaling ₹{amt:,.2f}."
+        amt = raw_data[0].get("total_revenue", 45000.0) if raw_data else 45000.0
+        ai_summary = f"{c_name} collected the highest operational/institutional funds, totaling ₹{amt:,.2f}."
 
     return TextToSqlResponse(
         question=question_clean,

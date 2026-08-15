@@ -42,7 +42,7 @@ const getErrorMessage = (err: any, fallback: string) => {
   return fallback;
 };
 
-export default function ZakatFinancePage() {
+export default function NazimFinancePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalCollected, setTotalCollected] = useState(0);
   const [totalDisbursed, setTotalDisbursed] = useState(0);
@@ -58,7 +58,7 @@ export default function ZakatFinancePage() {
   // Form State
   const [form, setForm] = useState({
     amount: "",
-    fund_type: "ZAKAT",
+    fund_type: "GENERAL",
     category_name: "STIPEND",
     description: "",
     student_id: "",
@@ -158,7 +158,7 @@ export default function ZakatFinancePage() {
       setShowModal(false);
       setForm({
         amount: "",
-        fund_type: "ZAKAT",
+        fund_type: "GENERAL",
         category_name: "STIPEND",
         description: "",
         student_id: "",
@@ -176,13 +176,13 @@ export default function ZakatFinancePage() {
   };
 
   return (
-    <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 bg-gray-50 min-h-screen">
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Zakat & Finance Ledger</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Financial Ledger & Audit</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Audit-ready financial ledger with complete Giver & Recipient records for Zakat & general funds
+            Audit-ready financial ledger with complete Giver & Recipient records for operational and institutional funds
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export default function ZakatFinancePage() {
               setTxType("INCOME");
               setForm({
                 amount: "",
-                fund_type: "ZAKAT",
+                fund_type: "GENERAL",
                 category_name: "DONATION",
                 description: "",
                 student_id: "",
@@ -212,7 +212,7 @@ export default function ZakatFinancePage() {
               setTxType("EXPENSE");
               setForm({
                 amount: "",
-                fund_type: "ZAKAT",
+                fund_type: "GENERAL",
                 category_name: "STIPEND",
                 description: "",
                 student_id: "",
@@ -234,7 +234,7 @@ export default function ZakatFinancePage() {
       <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs rounded-xl font-medium flex items-center gap-2">
         <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
         <span>
-          <strong>Zakat Compliance Active:</strong> Every transaction logs verified <strong>Giver (Donor)</strong> contact details for collections, and verified <strong>Receiver (Beneficiary Student/Recipient)</strong> details for disbursements.
+          <strong>Audit Compliance Active:</strong> Every transaction logs verified <strong>Giver (Donor)</strong> contact details for collections, and verified <strong>Receiver (Beneficiary Student/Recipient)</strong> details for disbursements.
         </span>
       </div>
 
@@ -317,7 +317,7 @@ export default function ZakatFinancePage() {
                   // Giver Person
                   const giverName = isCredit
                     ? (t.donor_name || "General Donor")
-                    : "Center Zakat Fund";
+                    : "Center Operational Fund";
                   const giverPhone = isCredit ? t.donor_phone : undefined;
 
                   // Receiver Person
@@ -336,7 +336,7 @@ export default function ZakatFinancePage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-semibold text-gray-900">{t.fund_type || "ZAKAT"}</span>
+                        <span className="font-semibold text-gray-900">{t.fund_type || "GENERAL"}</span>
                         {t.category_name && <span className="text-xs text-gray-400 block">{t.category_name}</span>}
                       </td>
                       <td className="px-6 py-4 text-xs font-medium text-slate-700">
@@ -415,9 +415,9 @@ export default function ZakatFinancePage() {
                     value={form.fund_type}
                     onChange={(e) => setForm({ ...form, fund_type: e.target.value })}
                   >
-                    <option value="ZAKAT">Zakat Fund</option>
-                    <option value="SADAQAH">Sadaqah / General Charity</option>
                     <option value="GENERAL">General Operational Fund</option>
+                    <option value="SADAQAH">Sadaqah / General Charity</option>
+                    <option value="TUITION">Tuition & Educational Fee</option>
                   </select>
                 </div>
 
@@ -525,7 +525,7 @@ export default function ZakatFinancePage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Monthly Zakat contribution / Medical Aid support"
+                  placeholder="e.g. Monthly tuition stipend / Educational aid support"
                   className="w-full p-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}

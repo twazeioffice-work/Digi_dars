@@ -671,7 +671,7 @@ export default function GlobalLeaderboardPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Monthly Zakat Audit & Student Verification"
+                  placeholder="e.g. Monthly Financial Audit & Student Verification"
                   className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                   value={dutyForm.title}
                   onChange={(e) => setDutyForm({ ...dutyForm, title: e.target.value })}

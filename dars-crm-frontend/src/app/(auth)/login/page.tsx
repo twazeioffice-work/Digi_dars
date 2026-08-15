@@ -85,7 +85,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-400">
-          Enforcing Row-Level Security & Zakat Compliance
+          Enforcing Multi-Tenant Row-Level Security & Audit Ledger
         </div>
       </div>
     </div>

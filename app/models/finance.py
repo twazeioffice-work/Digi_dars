@@ -9,11 +9,13 @@ class TransactionType(str, enum.Enum):
     DEBIT = "DEBIT"
 
 class FundCategory(str, enum.Enum):
-    ZAKAT = "ZAKAT"
+    GENERAL = "GENERAL"
+    TUITION = "TUITION"
     SADAQAH = "SADAQAH"
     LILLAH = "LILLAH"
     WAQF = "WAQF"
     GENERAL_FEE = "GENERAL_FEE"
+    ZAKAT = "ZAKAT"
 
 class FinanceCategory(TenantBase):
     __tablename__ = "finance_categories"

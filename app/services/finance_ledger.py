@@ -155,17 +155,6 @@ def record_expense(db: Session, center_id: str, user_id: str, payload: Union[Exp
 
     category = _resolve_or_create_category(db, t_id, payload)
 
-    # RELIGIOUS COMPLIANCE & ZAKAT ELIGIBILITY CHECK
-    target_fund_type = getattr(payload, "fund_type", None) or category.fund_type
-    if target_fund_type == FundCategory.ZAKAT.value:
-        if payload.student_id:
-            student_profile = db.query(StudentProfile).filter(StudentProfile.user_id == str(payload.student_id)).first()
-            if not student_profile or not student_profile.is_zakat_eligible:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Religious Compliance Violation: This recipient student is not marked as Zakat-eligible."
-                )
-
     rec_name = getattr(payload, "recipient_name", None)
     rec_phone = getattr(payload, "recipient_phone", None)
 
@@ -267,8 +256,6 @@ def get_global_zakat_stats_service(db: Session) -> GlobalZakatStatsResponse:
         FinanceTransaction, FinanceTransaction.center_id == Center.id
     ).join(
         FinanceCategory, FinanceTransaction.category_id == FinanceCategory.id
-    ).filter(
-        FinanceCategory.fund_type == FundCategory.ZAKAT.value
     ).group_by(
         Center.id, Center.name, FinanceTransaction.type
     ).all()

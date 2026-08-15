@@ -23,7 +23,7 @@ export default function NazimLayout({ children }: { children: React.ReactNode })
     { href: '/nazim', label: '📊 Center Overview' },
     { href: '/nazim/ustads', label: '👳‍♂️ Manage Ustads' },
     { href: '/nazim/students', label: '🎓 Manage Students' },
-    { href: '/nazim/finance', label: '💰 Zakat & Finance Ledger' },
+    { href: '/nazim/finance', label: '💰 Financial Ledger & Audit' },
     { href: '/nazim/whatsapp', label: '💬 WhatsApp Triaging' },
     { href: '/nazim/complaints', label: '📩 Complaints Inbox' },
     { href: '/nazim/kitchen', label: '🍳 Kitchen Headcounts' },

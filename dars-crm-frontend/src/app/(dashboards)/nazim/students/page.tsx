@@ -254,7 +254,7 @@ export default function NazimStudentsPage() {
                 <th className="px-6 py-4">Assigned Batch / Halqa</th>
                 <th className="px-6 py-4">Parent Contact</th>
                 <th className="px-6 py-4">Emergency Contact</th>
-                <th className="px-6 py-4">Zakat Eligible</th>
+                <th className="px-6 py-4">Financial Aid Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -503,7 +503,7 @@ export default function NazimStudentsPage() {
                   onChange={(e) => setForm({ ...form, is_zakat_eligible: e.target.checked })}
                 />
                 <label htmlFor="zakat_eligible_nazim" className="text-xs text-slate-700 font-medium cursor-pointer">
-                  Mark as Zakat Eligible (Verified for financial support)
+                  Mark for Financial Aid / Stipend Support
                 </label>
               </div>
 
