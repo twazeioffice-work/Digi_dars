@@ -2,12 +2,19 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
     const protocol = window.location.protocol;
-    return `${protocol}//${host}:8001/api/v1`;
+    const port = window.location.port;
+    if (port === '3000') {
+      return `${protocol}//${host}:8000/api/v1`;
+    }
+    return `${protocol}//${host}${port ? `:${port}` : ''}/api/v1`;
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+  return 'http://localhost:8000/api/v1';
 };
 
 const api = axios.create({
@@ -17,13 +24,11 @@ const api = axios.create({
   },
 });
 
-// 1. Request Interceptor: Attach JWT token and enforce dynamic hostname:8001 API target
+// 1. Request Interceptor: Attach JWT token and set dynamic API target
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      const protocol = window.location.protocol;
-      config.baseURL = `${protocol}//${host}:8001/api/v1`;
+      config.baseURL = getBaseUrl();
     }
     const token = Cookies.get('dars_auth_token');
     if (token && config.headers) {
@@ -53,7 +58,7 @@ api.interceptors.response.use(
       }
     }
     
-    // Handle 403 Forbidden (e.g., Zakat compliance or Super Admin escalation violation)
+    // Handle 403 Forbidden
     if (error.response?.status === 403) {
       console.error("Permission Denied: ", error.response.data?.detail || error.response.data?.message);
     }
