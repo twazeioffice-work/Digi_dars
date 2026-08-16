@@ -2,13 +2,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Any, Dict
 import jwt
 import bcrypt
-from passlib.context import CryptContext
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def get_password_hash(password: str) -> str:
-    """Hashes a plain-text password using bcrypt directly to avoid passlib wrap-bug check on Python 3.14."""
+    """Hashes a plain-text password using bcrypt directly."""
     pwd_bytes = password.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
