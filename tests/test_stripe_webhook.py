@@ -15,6 +15,12 @@ def test_stripe_webhook_missing_signature():
 def test_stripe_webhook_checkout_completed():
     db_session = next(get_db())
     center = db_session.query(Center).first()
+    if not center:
+        center = Center(name="Stripe Test Center", code="STRIPE_01")
+        db_session.add(center)
+        db_session.commit()
+        db_session.refresh(center)
+
     assert center is not None
 
     payload = {
@@ -31,7 +37,7 @@ def test_stripe_webhook_checkout_completed():
                 "metadata": {
                     "center_id": center.id,
                     "student_id": "student-uuid-123",
-                    "fund_type": FundCategory.ZAKAT.value
+                    "fund_type": FundCategory.GENERAL.value
                 }
             }
         }

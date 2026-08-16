@@ -3,7 +3,7 @@ from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import get_db
-from app.models.auth import User
+from app.models.auth import User, Center
 from app.models.enums import UserRole
 
 client = TestClient(app)
@@ -56,11 +56,17 @@ def test_receive_whatsapp_message_unregistered(mock_send):
 @patch("app.services.whatsapp_service.send_whatsapp_message", new_callable=AsyncMock)
 def test_receive_whatsapp_message_registered_parent(mock_send):
     db_session = next(get_db())
-    # Create or update parent user with phone +919876543210
+    center = db_session.query(Center).first()
+    if not center:
+        center = Center(name="WhatsApp Test Center", code="WA_01")
+        db_session.add(center)
+        db_session.commit()
+        db_session.refresh(center)
+
     parent = db_session.query(User).filter(User.phone == "+919876543210").first()
     if not parent:
         parent = User(
-            center_id="center-wa-test",
+            center_id=center.id,
             role=UserRole.PARENT.value,
             full_name="Tariq Ahmad",
             phone="+919876543210",

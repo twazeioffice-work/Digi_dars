@@ -222,5 +222,9 @@ def run_e2e_test_suite():
     finally:
         db.close()
 
+def test_e2e_integration_suite():
+    run_e2e_test_suite()
+
 if __name__ == "__main__":
     run_e2e_test_suite()
+
