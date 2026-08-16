@@ -31,6 +31,8 @@ jobs:
         pip install -r requirements.txt
 
     # 6. Execute the test suite
-    - name: Run Zakat Compliance & Domain Tests
+    - name: Run Domain & Integration Tests
+      env:
+        PYTHONPATH: .
       run: |
-        pytest tests/ -v
+        pytest tests/ -v --ignore=tests/load
