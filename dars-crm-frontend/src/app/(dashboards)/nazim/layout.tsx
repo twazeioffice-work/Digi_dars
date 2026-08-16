@@ -50,7 +50,7 @@ export default function NazimLayout({ children }: { children: React.ReactNode })
             )}
           </button>
           <div>
-            <h2 className="font-black text-lg text-emerald-400 tracking-tight leading-tight">Digi Dars</h2>
+            <h2 className="font-black text-lg text-emerald-400 tracking-tight leading-tight" style={{ fontFamily: '"Arial Black", Gadget, sans-serif' }}>Suffathul Huffaaz</h2>
             <p className="text-[10px] text-slate-400">Masjid Nazim Portal</p>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function NazimLayout({ children }: { children: React.ReactNode })
         theme === 'dark' ? 'bg-neutral-950 text-white border-neutral-800' : 'bg-slate-900 text-white border-slate-800'
       }`}>
         <div className="p-5 border-b border-slate-800/80">
-          <h2 className="font-black text-xl text-emerald-400 tracking-tight">Digi Dars</h2>
+          <h2 className="font-black text-xl text-emerald-400 tracking-tight" style={{ fontFamily: '"Arial Black", Gadget, sans-serif' }}>Suffathul Huffaaz</h2>
           <p className="text-xs text-slate-400 mt-0.5">Masjid Nazim Portal</p>
         </div>
 

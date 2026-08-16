@@ -56,7 +56,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             )}
           </button>
           <div>
-            <h2 className="font-black text-lg text-emerald-400 tracking-tight leading-tight">Digi Dars HQ</h2>
+            <h2 className="font-black text-lg text-emerald-400 tracking-tight leading-tight" style={{ fontFamily: '"Arial Black", Gadget, sans-serif' }}>Suffathul Huffaaz HQ</h2>
             <p className="text-[10px] text-slate-400">Super Admin Portal</p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       }`}>
         <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-xl text-emerald-400 tracking-tight">Digi Dars HQ</h2>
+            <h2 className="font-black text-xl text-emerald-400 tracking-tight" style={{ fontFamily: '"Arial Black", Gadget, sans-serif' }}>Suffathul Huffaaz HQ</h2>
             <p className="text-xs text-slate-400 mt-0.5">Super Admin Portal</p>
           </div>
         </div>

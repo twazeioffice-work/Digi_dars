@@ -24,7 +24,7 @@ export const AppContent: React.FC = () => {
         <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-black tracking-tight text-emerald-400">Digi Dars</span>
+              <span className="text-2xl font-black tracking-tight text-emerald-400" style={{ fontFamily: '"Arial Black", Gadget, sans-serif' }}>Suffathul Huffaaz</span>
               <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 font-mono">
                 Academic & Tarbiyyah Platform
               </span>

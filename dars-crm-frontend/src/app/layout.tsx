@@ -15,7 +15,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Digi Dars CRM - Academic & Tarbiyyah Platform',
+  title: 'Suffathul Huffaaz CRM - Academic & Tarbiyyah Platform',
   description: 'Enterprise Islamic Education & Masjid Management Platform',
 };
 

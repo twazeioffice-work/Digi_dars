@@ -266,10 +266,10 @@ export default function StudentKioskPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 bg-emerald-500 rounded-xl flex items-center justify-center text-slate-950 font-black text-xl flex-shrink-0">
-              D
+              S
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-extrabold text-white">Digi Dars Kiosk Terminal</h1>
+              <h1 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: '"Arial Black", Gadget, sans-serif' }}>Suffathul Huffaaz Kiosk Terminal</h1>
               <p className="text-xs text-slate-400">Masjid Umar Dars • Shared Touchscreen Terminal</p>
             </div>
           </div>
@@ -358,7 +358,7 @@ export default function StudentKioskPage() {
 
         {/* KIOSK FOOTER */}
         <div className="text-center text-xs text-slate-500 font-mono">
-          Digi Dars Kiosk v2.0
+          Suffathul Huffaaz Kiosk v2.0
         </div>
       </div>
     );
@@ -662,7 +662,7 @@ export default function StudentKioskPage() {
 
       {/* KIOSK FOOTER */}
       <div className="text-center text-xs text-slate-500 font-mono">
-        Digi Dars Kiosk Terminal
+        Suffathul Huffaaz Kiosk Terminal
       </div>
     </div>
   );

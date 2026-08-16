@@ -46,7 +46,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Digi Dars</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight" style={{ fontFamily: '"Arial Black", Gadget, sans-serif' }}>Suffathul Huffaaz</h1>
           <p className="text-xs text-slate-500 mt-1">Academic & Tarbiyyah Management Platform</p>
         </div>
 
